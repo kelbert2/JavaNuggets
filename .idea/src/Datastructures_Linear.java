@@ -321,7 +321,7 @@ public class Datastructures_Linear {
         Object get() {
             return myItem;
         }
-        Node next() {
+        Node next() {v
             return next;
         }
     }
