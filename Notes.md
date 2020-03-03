@@ -1,8 +1,9 @@
 
-# Data Types
+# Primitive Data Types
 ## Boolean
 Stores either `true` or `false`.
-## Numeric
+## Byte
+
 | Data Type |	Maximum Value |	Minimum Value|
 |-----------|:-----------------:|--------------:|
 |int |	2,147,483,647 |	- 2,147,483,648|
@@ -18,28 +19,102 @@ End with ‘\0’
 * `Integer.parseInt(str)`
 * `Integer.valueOf(str)`
 * `.split(“ “)`, also takes `\regex\`
+* `.toCharArray()`
+
+### Comparison
+* Positive if string1 follows argument string2 
+  * > c > b, a > A, returns difference at index where they differ
+* Zero if both strings are equal
+* Negative if string1 Object precedes argument string2 
+  * > c is shorter than cc, returns difference in lengths
+
+```Java
+int res = string1.compareTo(string2);
+int resNoCase = first.compareToIgnoreCase(second);
+```
 
 ### Substring
-[start, end)
-Modifiable String with string buffer
+[start, end) - includes start, excludes char at index end
 
 ```Java
 og.substring(int startIndex, int endIndex);
 ```
+### StringBuffer
+Modifiable String - growable and writable
 
+Functions
+* `.insert(int index, String str or char ch)`: Pushes self in to start at the specified index
+* `.reverse()`: Inline function
+* `.delete(int startIndex, int endIndex)`
+* `.deleteCharAt(int loc)`
+* `.replace(int startIndex, int endIndex, String str)`
+
+Length
+* `.length()`
+* `.setLength(int newLength)`: Truncates or fills with null
+* `.capacity()`: Total allocated
+* `.ensureCapacity(int capacity?)`: Sets capcity to specified number or twice the current + 2, whichever is larger
+* `.trimToSize()`: Attempts to reduce storage used for the character sequence
+
+Strings
+* `.substring(int start, int end?)`
+* `.indexOf(String sub)`: returns index of the first occurance of substring sub
+* `.lastIndexOf(String sub)`
+* `.toString()`
+
+Chars
+* `.charAt(int index)`
+* `.chars()`: Returns a stream of int zero-extending char values of type IntStream
+* `.getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin)`: Copy chars from sequence into destination character array dst
+* `.setCharAt(int index. char ch)`
+* `.subSequence(int start, int end)`: Returns a new CharSequence
+
+Codepoints
+* `.codePointAt(int index)`: Returns the character in int (Unicode code point) at the specified index
+* `.appendCodePoint(int codePoint)`: Uses string representation of codePoint
+* `.codePointBefore(int index)`
+* `.codePointCount(int beginIndex, int endIndex)`: Number of Unicode code points in the specified text range of this sequence
+* `.offsetByCodePoints(int index, int codePointOffset)`: Returns the index within this sequence that is offset from the given index by codePointOffset code points.
+
+```Java
+StringBuffer s = new StringBuffer();
+StringBuffer sSize = new StringBuffer(int size);
+StringBuffer sContents = new StringBuffer("intial content");
+// reserves 16 more characters than initial without reallocation
+```
 ### StringBuilder
-Resizable array of strings, like an ArrayList.
-Else would take O(xn^2) time to concatenate _n_ strings of _x_ length
+Resizable array of strings, like an ArrayList. Automatically increases when needed so capacity > length
+Else would take O(xn<sup>2<sup>) time to concatenate _n_ strings of _x_ length.
+
+```Java
+// creates empty builder, capacity 16
+StringBuilder sb = new StringBuilder();
+// adds 9 character string at beginning
+sb.append("Greetings");
+```
+* `append(Type data)`: data converted to a string before appended.
+* `delete(int start, int end)`: deletes the subsequence from start to end-1 (inclusive).
+* `deleateCharAt(int index)`
+* `insert(int offset, Type dta, int dataOffset?, int dataLength?)`: Index before which data is to be inserted.
+* `replace(int start, int end, String s)`
+
+* `setCharAt(int index, char c)`
+* `reverse()`
+* `setLength(int newLength)`: if newLength < length(), last characters are truncated. If greater, null characters are added at the end.
+* `ensureCapacity(int minCapacity)`
+* `toString()`
 
 ### Compare strings
 * == returns 0, `.equals(str)`, `.equalsIgnoreCase(str)`
 * < 0 if this is shorter than str or the first character that doesn't match is smaller than that of str
   * = 0 if the strings are equal
-  * > 0 if this is longer than str or the first char that doesn't match is > str
+  * &gt; 0 if this is longer than str or the first char that doesn't match is > str
   * lower case letters are 32 greater than uppercase letters a > A
   * later in the alphabet means greater A < Z
 
 ## Enums
+Group of constants.
+
 ```Java
 enum Suit {
         SPADES, HEARTS, DIAMONDS, CLUBS;
@@ -75,6 +150,9 @@ int[][] arrayTwo = new int[][]{
     {4, 5, 6},
 };
 ```
+### Sorting
+Inline function: `Arrays.sort(sortedArray);`
+
 ### Largest continuous subarray sum
 `localMax = Integer.MIN_VALUE` or something less than the range or can be 0 if have a subarray of 0
 Max ending here = 0 maximum up until that point
@@ -98,11 +176,11 @@ overallMax is still 0 if max to point is <0
 * `.isEmpty()`
 * `.contains(element)`
 * `.add(element)`
-* `.addAll(Collection)`
+* `.addAll(Collection)`: Union of two collections
 * `.remove(index or element)`
 * `.removeAll(Collection)`
-* `clear()`
-* `.retainAll(Collection)` Intersection
+* `.clear()`
+* `.retainAll(Collection)`: Intersection between two collections
 * `.equals(Object o);`
 * `.toArray()`
 
@@ -110,18 +188,40 @@ overallMax is still 0 if max to point is <0
 Collection<Type> c;
 List<Type> list = new ArrayList<Type>(collection);
 ```
+#### Iteration
+```Java
+Collection<Type> collection = new HashSet<Type>();
 
-Iterator<E> iterator()
+Iterator<Type> iterator = collection.iterator();
+ 
+while (iterator.hasNext()) {
+    // can read and remove
+    //  moving cursor to next element 
+    Type i = (Type)iterator.next(); 
+  
+    // getting even elements one by one 
+    System.out.println(i + " "); 
+  
+    // Removing odd elements 
+    if (i % 2 != 0) {
+        itr.remove();  
+    }
+}
+
+for (Type t : collection) {
+    // do something
+}
+```
 
 ### Lists
 Best for random access and ordering, indexed
 When reach end, doubles in size
-.get(index)
-.set(index, value)
-.indexOf(value);
-.toArray()
-.clear()
-.sort(Comparator<> c)
+* `.get(index)`
+* `.set(index, value)`
+* `.indexOf(value)`
+* `.toArray()`
+* `.clear()`
+* `.sort(Comparator<Type> c)`
 
 #### Vectors/ ArrayLists
 Dynamically resizable array - when reaching limit, doubles in size. In Java, the resizing factor is 2.
@@ -197,7 +297,7 @@ Stack<Integer> cup = new Stack<Integer>();
 * `.pop()`
 * `.peek()`
 
-Persistent/ Immutable
+### Persistence/ Immutability
 If an item is added or deleted, maintain the previous version and return a new one with the modifications
 ```Java
 class Node() {
@@ -372,17 +472,33 @@ interface BinaryMinHeap { // auto abstract and public
         }
     };
 ```
+## Hash Tables/ Dictionary
+Synchronized and slow - thread safe as only one thread can access and modify at one time.
+Does not allow null for both key and value.
+* `.put(key, value)`
+* `.get(key)`
+
+```Java 
+        Hashtable<Integer, String> top = 
+                      new Hashtable<Integer, String>(int size?, float fillRatio?); 
+```
+> fillRatio is how full the hash table can be before it is resized. Between 0.0 and 1.0.
 
 ## Sets
 Also a type of Collection
 Unordered, no repeats
 * `.size()`
 
-### Hash Tables/ HashSet
-Set<String> hashbrowns = new HashSet<String>();
+### Hashset
+Does not allow duplicate values - maintains a unique list.
 * `.add()`
 * `.remove()`
+* `.contains()`
+```Java
+Set<String> hashbrowns = new HashSet<String>();
+```
 
+#### Iteration
 ```Java
 Iterator<String> iter = hashbrowns.iterator();
 while(iter.hasNext()) {
@@ -408,9 +524,13 @@ Or implement with balanced binary search tree for O(log N) lookup time and a sma
 * need to be immutable so get the same hashcode for the same input
 * null keys map to index 0
 
-### Dictionaries
-
 ### HashMap
+Not syncrhonized - not thread safe.
+> Don't use HashMap in multi-threaded apps because if two threads resize the map, could get an infinite loop in a bucket with a collision.
+Accepts null for key and value.
+
+Keys are objects, so need to use Integer or String to use int and string as keys.
+
 * `.put(key, value)`
 * `.get(key)`
 * `.remove(key, Optional value)`
@@ -423,6 +543,40 @@ Or implement with balanced binary search tree for O(log N) lookup time and a sma
 
 ```Java
 Map<String, Integer> breakfast = new HashMap<String, Integer>();
+```
+##### Thread Safe HashMap
+```Java
+Collections.synchronizedMap(new HashMap<K,V>());
+```
+##### Iteration
+For each loop: 
+for (Type key : set)
+```Java
+for (Map.Entry mapElement : map.entrySet()) { 
+    Type key = (Type)mapElement.getKey(); 
+    Type modifiedValue = ((Type)mapElement.getValue() + 10); 
+    System.out.println(key + " : " + modifiedValue); 
+} 
+```
+
+ForEach Lambda:
+```Java
+        map.forEach((key, value) -> {System.out.println(key + " : " + (value + 10));}); 
+```
+
+Iterate over just keys or values:
+
+Iterator:
+if want to be able to remove while iterating.
+```Java
+ // Getting an iterator 
+Iterator iter = map.entrySet().iterator(); 
+
+while (iter.hasNext()) { 
+    Map.Entry mapElement = (Map.Entry)iter.next(); 
+    Type modifiedValue = ((Type)mapElement.getValue() + 10); 
+    System.out.println(mapElement.getKey() + " : " + modifiedValue); 
+} 
 ```
 
 #### TreeMap
@@ -959,7 +1113,25 @@ Functional interfaces: only one abstract method
     }
 }
 ```
+# Comparator
+Return 
+* -1 if less than, as -1 < 0
+* 0 if equals, as == 0
+* 1 if greater than, as 1 > 0
 
+```Java
+class SortByCustom implements Comparable<Type> {
+    public int compare(Type a, Type b) {
+        // custom sorting method. Example:
+        return (a > b ? 1 : 0) - (a < b ? 1 : 0);
+        // if a is after b, 1 - 0 = 1
+        // if a is equal to b, 0 - 0 = 0
+        // if a is before b, 0 - 1 = -1
+    }
+}
+Collections.sort(ArrayList<Type> ar, new SortByCustom());
+// Now ar is sorted.
+```
 # Input
 ```Java
 void dealingWithInputStreams() throws IOException { // uses specific input stream
@@ -1004,6 +1176,7 @@ void dealingWithInputStreams() throws IOException { // uses specific input strea
 ## Bit Manipulations
 
 ## Memory (Stack vs. Heap)
+```
 ===============     Highest Address (e.g. 0xFFFF)
 |             |
 |    STACK    |
@@ -1017,12 +1190,13 @@ void dealingWithInputStreams() throws IOException { // uses specific input strea
 |    HEAP     |
 |             |
 ===============     Lowest Address  (e.g. 0x0000)
+```
 
 Stack grows down from the top of the memory region
-Return addresses, local variables
+> Return addresses, local variables
 Heap grows up from the bottom of the memory region
-Malloc into heap
-Executable (data?) section also there
+> Malloc into heap. 
+> Executable (data?) section also there
 Threads have own stack space
 
 (?) In x86 architecture, most strings end at higher memory addresses than they started, so if you have a buffer overflow, you’re writing up towards the stack
@@ -1037,22 +1211,27 @@ Frames
 ### Stack smash
 Highest addres 0xFFFF
 
-Stack contains variables into function, in order
-Then return address
-Then frame pointer
-Then the values that the function allocates, in order
-    Let’s call one buffer
+Stack contains 
+* Variables into function, in order
+* Then return address
+* Then frame pointer
+* Then the values that the function allocates, in order
+  > Let’s call one buffer
 
 Lower address 0x0000
+
 Want to change return address
+
 Add more than the size of the buffer to set the return address
+
 `Strcopy` doesn’t check the length of the source, but will just add to destination location byte by byte
 For a user process with multiple threads, kernel won’t know which one violated something and will just quit the entire process
 
 Heartbeat message: server, are you still there? If so, respond “STRING” (# letters)
-    Make sure communication lines are open, and both server and client can read from each other
-Heartbleed exploited this buffer overflow
 
+    Make sure communication lines are open, and both server and client can read from each other
+
+Heartbleed exploited this buffer overflow
 
 ### Dynamic Programming
 Memoization - remember the result of a previous calculation so can avoid having to recalculate.
@@ -1060,10 +1239,12 @@ Memoization - remember the result of a previous calculation so can avoid having 
 # Object-Oriented Programming (OOP)
 Everything is an object that can perform and have functions performs on them, have data associated with them, encourages reusability.
 Objects are specific instances of classes, defined by classes or interfaces.
+
 ### Classes have member variables
-    * Local: declared within the method and only visible there (stack)
-    * Instance variable: declared in the class, outside of methods and constructors (heap dynamically allocated malloc())
-    * Class or static variables: only one copy, shared by all different objects in a class - once declared, not changed - constant = static final
+* Local: declared within the method and only visible there (stack)
+* Instance variable: declared in the class, outside of methods and constructors (heap dynamically allocated malloc())
+* Class or static variables: only one copy, shared by all different objects in a class - once declared, not changed - constant = static final
+
 ### Variable Visibility
 * `public`
 * `protected`: package, subclass
@@ -1075,13 +1256,14 @@ Inheritance of properties: super or base, subclass or derived class
 
 Encapsulation hides implementation
 
-    Bind data and code together as a single unit, safe from modification
-    Private variables, public getters and setters instead
+> Bind data and code together as a single unit, safe from modification.
+> use private variables, public getters and setters instead.
 
 Abstraction: abstract class or interface and then implements
 
-    Abstract cannot be instantiated (can’t create an object of it) - abstract (undefined) or concrete methods (defined)
-    Interface is a blueprint or a contract, telling you what it can do - assigns functions with return values but doesn’t define them: all methods are public abstract
+> Abstract cannot be instantiated (can’t create an object of it) - abstract (undefined) or concrete methods (defined)
+
+Interfaces are a blueprint or a contract, telling you what it can do - assigns functions with return values but doesn’t define them: all methods are public abstract
 
 Polymorphism: variable, method, and objects can take on multiple forms, define one interface or method and implement it in multiple ways
 
