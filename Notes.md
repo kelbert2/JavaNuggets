@@ -13,7 +13,7 @@ Stores either `true` or `false`.
 |short |	32,767 |	-32,768|
 |long |	9,223,372,036,854,775,807 |	-9,223,372,036,854,775,808
 
-## Strings
+## Stringsv
 End with ‘\0’
 * `.length()`
 * `Integer.parseInt(str)`
@@ -217,6 +217,7 @@ for (Type t : collection) {
 Best for random access and ordering, indexed
 When reach end, doubles in size
 * `.get(index)`
+* `.add(index, value)`
 * `.set(index, value)`
 * `.indexOf(value)`
 * `.toArray()`
@@ -1173,7 +1174,90 @@ void dealingWithInputStreams() throws IOException { // uses specific input strea
 
 #### Recurrence Relations
 
-## Bit Manipulations
+## Bit Manipulation
+^ XOR
+
+~ NOT
+
+*2 to the nth power is equivalent to shifting to the left by n
+### Shortcuts
+* x ^ 0s = x
+* x ^ 1s = ~x
+* x ^ x = 0
+* x & 0s = 0
+* x & 1s = x
+* x & x = x
+* x | 0s = x
+* x | 1s = 1s
+* x | x = x
+
+### Background
+Computers store ints in two's complement representation, where negative numbers are represented as the two's complement (flip each bit then add 1 to the entire value) with 1 as the sign bit.
+
+### Basic Operations
+
+#### Shifts
+Arithmetic shifts fill with 0 (left) or the most significant bit (right);
+Logical shifts fill with 0.
+
+\>> Arithmetic right shift divides by 2, filling in with the sign bit.
+Arithmetic left shift multiples by 2.
+
+#### Get Bit at i
+Create a mask, where every bit value is 0 except at i, where the value is 1. Can then AND to zero all bits except the one at i. Compare the entire result with 0 to get the value at i, as anything greater than 0 means that the bit at i is 1.
+
+```Java
+boolean getBit(int num, int i) {
+    return ((num & (1 << i)) != 0);
+}
+```
+
+#### Flip Bit at i
+Shift 1 over by i bits, filling with 0 (as left shifts do) so it is now at position i. OR the values so that only the value at bit i will change to 0 if it was 1 and 1 if it was 0. No other bits will be affected.
+
+```Java
+int setBit(int num, int i) {
+    return num | (1 << i);
+}
+```
+
+#### Clear Bit at i
+Reverse the mask we used in setBit by negating it (so something like 0010 turns into 1101) so that the only 0 is at position i. AND this value to set the bit at position i to 0.
+
+```Java
+int clearBit(int num, int i) {
+    return num & (~(1 << i));
+}
+```
+#### Clear All Bits Within Range (MSB, i)
+To clear all bits from the most significant one (farthest left if we're using big endian) to i, inclusive, create a mask with 0s from the MSB to i and 1s everywhere else. To do this, create a mask with 1 at i, then subtract 1, giving a sequence of 0s up to and including position i, followed by 1s. AND this value to leave just the last i bits.
+
+```Java
+int clearBitsMSBThroughI(int num, int i) {
+    return num & ((1 << i) - 1);
+}
+```
+
+#### Clear All Bits Within Range (i, 0)
+To clear all bits from position i to 0 (the least significant bit), inclusive, take a sequence of all 1s (which is -1 in base ten) and shift them left by i + 1 bits, filling in with 0s as left shifts do. This results in a sequence of 1s followed by i 0s, which can be ANDed to act as a mask.
+
+```Java
+int clearBitsIThrough0(int num, int i) {
+    return num & ((-1 << (i + 1)));
+}
+```
+
+#### Set Bit at i
+To set the ith bit to a given value, clear it first so you know what is there using a mask that is ANDed with the given number. In a separate number, create a number where bit i is equal to the given value and all other values are 0. This can be done by simply shifting the given value left by i as it will be filled in with 0s. OR these two results so the bit at i will change to 1 if the given value is 1 or remain 0 if the given value is 0.
+
+```Java
+int updateBit(int num, int i, boolean bitIs1) {
+    int valueAtI = bitIs1 ? 1 : 0;
+    return (num & (~(1 << i)) | (valueAtI << i));
+}
+```
+
+## Mathematical Concepts
 
 ## Memory (Stack vs. Heap)
 ```
