@@ -1422,9 +1422,11 @@ Heartbeat message: server, are you still there? If so, respond “STRING” (# l
     Make sure communication lines are open, and both server and client can read from each other
 
 Heartbleed exploited this buffer overflow
-
+ 
 ### Dynamic Programming
 Memoization - remember the result of a previous calculation so can avoid having to recalculate.
+
+Look for repeated subproblems and cache results.
 
 # Object-Oriented Programming (OOP)
 Everything is an object that can perform and have functions performs on them, have data associated with them, encourages reusability.
@@ -1476,3 +1478,90 @@ Method overloading: class can have multiple methods with the same name but diffe
 |32|4,294,967,296||4 GB|
 |40|1,099,511,627,776|1 trillion|1 TB|
 
+
+## Useful Functions
+### Greatest Common Divisor
+Find that largest number that divides two numbers, a and b.
+
+Same as factorizing and multiplying their common factors. Subtracting the smaller number from the larget number doesn't change the GCD (a-b, b).
+
+* 18 = 3 * 3 *2
+* 6 = 3 * 2
+* 18 - 6 = 12 = 2 * 3 * 2
+
+
+```Java
+int gcd(int a, int b) {
+    if (a == 0) return b;
+    return gcd(b % a, a);
+}
+```
+
+### Least Common Multiple
+Smallest whole number that is a multiple of both a and b.
+
+Prime factorization, and multiply each prime at the highest power you see. Or can multiply the nuers and divide the result by the GCD
+
+```Java
+int lcm(int a, int b) {
+    if (a == 0 || b == 0) return 0;
+    return a / gcd(a, b) * b; // ordered this way, has better chance of avoiding overflows
+}
+```
+
+### Linear Index of 2D Array
+Converting from a linear index to a 2D (row, col) coordinate:
+
+```Java
+index = row + col * rowCount
+index = col + row * colCount;
+
+row = index % rowCount;
+col = index / rowCount;
+
+row = index / colCount;
+col = index % colCount;
+```
+
+### Shuffle an Array
+Iterate through the array and, for each index, pick a random index and swap it.
+
+```Java
+void shuffle<T>(T[] array) {
+    Random random = new Random();
+
+    for (int i = 0; i < array.length; i++) {
+        int j = i + random.nextInt(array.length - i);
+        if (i != j) {
+            T iData = array[i];
+            T jData = array[j];
+
+            array[i] = jData;
+            array[j] = iData;
+        }
+    }
+}
+
+void shuffleGrid<T>(T[][] array) {
+    int rows = array.length;
+    int columns = array[0].length;
+     int total = rows * columns;
+     Random random = new Random();
+
+    for (int i = 0; i < total; i++) {
+        int j = i + random.nextInt(total - i);
+        if (i != j) {
+            int iRow = i / columns;
+            int iCol = (i - iRow * columns) % columns;
+            T iData = array[iRow][iCol];
+
+            int jRow = j / columns;
+            int jCol = (j - jRow * columns) % columns;
+            T jData = array[jRow][jCol];
+
+            array[iRow][iCol] = jData;
+            array[jRow][jCol] = iData;
+        }
+    }
+}
+```
