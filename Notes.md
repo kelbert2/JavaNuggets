@@ -1259,6 +1259,112 @@ int updateBit(int num, int i, boolean bitIs1) {
 
 ## Mathematical Concepts
 
+### Power of Primes
+
+Every positive integer can be decomposed into a product of primes. Can represent as a product of primes `p` to some power `e`.
+
+Therefor, for a number x that divides a number y (`x\y` or `mod(y, x) = 0`), all of the primes in x's facorization must be in y's prime factorization, each to some power `e_xi <= e_yi`.
+
+The greatest common divisor is the prime factors to the power `min(e_xi, e_yi)`. 
+
+The least common multiple is the product of prime factors each to the power `max(e_xi, e_yi)`.
+
+This makes the product of the gcd and lcm equal xy.
+
+#### Checking for Primality
+Naive: iterate 2 throuvgh n-1, checking for divisibility of i by each number (2, i - 1), returning as soon as one `(n % i ) == 0`.
+
+Improvement: Only need to iterate through to the square root of n, as every factor above that previously had its complement, or has no complement with which it cleanly divides into n.
+
+Sieve of Eratosthenes:
+Really need to check if number n is divisible by prime numbers less than sqrt(n), as all non-prime numbers are divisible by primes. Only prime numbers have the prime factorization of themselves and 1.
+
+```Java
+// Set the multiples of prime to false.
+void crossOff(boolean[] flags, int prime) {
+    /* Cross off the remaining multiples of prime. Start with (prime * prime) because if we have a k * prime, where k < prime, this value would have already been crossed off in a prior iteration. */
+    for (int i = prime * prime; i < flags.length; i += prime) {
+        flags[i] = false;
+    }
+}
+
+// Find the next highest value of flags that is still true, i.e., has not been crossed out yet.
+int getNextPrime(boolean[] flags, int prime) {
+    int next = prime + 1;
+    while (next < flags.length && !flags[next]) {
+        next++;
+    }
+    return next;
+}
+// Get an array that has true at all prime indexes below max.
+boolean[] sieveOfEratosthenes(int max) {
+    boolean[] flags = new boolean(max + 1);
+    int count = 0;
+
+    init(flags); // Set all values to true other than indexes 0 and 1.
+    int prime = 2;
+
+    while (prime <= Math.sqrt(max)) {
+        crossOff(flags, prime);
+        prime = getNextPrime(flags, prime);
+    }
+
+    return flags;
+}
+```
+
+Improvement: Use only odd numbers in the array, as any even number above 2 is not going to be prime.
+
+```Java
+int oddNumber = indexInOnlyOddArray * 2 + 1;
+```
+
+#### Primal Power
+Multiplying two large primes is easy. Factoring their product back into those two primes is not. This is a trapdoor - a function that's easy one way but difficult to reverse, despite the fact that each number has only one prime factorization.
+
+Super basic representation: The public key `pq` where `p` and `q` are both large primes can be used to encrypt messages that can be decrypted only by knowing the individual values.
+
+Real world: Hyprid systems. Public key encryption is really slow, so  it's mostly used to distribute temporary keys (often called session keys) which are used to encrypt and decrypt messages symmetrically (i.e., the same key is used for both encryption and decryption). The temporary key is first encrypted with the public key, which is then decrypted with the private key of the reciever and then used for that session.
+
+### Probability
+Probability of getting the intersection of A and B (where both A and B are true) is the Probability of getting B given A is true (the percentatge of A that's also in B) times the probability of getting A (whether or not this includes the section that overlaps with B).
+
+* A | B is A given B is true
+* A u B is A or B, which includes A n B
+* A n B is A and B
+
+> P(A and B) = P(B given A) P(A)
+
+Since P(A and B) = P(A given B) P(B),  
+
+> P(A given B) = P(B given A) P(A) / P(B)
+
+Also known as Bayes' Theorem.
+
+The probability of A or B happening, which includes the probability of A and B both happening:
+
+> P(A or B) = P(A) + P(B) - P(A and B), to not double count the overlap
+
+If A and B are independent events, i.e., A happening doesn't impact  vthe probability of B happening and vice versa, then
+
+> Independent: P(A and B) = P(A) P(B) as P(B | A) = P(B)
+
+If A and B are mutually exclusive, i.e., if A happens, B cannot happen and vice versa, then 
+
+> Mutually exclusive: P(A or B) = P(A) + P(B) as P(A and B) = 0
+
+#### Permutations - Order Matters
+Permutation of n objects taken k at a time
+Out of n obvjects available for selection, form result number of permutations using k objects selected at a time where the order of selection matters.
+
+> nPk = n! / (n - k)!
+
+Can then multiply the number of permutations with the probability of each occuring, like p * p * (1-p) where you're using the probability of selecting only 2 out of 3 objects to meet some true condition where the order of selection matters.
+
+#### Combinations
+Combination of n objects taken k at a time, where the order of the k objects doesn't matter.
+> nCk = n! / (k! (n - k)!)
+
 ## Memory (Stack vs. Heap)
 ```
 ===============     Highest Address (e.g. 0xFFFF)
