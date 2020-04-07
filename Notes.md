@@ -829,6 +829,28 @@ Complexity
 |Cubesort|O(n)|O(n log n)|O(n log n)|O(n)|
 |Shell Sort|O(n)|O((n log n)^2)|O((n log n)^2)|__O(1)__|
 
+### BubbleSort
+Start at the beginning of the array. Swap the first two elements if the first is greater than the second. Then move on to the next pair (third and fourth). Continue making sweeps of the entire array until it is sorted.
+
+For each pair, swap them
+
+Funtime Worst Case: O(n^2)
+
+Modified, at each pass, to check if the array is already sorted
+Best case: O(n) best
+
+Space: O(1)
+
+### Selection Sort
+Simple and inefficient. Linearly scan the array to find the smallest element and swap it with the front element. Then find the second smallest in the remaining array and continue.
+
+Runtime: O(n^2)
+
+Space: O(1)
+
+### Insertion sort
+Worst case if sorted in reverse order O(n^2)
+
 ### MergeSort
 Best to sort linked list with const extra space, best for very large number of elements that can’t fit in memory.
 
@@ -1092,44 +1114,26 @@ With a random pivot, worst case isn’t as bad
 Random lolXD = new Random();
 Int pivot = lolXD.nextInt(array.length - 1);
 ```
-### Radix Sort
-Sorts integers and some other data types using the fact that ints have a finite number of bits. Iterate through each digit of hte number and group numbers by each digit.
-Sort each of the groupings by the next digit until the whole array is sorted.
-
-Runtime: O(kn), where n is the number of elements and k is the number of passes of the sorting algorithm.
-
-### BubbleSort
-Start at the beginning of the array. Swap the first two elements if the first is greater than the second. Then move on to the next pair (third and fourth). Continue making sweeps of the entire array until it is sorted.
-
-For each pair, swap them
-
-Funtime Worst Case: O(n^2)
-
-Modified, at each pass, to check if the array is already sorted
-Best case: O(n) best
-
-Space: O(1)
-
-### Selection Sort
-Simple and inefficient. Linearly scan the array to find the smallest element and swap it with the front element. Then find the second smallest in the remaining array and continue.
-
-Runtime: O(n^2)
-
-Space: O(1)
-
-### Insertion sort
-Worst case if sorted in reverse order O(n^2)
 
 ### HeapSort binary heap
 Fast
+
 Build max heap to sort elements in ascending order 
+
 A heap is just a tree, just put the elements as you would a tree array, with kids (i*2)+1 or +2, left to right
+
 Max heap: parent node is always >= child nodes = Build binary tree
+
 Check if bigger than parent, if so, swap - do the same with the values in the array
+
 Left lower, right higher from first number as the root
+
 Now go back to original argument array and get the last one, replace the root with this, reduce the size of the heap
+
 Swap the root arr[0] with the last and delete the last node from the heap - prune it from the tree, don’t remove from the graph, just have a pointer to current last
+
 Keep doing , remembering to swap once you’ve made the heap until there is only one element left, this is your minimum
+
 ```Java
  void heapify(int arr[], int n, int i)
     {
@@ -1158,19 +1162,29 @@ Keep doing , remembering to swap once you’ve made the heap until there is only
     }
 ```
 
+### Radix Sort
+Sorts integers and some other data types using the fact that ints have a finite number of bits. Iterate through each digit of hte number and group numbers by each digit.
+Sort each of the groupings by the next digit until the whole array is sorted.
+
+Runtime: O(kn), where n is the number of elements and k is the number of passes of the sorting algorithm.
+
 ### CountingSort
 When the range of data _k_ isn’t that much different from the range of indexes _n_.
+
 O(n+k)
+
 Space (n+2^k)
+
 ```Java
 General var = specificImplementation;
 List<type> var = ArrayList<type>(capacity); // note size = 0
 ```
 
+### Tim Sort
+### Cube Sort
+### Shell Sort
 
-
-
-
+# Java
 
 ## Enums
 
