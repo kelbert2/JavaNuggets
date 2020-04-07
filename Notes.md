@@ -764,6 +764,52 @@ Traverse in-, pre-, or post-order.
 
 ### Binary Search
 
+In sorted Arrays:
+
+Look for an element x by comparing x to the midpoint of the array. If it's less than the midpoint, search the left half of the array - finding that point at 25%; otherwise, search the right side of the array. Repeat treating the half as a subarray, that you find the midpoint of and then determine which subhalf to search next. Repeat until element x is found or the subarray is 0.
+
+Iterative:
+```Java
+int binarySearch(int[] array, int x) {
+    int low = 0;
+    int high = array.length - 1;
+    int middle;
+
+    while (low <= high) {
+        middle = (low + high) / 2;
+        if (array[middle] < x) {
+            // search the right side next
+            low = middle + 1;
+        } else if (array[middle] > x){
+            // search the left side next
+            high = middle - 1;
+        } else {
+            // x has been found!
+            return middle;
+        }
+    }
+
+    return -1; // Error
+}
+```
+
+Recursive:
+```Java
+int binarySearchRecursive(int[] array, int x, int low, int high) {
+    if (low > high) return -1; // Error
+
+    int middle = (low + high) / 2;
+    if (array[middle] < x) {
+        // search the right side next
+        return binarySearchRecursive(array, x, middle + 1, high);
+    } else if (array[middle] > x) {
+        return binarySearchRecursive(array, x, low, middle - 1);
+    } else {
+        return mid;
+    }
+} 
+```
+
 ## Sorting
 Complexity
 |Algorithm|Best Time|Average Time|Worst Time|Worst Space|
@@ -784,64 +830,21 @@ Complexity
 |Shell Sort|O(n)|O((n log n)^2)|O((n log n)^2)|__O(1)__|
 
 ### MergeSort
-
-### Quick Sort
-
-### BubbleSort
-For each pair, swap them
-O(n^2)
-Modified, at each pass, check if the array is already sorted
-O(n) best
-Insertion sort
-Worst case if sorted in reverse order O(n^2)
-
-### QuickSort
-Usings a pivot, best case if pivot happens to divide into n/2 halves.
-```Java
-int[] QuickSort(int[] array) {
-        int pivot = array[0];
-        int[] left = new int[array.length];
-        int liter = 0;
-        int[] right = new int[array.length];
-        int riter = 0;
-        for( int i = 0; i <= array.length; i++) {
-            if (array[i] <= pivot) {
-                left[liter++] = array[i];
-            } else {
-                right[riter++] = array[i];
-            }
-        }
-        left = QuickSort(left);
-        right = QuickSort(right);
-        for(int i=0; i< left.length; i++) {
-            array[i] = left[i];
-        }
-        for (int i=left.length; i < right.length; i++) {
-            array[i] = right[i-left.length];
-        }
-        return array;
-    }
-```
-Average o(n log(n))
-
-#### Random
-With a random pivot, worst case isn’t as bad
-```Java
-Random lolXD = new Random();
-Int pivot = lolXD.nextInt(array.length - 1);
-```
-
-### MergeSort
 Best to sort linked list with const extra space, best for very large number of elements that can’t fit in memory.
-Around O(n log(n))
+
+Divide the array in half, sort each half, then merge them back together. Keep dividing into halvves until you are merging just two single-element arrays. The merge method does all of the heavy lifting.
+
+Runtime: O(n log(n))
+
 ```Java
 int[] mergeSortHelper(int[] array, int i, int j) {
+        // split into halves
         int[] L = mergeSortHelper(array, i, (i+j/2));
-// split into halves
         int[] R = mergeSortHelper(array, (i+j)/2+1, j);
         return merge(L, R);
 }
 int[] merge(int[] left, int[] right) {
+        // combine the halves
         int[] D = new int[left.length + right.length];
         int i = 0;
         int j = 0;
@@ -850,7 +853,7 @@ int[] merge(int[] left, int[] right) {
             if(left[i]<right[j]) { D[k]=left[i]; i++; }
             else { D[k]=right[j]; j++; }
             K++;
-// put bigger or smaller
+        // put bigger or smaller
         }
         for(int ii = i; ii < left.length; ii++) {
             D[k] = left[ii];
@@ -863,6 +866,56 @@ int[] merge(int[] left, int[] right) {
 // if any left over (ie weren’t the same size), just add them all
         return D;
 }
+```
+
+An improved version, in O(2n) space = O(n):
+```Java
+void mergeSort(int[] array) {
+    int[] helper = new int[array.length];
+    mergeSort(array, helper, 0, array.length - 1);
+}
+void mergeSort(int[] array, int[] helper, int low, int high) {
+    if (low < high) {
+        int middle = (low + high) / 2;
+        mergeSort(array, helper, low, middle); // sort left half
+        mergeSort(array, helper, middle + 1, high); // sort right half
+        merge(array, helper, low, middle, high); // combine halves
+    }
+}
+
+void merge(int[] array, int [] helper, int low, int middle, int high) {
+    // copy into helper array, as originally starts out blank
+    for (int i = low; i <= high; i++) {
+        helper[i] = array[i];
+    }
+
+    int helperLeftIndex = low;
+    int helperRightIndex = middle + 1;
+    int arrayIndex = low;
+
+    // Iterate through helper array, comparing the left and right halves and choosing to copy the smaller back into the original array
+    while (helperLeftIndex <= middle && helperRightIndex <= high) {
+        if (helper[helperLeftIndex] <= helper[helperRightIndex]) {
+            array[arrayIndex] = helper[helperLeftIndex];
+            helperLeftIndex++;
+        } else {
+            array[arrayIndex] = helper[helperRightIndex];
+        }
+        arrayIndex++;
+    }
+
+    // Copy the rest of the left side into the target array, as the right side's sorted remainder is still be in place
+    int remaining = middle - helperLeftIndex;
+    for (int i = 0; i <= remaining; i++) {
+        array[arrayIndex + i] = helper[helperLeftIndex + i];
+    }
+    // array is now sorted.
+}
+
+```
+
+Done in constant space, O(1):
+```Java
 public int[] mergeConstSpace(int[] first, int firstsize, int[] second, int secondSize) {
         if(secondSize == 0) return first;
         int i = 0;
@@ -957,6 +1010,116 @@ public int[] mergeConstSpace(int[] first, int firstsize, int[] second, int secon
     }
 ```
 
+### QuickSort
+Pick a random element to partition the array, so that all numbers less than the element come before all elements greater than it. 
+Repeatedly partitioning the array will eventually sort it.
+
+Best case: the partitioning element is the median, which would divide the array into two equal halves of length n/2.
+
+Average Runtime: O(n log(n))
+
+Worst Case Runtime: O(n^2)
+
+Space: O(log(n))
+
+Space-inefficient version:
+```Java
+int[] QuickSort(int[] array) {
+        int pivot = array[0]; // choose first element as the pivot
+        int[] left = new int[array.length]; // all elements less than the pivot
+        int liter = 0;
+        int[] right = new int[array.length]; // all elements greater than the pivot
+        int riter = 0;
+
+        for( int i = 0; i <= array.length; i++) {
+            if (array[i] <= pivot) {
+                left[liter++] = array[i]; // all elements <= pivot go on the left side
+            } else {
+                right[riter++] = array[i]; // all other elements go on the right 
+            }
+        }
+        left = QuickSort(left); // sort the left side
+        right = QuickSort(right); // sort the right side
+
+        for(int i = 0; i < left.length; i++) {
+            array[i] = left[i]; // copy into the return array
+        }
+        for (int i = left.length; i < right.length; i++) {
+            array[i] = right[i-left.length]; // copy into the return array
+        }
+        return array;
+    }
+```
+
+Better space-wise: 
+
+```Java
+// sort increasingly smaller subsections of the array
+void quickSort(int[] array, int leftIndex, int rightIndex) {
+    int index = partition(array, leftIndex, rightIndex);
+
+    if (leftIndex < index - 1) { // sort to the left of index
+        quickSort(array, leftIndex, index - 1);
+    }
+    if (rightIndex > index) { // sort to the right of index
+        quickSort(array, index, rightIndex);
+    }
+}
+
+int partition(int[] array, int leftIndex, int rightIndex) {
+    int pivot = array[(leftIndex + rightIndex) / 2]; // picked pivot halfway through the array to distribute the load
+
+    while (leftIndex <= rightIndex) { // until left and right meet eachother, about in the middle
+
+        while (array[leftIndex] < pivot) leftIndex++; // elements less than the pivot can stay on the left side
+
+        while(array[rightIndex] > pivot) rightIndex--; // elements greater than the pivot can stay on the right side
+
+        // Get here once have found some left element that needs to go on the right side and some right element that needs to go on the left
+        // Swap elements, then advance the left and right indices and go through the loop again
+        if (leftIndex <= rightIndex) {
+            swap(array, leftIndex, rightIndex);
+            leftIndex++;
+            rightIndex--;
+        }
+    }
+    return leftIndex;
+}
+```
+#### Random
+With a random pivot, worst case isn’t as bad
+```Java
+Random lolXD = new Random();
+Int pivot = lolXD.nextInt(array.length - 1);
+```
+### Radix Sort
+Sorts integers and some other data types using the fact that ints have a finite number of bits. Iterate through each digit of hte number and group numbers by each digit.
+Sort each of the groupings by the next digit until the whole array is sorted.
+
+Runtime: O(kn), where n is the number of elements and k is the number of passes of the sorting algorithm.
+
+### BubbleSort
+Start at the beginning of the array. Swap the first two elements if the first is greater than the second. Then move on to the next pair (third and fourth). Continue making sweeps of the entire array until it is sorted.
+
+For each pair, swap them
+
+Funtime Worst Case: O(n^2)
+
+Modified, at each pass, to check if the array is already sorted
+Best case: O(n) best
+
+Space: O(1)
+
+### Selection Sort
+Simple and inefficient. Linearly scan the array to find the smallest element and swap it with the front element. Then find the second smallest in the remaining array and continue.
+
+Runtime: O(n^2)
+
+Space: O(1)
+
+### Insertion sort
+Worst case if sorted in reverse order O(n^2)
+
 ### HeapSort binary heap
 Fast
 Build max heap to sort elements in ascending order 
@@ -1004,33 +1167,17 @@ General var = specificImplementation;
 List<type> var = ArrayList<type>(capacity); // note size = 0
 ```
 
+
+
+
+
+
+## Enums
+
 ```Java
 Enum name {
-NAME, NAME, NAME
+    NAME1, NAME2, NAME3
 }
-Custom comparable
-Class implements Comparable<className>{
-Public int compare(className o1, className o2){
-
-}
-}
-List<String> definedOrder = // define your custom order
-    Arrays.asList("Red", "Green", "Magenta", "Silver");
-
-Comparator<Car> comparator = new Comparator<Car>(){
-
-    @Override
-    public int compare(final Car o1, final Car o2){
-        // let your comparator look up your car's color in the custom order
-        return Integer.valueOf(
-            definedOrder.indexOf(o1.getColor()))
-            .compareTo(
-                Integer.valueOf(
-                    definedOrder.indexOf(o2.getColor())));
-    }
-};
-Comparator<Car> carComparator = Comparator.comparing( c -> definedOrder.indexOf(c.getColor()));
-List<Object> objList = findObj(name); Collections.sort(objList, new Comparator<Object>() { @Override public int compare(Object a1, Object a2) { return a1.getType().compareToIgnoreCase(a2.getType()); } });
 ```
 
 ## Lambda functions
@@ -1065,8 +1212,10 @@ Functional interfaces: only one abstract method
         arr[end] = tmp;
         return reverseArrayHelper(arr, start+1, end-1);
     }
+```
 
-    Selection median
+## Selection median
+```Java
     /*
      * Find kth value in unsorted list
      */
@@ -1120,6 +1269,7 @@ Return
 * 0 if equals, as == 0
 * 1 if greater than, as 1 > 0
 
+## Custom comparable
 ```Java
 class SortByCustom implements Comparable<Type> {
     public int compare(Type a, Type b) {
@@ -1133,7 +1283,36 @@ class SortByCustom implements Comparable<Type> {
 Collections.sort(ArrayList<Type> ar, new SortByCustom());
 // Now ar is sorted.
 ```
+
+Or more involved: 
+
+```Java
+Class implements Comparable<className>{
+    Public int compare(className o1, className o2){
+        // comparison function
+    }
+}
+List<String> definedOrder = // define your custom order
+    Arrays.asList("Red", "Green", "Magenta", "Silver");
+
+Comparator<Car> comparator = new Comparator<Car>(){
+
+    @Override
+    public int compare(final Car o1, final Car o2){
+        // let your comparator look up your car's color in the custom order
+        return Integer.valueOf(
+            definedOrder.indexOf(o1.getColor()))
+            .compareTo(
+                Integer.valueOf(
+                    definedOrder.indexOf(o2.getColor())));
+    }
+};
+Comparator<Car> carComparator = Comparator.comparing( c -> definedOrder.indexOf(c.getColor()));
+List<Object> objList = findObj(name); Collections.sort(objList, new Comparator<Object>() { @Override public int compare(Object a1, Object a2) { return a1.getType().compareToIgnoreCase(a2.getType()); } });
+```
+
 # Input
+
 ```Java
 void dealingWithInputStreams() throws IOException { // uses specific input stream
         InputStream input = new FileInputStream("c:\\path\fileName.txt");
