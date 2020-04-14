@@ -6,12 +6,14 @@ Stores either `true` or `false`.
 
 | Data Type |	Maximum Value |	Minimum Value|
 |-----------|:-----------------:|--------------:|
-|int |	2,147,483,647 |	- 2,147,483,648|
+|int |	2^32 = 2,147,483,647 |	-2^31 = -2,147,483,648|
 |float |	3.4028235 E38 |	1.4 E-45|
 |double |	1.7976931348623157 E308 |	4.9 E-324|
 |char |	65,535 |	0|
 |short |	32,767 |	-32,768|
 |long |	9,223,372,036,854,775,807 |	-9,223,372,036,854,775,808
+
+1 GB is 8 billion bits.
 
 ## Stringsv
 End with ‘\0’
@@ -248,6 +250,13 @@ fruits.forEach((tmp) -> {
         int tmp = (fruits.contains("honeydew")) ? fruits.indexOf("honeydew") : -1;
 ```
 
+Vectors are synnchronized.
+
+```Java
+Vector<String> vec = new Vector<String>();
+vec.add("value");
+System.out.println(vec.get(0));
+```
 #### Linked Lists
 Sequence of Nodes, each with data and pointers to other nodes
 Constant time to add/remove from the beginning
@@ -513,12 +522,15 @@ Maintains order by sorting with Comparator or comparable
 ## Maps
 Unique keys, values
 At each index, there is a bucket, often a linkedList or tree, of {key, value} pairs.
+
 ```Java 
 int index = hashFunction(key) % array.length;
 ```
+
 High number of collisions: all _N_ {key, value}s stored at the same index - will take O(N) to search
 Minimal number of collisions: O(1) to lookup.
 Or implement with balanced binary search tree for O(log N) lookup time and a smaller array
+
 * rehashing: when a load factor is reached, say load = .75, when the map is 75% full it will double in size and redefine all of the hashCodes
 * don't use hashmap in multi-threaded apps because if two threads resize the map, could get an infinite loop in a bucket with a collision
 * Keys are best when they're wrapper classes like String or Integer :
@@ -526,8 +538,16 @@ Or implement with balanced binary search tree for O(log N) lookup time and a sma
 * null keys map to index 0
 
 ### HashMap
+O(1) lookup and insertion.
+
+Stored order of keys is essentially arbitrary.
+
+Array of Linked Lists.
+
 Not syncrhonized - not thread safe.
+
 > Don't use HashMap in multi-threaded apps because if two threads resize the map, could get an infinite loop in a bucket with a collision.
+
 Accepts null for key and value.
 
 Keys are objects, so need to use Integer or String to use int and string as keys.
@@ -545,13 +565,15 @@ Keys are objects, so need to use Integer or String to use int and string as keys
 ```Java
 Map<String, Integer> breakfast = new HashMap<String, Integer>();
 ```
-##### Thread Safe HashMap
+##### Thread-Safe HashMap
 ```Java
 Collections.synchronizedMap(new HashMap<K,V>());
 ```
 ##### Iteration
 For each loop: 
+
 for (Type key : set)
+
 ```Java
 for (Map.Entry mapElement : map.entrySet()) { 
     Type key = (Type)mapElement.getKey(); 
@@ -580,8 +602,23 @@ while (iter.hasNext()) {
 } 
 ```
 
-#### TreeMap
-Uses a red-black tree so can get, put, and remove in O(log(n)) time so can resort
+### TreeMap
+O(log N) lookup and insertion.
+
+Naturally ordered keys that implement the ``Comparable`` interface.
+
+Uses a red-black tree so can get, put, and remove in O(log(n)) time so can re-sort.
+
+Will also allow you to output the next x pairs after a given key.
+
+### LinkedHashMap
+O(1) lookup and insertion.
+
+Keys ordere by insertion order.
+
+Uses doubly-linked buckets.
+
+Useful for caching, where insertion ordre matters.
 
 ## Graphs
 Nodes connecting to other nodes
@@ -602,9 +639,11 @@ Up to two children.
      * Min height/levels for n Nodes: log(n+1) for log base 2
      * Min levels for L leaves: log(L)+1
      * Full binary tree (0-2 children): leaf nodes = internal nodes + 1
-     * Complete binary trees mean all levels are completely filled except, possibly, the last level that has all keys as left as possible.
+     * Complete binary trees mean all levels are completely filled except, possibly, the last lev el that has all keys as left as possible.
 
 ##### Binary Search Trees
+Relative ordering and quick insert time
+
 Ordered children.
 Example: all left descendents <= _n_ are less than all right descendents for each parent node of value _n_.
 Can also define by having all duplicates on one side or the other, or no duplicates at all
@@ -1343,7 +1382,7 @@ void dealingWithInputStreams() throws IOException { // uses specific input strea
         input.close();
     }
     void dealingWithScanners() { // uses available input stream
-        Scanner scan = new Scanner(System.in);
+        Scanner scan = new Scanner(System.in); // or new Scanner(FileReader(fileName));
         String tilSpace = scan.next();
         String tilLine = scan.nextLine();
         String[] tilLineSplit = tilLine.split("\\s+");
@@ -1388,6 +1427,9 @@ void dealingWithInputStreams() throws IOException { // uses specific input strea
 Computers store ints in two's complement representation, where negative numbers are represented as the two's complement (flip each bit then add 1 to the entire value) with 1 as the sign bit.
 
 ### Basic Operations
+
+01000 - 1 = 00111
+Binary_number & (binary_number - 1) = 0 if binary_number has only one 1.
 
 #### Shifts
 Arithmetic shifts fill with 0 (left) or the most significant bit (right);
@@ -1756,5 +1798,140 @@ void shuffleGrid<T>(T[][] array) {
             array[jRow][jCol] = iData;
         }
     }
+}
+```
+
+# Common Approaches
+If given a string, can sort alphabetically.
+
+Boolean frequency arrays the size of the number of chars or ints or objects.
+
+If given a buffer at the end of an array, start iterating from there and keep an index that iterates from the end of the filled array.
+
+Palindromes have even numbers of each character, except for one that can have an odd count, though this would make the entire palindrome length odd.
+
+
+# Java
+### Generics
+Type-erasure: elimates parameterized types when translates source code into Java Virtual Machine byte code.
+
+Syntactic sugar: Object<Type> is just Object where its instances are cast to (Type).
+
+Cannot use primitives like int or string - must use Integer or String.
+
+### Lambda Expressions
+A step towards functional programming.
+
+```Java
+(param, eters) -> // do something
+```
+
+Match with functions that take the same inputs and hav ethe same type of outputs.
+
+### Reflection
+A way to examine or modify the behavior of methods, classes, and interfaces at runtime.
+
+Gives information about the class to which an object belonds and its methods which can be invoked at runtime irrespective of their access specifier.
+
+Get a new instance of a class.
+
+Get and set object fields directly by getting a field reference, regardless of its access modifier.
+
+```Java
+/* Parameters */
+Object[] tupleArgs = new Object[] { 4.2, 3.9};
+
+/* Get Class */
+Class rectangleDefinition = Class.forName("MyProject.Rectangle");
+
+Class tupleArgsClass = new Class[] {double.class, double.class};
+Constructor tupleArgsConstructor = rectangleDefinition.getConstructor(tupleArgsClass);
+Rectangle rectangle = (Rectangle) typleArgsConstructor.newInstance(typleArgs);
+// Equivalent to Rectangle rectangle = new Rectangle(4.2, 3.9);
+
+Method m = rectangleDefinition.getDeclaredMethod("area");
+Double area = (Double) m.invoke(rectangle);
+// Equivalent to Double area = rectangle.area();
+```
+
+Used to observe or manipulate the runtime behavior of applications.
+
+Useful for debugging as it offers direct access to methods, constructors, and fields.
+
+Can call methods by name when you don't know the method in advance - like if user inputs a pclass name, parameters for the constructor, and a method name, we can use this information to create an object and call a method.
+
+### Private Constructors
+Only the class, inner classes, and child classes can access this purely internal constructor.
+
+Used in Singletons to ensure that there is only one instance of an object at a time.
+
+a ``getInstance()`` method returns the existing instance or makes one.
+
+### Error Catching
+
+```Java
+try {
+    // Attempt to do something
+    // As soon as tries something that raises an exception, control flow moves to the catch block.
+} catch (Exception ex) {
+    // Can do something with the exception here
+} finally {
+    // Optional block
+    // Regardless of the control flow above, the finally block will execute
+    // This includes the catch block raising its own exception or if one of the above blocks has a "return" statement.
+
+    // Finally won't execute if the VM exits or the thread executing it is killed prematurely.
+}
+
+```
+## Keywords
+
+### Abstract
+For classes - provide the implementation of an interface. Can have abstract (left to be defined by classes that extend it) and non-abstract methods.
+Interfaces can only have abstract methods.
+
+### Final
+Declares a constant variable which cannot be changed; a method which cannot be overridden; or a class which cannot be inherited.
+
+Must be initialized at declaration.
+
+Can also apply to variable references, where vit restricts it from pointing to any other object on the heap.
+
+### Static
+Can be accessed before the class object is created - it can be used independently of any object of that class.
+
+Can only access static members of the class and can only be called by other static methods.
+
+## Access Modifiers
+In order of increasing accessibility.
+
+### Private
+Class-level
+
+Can only be accessed by that class, inner classes, and derived (child) classes.
+
+Best practice: Declare variables private by default and supply getters and setters if they need to be accessed outside of the class.
+
+### Default = (nonexplicit) Package-Private
+Package-level
+
+Accessibily by anything in the directory to which the class belongs.
+
+### Protected
+Subclass-level
+
+Accessible to extensions of the class.
+
+### Public
+All levels
+
+Accessible anywhere.
+
+## Garbage Collector
+Calls ``finalize()`` when it determines no more references exist for an object. A class can override this method to define custom behavior.
+
+```Java
+protected void finalize() throws Throwable {
+    /* Close open files, release resources, etc. */
 }
 ```
