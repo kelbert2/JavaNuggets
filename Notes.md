@@ -15,17 +15,20 @@ Stores either `true` or `false`.
 
 1 GB is 8 billion bits.
 
-## Stringsv
+## Strings
 End with ‘\0’
 * `.length()`
-* `Integer.parseInt(str)`
-* `Integer.valueOf(str)`
+* `Integer.parseInt(String, int radix) => int`
+* * radix being the mathematical base. 10 is decimal, 8 is octal, 16 is hexadecimal.
+* * if not provided, looks at what the string begins with. "0x" or "0X" is 16, "0" may be octal or decimal, and any other value for the beginning defualts to 10
+* `Integer.valueOf(int or String, int base if String) => Integer`
+* * Caches frequently requested values, so more space and time efficient
 * `.split(“ “)`, also takes `\regex\`
 * `.toCharArray()`
 
 ### Comparison
 * Positive if string1 follows argument string2 
-  * > c > b, a > A, returns difference at index where they differ
+  * > b < c, A < a, returns difference at index where they differ
 * Zero if both strings are equal
 * Negative if string1 Object precedes argument string2 
   * > c is shorter than cc, returns difference in lengths
@@ -164,8 +167,11 @@ If can get a larger or = value by adding to max ending here, add to the subarray
 Else
 
 Max ending here is smaller than the value that is here, so instead we just start from this node clean 
+
 There’s a max value that can be made with the array, finding the longest possible way to make it
+
 For each element i in the array
+
 Max to point += array[i]
 
 If it becomes negative, know that will only be taking away from any subsequent values, so reset to 0, since we won’t be using this string of values
@@ -250,7 +256,7 @@ fruits.forEach((tmp) -> {
         int tmp = (fruits.contains("honeydew")) ? fruits.indexOf("honeydew") : -1;
 ```
 
-Vectors are synnchronized.
+Vectors are synchronized.
 
 ```Java
 Vector<String> vec = new Vector<String>();
@@ -267,6 +273,7 @@ Constant time to add/remove from the beginning
 * `.getLast()`
 
 Access, Search, Space O(n)
+
 Insert, Delete O(1)
 
 > Finding the midpoint: 
@@ -359,6 +366,7 @@ Ideally no null values
 ```Java
 Queue<Integer> eye = new LinkedList<>();
 ```
+
 * `.add()`
 * `.poll() or .remove()`
 * `.peek()`
@@ -376,11 +384,13 @@ PriorityQueue<Integer> trix = new PriorityQueue<Integer>();
 
 ### Binary Minimum Heap
 
+
+* Root is a minimum and all of the levels are as full or as left as possible
+* Root at Arr[0], parent of i: Arr[i/2], left child of i: Arr[(2*i)+1], right child of i: Arr[(2*i)+2]
+* This is level-mode traversal
+* Sorts array in O(n log(n)) time
+
 ```Java
-     * Root is a minimum and all of the levels are as full or as left as possible
-     * Root at Arr[0], parent of i: Arr[i/2], left child of i: Arr[(2*i)+1], right child of i: Arr[(2*i)+2]
-     * This is level-mode traversal
-     * Sorts array in O(nlog(n)) time
 interface BinaryMinHeap { // auto abstract and public
         boolean insert(int k);
         boolean delete(int i);
@@ -390,8 +400,6 @@ interface BinaryMinHeap { // auto abstract and public
         void BinaryMinHeap(int i);
     }
     void BinaryMinHeapType() {
-        System.out.println("Hi!");
-        
         //int minHeap.getMin( (a1, a2) -> return ());
         BinaryMinHeap BinHeap = new BinaryMinHeap() {
         private int[] array;
@@ -691,7 +699,7 @@ Left children, right children, then current node.
 ```Java
 public void traversePostOrder(Node node, ArrayList output) {
     if (node != null) {
-traversePostOrder(node.left, output);
+            traversePostOrder(node.left, output);
             traversePostOrder(node.right, output);
             output.add(node.key);
     }
@@ -880,6 +888,37 @@ Best case: O(n) best
 
 Space: O(1)
 
+BubbleSort with swap counting:
+```Java
+    static void countSwaps(int[] a) {
+        int length = a.length;
+        int swaps = 0;
+        for (int i = 0; i < length; i++) {
+            int roundSwaps = 0;
+              for (int j = 0; j < length - 1; j++) {
+               // Swap adjacent elements if they are in decreasing order
+                   if (a[j] > a[j + 1]) {
+                       swaps++;
+                       roundSwaps++;
+                       swap(a, j, j + 1);
+                    }
+             }
+             if (roundSwaps == 0) break;
+        }
+        System.out.println("Array is sorted in " + swaps + " swaps.");
+        System.out.println("First Element: " + a[0]);
+        System.out.println("Last Element: " + a[length-1]);
+        return;
+    }
+
+    static void swap(int[] array, int index, int otherIndex) {
+        int temp = array[index];
+        array[index] = array[otherIndex];
+        array[otherIndex] = temp;
+    }
+
+```
+
 ### Selection Sort
 Simple and inefficient. Linearly scan the array to find the smallest element and swap it with the front element. Then find the second smallest in the remaining array and continue.
 
@@ -893,7 +932,7 @@ Worst case if sorted in reverse order O(n^2)
 ### MergeSort
 Best to sort linked list with const extra space, best for very large number of elements that can’t fit in memory.
 
-Divide the array in half, sort each half, then merge them back together. Keep dividing into halvves until you are merging just two single-element arrays. The merge method does all of the heavy lifting.
+Divide the array in half, sort each half, then merge them back together. Keep dividing into halves until you are merging just two single-element arrays. The merge method does all of the heavy lifting.
 
 Runtime: O(n log(n))
 
@@ -1202,7 +1241,8 @@ Keep doing , remembering to swap once you’ve made the heap until there is only
 ```
 
 ### Radix Sort
-Sorts integers and some other data types using the fact that ints have a finite number of bits. Iterate through each digit of hte number and group numbers by each digit.
+Sorts integers and some other data types using the fact that ints have a finite number of bits. Iterate through each digit of the number and group numbers by each digit.
+
 Sort each of the groupings by the next digit until the whole array is sorted.
 
 Runtime: O(kn), where n is the number of elements and k is the number of passes of the sorting algorithm.
