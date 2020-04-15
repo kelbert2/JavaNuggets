@@ -381,6 +381,105 @@ PriorityQueue<Integer> trix = new PriorityQueue<Integer>();
 ```
 
 ## Heap
+Come in min heaps or max heaps.
+
+Insert new elements left to right to fill up the heap. Each parent will only have up to two children.
+
+Can store in an array.
+
+Finding indices:
+```Java
+parentIndex = (index - 2) / 2;
+leftChild = index * 2 + 1;
+rightChild = index * 2 + 2;
+```
+
+### Min Heap
+Root element is the minimum. All children are greater than their parents.
+
+```Java
+public class MinHeap {
+    private int capacity = 10;
+    private int size = 0;
+
+    int[] items = new int[capacity];
+
+    private int getLeftChildIndex(int parentIndex) { return 2 * parentIndex + 1; }
+    private int getRightChildIndex(int parentIndex) { return 2 * parentIndex + 2; }
+    private int getParentIndex(int childIndex) { return (childIndex - 1) / 2; }
+
+    private boolean hasLeftChild(int index) { return getLeftChildIndex(index) < size; }
+    private boolean hasRightChild(int index) { return getRightChildIndex(index) < size; }
+    private boolean hasParent(int index) { return getParentIndex(index) >= 0; }
+
+    private int leftChild(int index) { return items[getLeftChildIndex(index)]; }
+    private int rightChild(int index) { return items[getRightChildIndex(index)]; }
+    private int parent(int index) { return items[getParentIndex(index)]; }
+
+    private void swap(int indexOne, int indexTwo) {
+        int temp = items[indexOne];
+        items[indexOne] = items[indexTwo];
+        items[indexTwo] = temp;
+    }
+
+    private void ensureExtraCapacity() {
+        if (size == capacity) {
+            items = Arrays.copyOf(items, capacity * 2);
+            capacity *= 2;
+        }
+    }
+
+    public int peek() {
+        if (size == 0) throw new IllegalStateException();
+        return items[0];
+    }
+
+    public int poll() {
+        if (size ==0) throw new IllegalStateException();
+        int root = items[0];
+        items[0] = items[size - 1]; // set last added element as root
+        size--;
+        heapifyDown(); // bubble the new root down to its proper place
+        return root;
+    }
+
+    public void add(int item) {
+        ensureExtraCapacity();
+        items[size] = item;
+        size++;
+        heapifyUp(); // bubble up most recently added = last item
+    }
+
+    public void heapifyUp() {
+        int index = size - 1; // most recently added element, which may be out of order
+        while (hasParent(index) && parent(index) > items[index]) {
+            // if this element is less than its parent, it needs to be above this parent
+            swap(getParentIndex(index), index);
+            index = getParentIndex(index); // keep up with your original element as you move it up
+        }
+    }
+
+    public void heapifyDown() {
+        int index = 0;
+        while (hasLeftChild(index)) {
+            // if has right child, will definitely have a left child, so only need to check for that
+            int smallerChildIndex = getLeftChildIndex(index);
+            if (hasRightChild(index) && rightChild(index) < leftChild(index)) {
+                smallerChildIndex = getRightChildIndex(index);
+            }
+
+            if (items[index] < items[smallerChildIndex]) {
+                // if child is greater than the parent, need to move the parent down and switch it with its smaller child
+                break;
+            } else {
+                swap(index, smallerChildIndex);
+            }
+            index = smallerChildIndex; // keep up with element as move down
+        }
+    }
+}
+
+```
 
 ### Binary Minimum Heap
 
@@ -670,7 +769,9 @@ Perfect if full and complete.
 ## Traversal
 
 ### In-order
-Take left subtree down the the bottom, then root, then start with right subtree
+Take left subtree down the the bottom, then root, then start with right subtree.
+
+Prints binary trees in order.
 
 ```Java
 public void traverseInOrder(Node node, ArrayList output) {
