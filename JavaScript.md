@@ -230,9 +230,36 @@ Methods and Properties
 * `arr.splice(index[, deleteCount, ele1, ..., eleN])` - starting from position index, removes deleteCount elements and then inserts ele1, ..., eleN at their place, returns the array of removed elements
 * * To insert elements without removals, set deleteCount to 0
 * * Negative indices specify position from the end of the array.
+* * Modifies the array itself.
 * `arr.concat(arg1, arg2...)` - creates a new array from arr, then items from arg1, arg2, etc. which can be arrays (copies all elements) or values themselves
 * * Array-like objects that have `[Symbol.isConcatSpreadable]: true` property are treated like arrays and their elements added instead.
 * `arr.forEach(function(item, index, array) {// do something});` - runs a function for each item in an array. The return of the function, if anything, is thrown away and ignored.
+* `arr.indexOf(item, from)` - looks for an item starting from index from. Returns the index where it was found, else returns -1.
+* * Uses === comparison, which doesn't work with NaN
+* `arr.lastIndexOf(item, from)` 0 looks for from from right to left.
+* `arr.includes(item, from)` - returns true if finds index starting search at index from.
+* * Works with NaN.
+* `arr.find((item, index, array) => {// Some condition. If returns true, the search is stopped and item is returned, else undefined is returned; })` and `arr.find((item, index, array) => {similar, can choose to only use (item) => {}, will return the index when the function returns true})`
+* `arr.filter((item, index, array) => {if true, pushes item to result array and conteinues iteration, returns empty array [] if nothing is found that passes the filter})`
+* `arr.map((item, index, array) => {transforms each item into a different value and returns an array of these new values})`
+* `arr.sort()` - sorts the array in place (modifies the array itself) and returns the sorted array
+* * Items are sorted by strings by default, so "15" comes before "2". For better string sorting, pass in the function `(a, b) => a > b ? 1 : -1`
+* * Can pass own sorting function, like `function compareNumeric(a, b) { if (a > b) return 1; if (a == b) return 0; if (a < b) return -1;} // or {return a - b}` and `arr.sort(compareNumeric);`
+* `arr.reverse()` - returns the array after the reversal and modifies the array itself.
+* `str.split(deliminator[, arrayLengthLimit])` - splits a string into an array by the string deliminator. If an arrayLengthLimit is provided, extra elements past it are ignored.
+* * If no deliminator is supplied, the string splits at every character.
+* `arr.join(glue)` - creates a string by joining each element with glue between them.
+* `arr.reduce((accumulator, item, index, array) => {}, [initial])` - where accumulator is the result of the previous function call, with an initial value of initial, if supplied. The result of the previous function call is passed to the next until it reaches the end, at which point it becomes the result of reduce.
+* * If no initial value is supplied, the first element is taken as the initial value and iteration starts from the 2nd element.
+* * Ex: `arr.reduce(sum, current) => sum + current, 0);`
+* * Attempting to reduce an empty array without an initial value gives an error.
+* `arr.reduceRight((accumulator, item, index, array) => {}, [optionalInitialValue])` does the same but from right to left.
+* `Array.isArray(arr)` - returns true if the object is an array.
+* `arr.some(fn)`/ `arr.every(fn)` check the array by calling fn on each element. If any/ all the results are true, returns true, otherwise returns false.
+* `arr.fill(value, start, end)` – fills the array with repeating value from index start to end.
+* `arr.copyWithin(target, start, end)` – copies its elements from position start until position end into itself, at position target (overwrites existing).
+
+Many array methods like find, filter, and map (but not sort) take an additional optional parameter thisArg that becomes "this" for the function argument passed before it - it passes context, which is useful if the function uses "this" because the function is called as a standalone function, where this is otherwise undefined. Passing an arrow function instead avoids any issue with this.
 
 Like objects, arrays are copied by reference, so variables all point and can modify to the same underlying object. 
 
@@ -271,11 +298,280 @@ arr.forEach(function(item, index, array) {
 ```
 Don't iterate using for...in because that would iterate over all properties, not just the numeric ones.
 
+Array-likes are objects that have numeric indexes and `length`.
+
+`Array.from(arrayLike)` takes an object or iterable and makes a real Array from it (copying all of its objects into it), that can then call methods like `pop()`.
+
+There is also an optional mapping function: `Array.from(obj[, mapFn, thisArg])`, mapFn, which is applied to each element before adding it to the array. thisArg sets up context, if necessary.
+
+This works with strings with surrogate pairs unlike `str.split()`
+
 ### Iterables
+Arrays, strings, and collections are iterable.  
+
+To make a custom object iterable, add a Symbol.iterator method that for...of will call.
+
+```JavaScript
+let range = {
+  from: 1,
+  to: 5
+};
+// Call to for..of initially calls this:
+range[Symbol.iterator] = function() {
+  // ...which returns the iterator object, which has a next() method:
+  return {
+    current: this.from,
+    last: this.to,
+    // next() is called on each iteration by the for..of loop
+    next() {
+      // it should return the value as an object {done: Boolean, value : any}
+      if (this.current <= this.last) {
+        return { done: false, value: this.current++ }; // value is the next value
+      } else {
+        return { done: true }; // means the iteration is finished
+      }
+    }
+  };
+};
+
+// now it works!
+for (let num of range) {
+  alert(num); // 1, then 2, 3, 4, 5
+}
+
+// Using Range itself as the iterator:
+// Note that this way makes it impossible to have multiple for...of loops running over hte object simultaneously as they would be sharing the iteration state because there's only a single iterator - the object itself.
+let range = {
+  from: 1,
+  to: 5,
+
+  [Symbol.iterator]() {
+    this.current = this.from;
+    return this; // returns the range object itself, which has the necessary next() message
+  },
+
+  next() {
+    if (this.current <= this.to) {
+      return { done: false, value: this.current++ };
+    } else {
+      return { done: true };
+    }
+  }
+};
+
+```
+
+Explicit iterator with direct calls instead of for...of:
+```JavaScript
+let iterator = str[Symbol.iterator]();
+
+while (true) {
+  let result = iterator.next();
+  if (result.done) break;
+  alert(result.value); // outputs characters one by one
+}
+```
+
 ### Map and Set
+Maps are collections of keyed data items, with keys of any type, such as numbers, booleans, and objects.
+* `new Map()`
+* * `new Map([ [key, value], ["key", value]])` - can pass an array or other iterable with key/ value pairs for initialization
+* * `new Map(Object.entries(obj))`
+* * `Object.fromEntries(["key", value], ["key2", value])` is the reverse of this that works with `Object.fromEntries(map.entries())` which is the same as `Object.fromEntries(map)` becaise the standard iteration for map is `entries`
+* `map.set(key, value)` - returns the map itself, so calls can be chained.
+* `map.get(key)` - returns the values, undefined if key is not in map.
+* `map.has(key)` - true if key exists in the map, otherwise false.
+* `map.delete(key)`
+* `map.clear()`
+* `map.size` - returns current element count
+* `map.forEach((value, key, map) => {// do something})`
+
+`map[key]` converts key to a string, so avoid doing this if you want to use maps to their full potential.
+
+Map compares keys using SameValueZero, which is like strict equality === but NaN is considered equal to NaN.
+
+Iterating over Maps
+* `map.keys()` - returns an iterable for keys.
+* `map.values()` - returns an iterable for values.
+* `map.entries()` - returns an iterables for entries [key, value].
+* * Used by default in for..of.
+
+```JavaScript
+let recipeMap = new Map([
+  ['cucumber', 500],
+  ['tomatoes', 350],
+  ['onion',    50]
+]);
+
+// iterate over keys (vegetables)
+for (let vegetable of recipeMap.keys()) {
+  alert(vegetable); // cucumber, tomatoes, onion
+}
+// iterate over [key, value] entries
+for (let entry of recipeMap) { // the same as of recipeMap.entries()
+  alert(entry); // cucumber,500 (and so on)
+}
+
+recipeMap.forEach((value, key) => {
+alert(value + ", " + key);
+});
+```
+
+The order of iteration is the order of insertion.
+
+Sets are sets of values where each value can only occur once - they're unique. There are no keys.
+* `new Set(optionalIterable)` - if an iterable is provided, like an array, copies values into hte new set.
+* `set.add(value)` - returns the set itself, so can be chained. If the value already exists, does nothing and just returns the set.
+* `set.delete(value)` - removes the value, returns true if the value existed at the moment of the call, otherwise false.
+* `set.has(value)` - returns true if the value exists in the set.
+* `set.clear()`
+* `set.size` - returns the element count.
+* `set.forEach((value, valueAgain, set) => {})`
+
+Iterating over Sets
+
+It's a bit funny to maintain compatibility with maps.
+* `set.keys()` - returns an iterable for values, same as `set.values()`.
+* `set.values()` - returns an iterable for values.
+* `set.entries()` - returns an iterables for entries [value, value].
+```JavaScript
+for (let value of set) alert(value);
+
+// the same with forEach:
+set.forEach((value, valueAgain, set) => {
+  alert(value);
+});
+```
+
 #### WeakMap and WeakSet
-### Date
+Putting an object into an array or a map will keep it alive, even if we later overwrite the reference to null; it won't be garbage collected.
+```JavaScript
+let john = { name: "John" };
+
+let array = [ john ];
+
+let map = new Map();
+map.set(john, "...");
+
+john = null; // overwrite the reference
+
+// john is stored inside the array, so it won't be garbage-collected
+// we can get it as array[0]
+// we can get it by using map.keys()
+```
+
+WeakMap doesn't prevent this garbage-collection of key objects.
+
+In WeakMaps, keys must be objects - they can't be primitives. As soon as there are no other references to the key object, it is removed from memory and, therefore, the map. 
+```JavaScript
+let john = { name: "John" };
+
+let weakMap = new WeakMap();
+weakMap.set(john, "secret documents");
+
+john = null; // overwrite the reference
+
+// When john dies, secret documents will be destroyed automatically
+```
+There are no iteration or methods weakMap.keys(), weakMap.values(), weakMap.entries() so there's no way to get all of these from a WeakMap.
+* `weakMap.get(key)`
+* `weakMap.set(key, value)`
+* `weakMap.delete(key)`
+* `weakMap.has(key)`
+The current count (size) of a WeakMap is not known as the time that the garbage collector performs memory cleanup is not known.
+
+WeakMap elements only exist while their objects are alive. Like if you're storing the count of users currently viewing a page. This also keeps the map from growing in memory indefinitely.
+
+Caching - when a function result should be remembered so that future calls on the same object reuse it. With a weak map, the cache is automatically cleaned when the object is no longer needed.
+```JavaScript
+// 📁 cache.js
+let cache = new WeakMap();
+
+// calculate and remember the result
+function process(obj) {
+  if (!cache.has(obj)) {
+    let result = /* calculate the result for */ obj;
+
+    cache.set(obj, result);
+  }
+  return cache.get(obj);
+}
+
+// 📁 main.js
+let obj = {/* some object */};
+
+let result1 = process(obj);
+let result2 = process(obj); // remembered result taken from cache
+
+// ...later, when the object is not needed any more:
+obj = null;
+```
+
+WeakSets also can only take objects - no primitives - that are only reachable from somewhere else. There is no size, keys(), or iterations. Only individual operations are allowed.
+
+### Date and Time
+New Date
+* `new Date()` - takes the exact current date and time.
+* `new Date(milliseconds)` - milliseconds passed after 1 Jan 1970 UTC+0 (timestamp), can be negative.
+* `new Date(datestring)` - parsed with Date.parse
+* `new Date(year, month, date = 1, hours = 0, minutes = 0, seconds = 0, ms = 0)` - only the first two arguments are obligatory. Years must have 4 digits and months start with 0 (January) to 11 (December).
+
+Access components relative to the local time zone. To get UTC-counterparts, add "UTC" after "get."
+* `getFullYear()` - 4 digits
+* `getMonth()` - from 0 to 11
+* `getDate()` - returns the day of the month
+* `getHours()`, `getMinutes()`, `getSeconds()`, `getMilliseconds()`
+* `getDay()` - returns day of the week, 0 (Sunday) to 6 (Saturday)
+The following don't have a UTC-variant:
+* `getTime()` - returns timestamp - the  number of milliseconds passed from the 1st of January, 1970 UTC+0.
+* `getTimezoneOffset(0` - returns the difference between UTC and the local time zone, in minutes.
+```JavaScript
+// if you are in timezone UTC-1, outputs 60
+// if you are in timezone UTC+3, outputs -180
+alert( new Date().getTimezoneOffset() );
+```
+
+Setting components (all except setTime() have UTC-variants):
+* `setFullYear(year, [month], [date])`
+* `setMonth(month, [date])`
+* `setDate(date)`
+* `setHours(hour, [min], [sec], [ms])`
+* `setMinutes(min, [sec], [ms])`
+* `setSeconds(sec, [ms])`
+* `setMilliseconds(ms)`
+* `setTime(milliseconds)` - sets the whole date by milliseconds since 01.01.1970 UTC.
+Components that are not mentioned are not modified.
+
+Dates autocorrect, so `new Date(2013, 0, 32); // 32 Jan 2013` turns into 1 Feb 2013.
+
+`+date` conversion to numbers returns the timestamp. When dates are subtracted, the result is their difference in ms.
+
+`Date.now()` returns the current timestamp but doesn't create an intermediate Date object like `new Date().getTime()` does, making it faster and easier on the garbage collection.
+
+`Date.parse(str)` parsing a string in the format: `YYYY-MM-DDTHH:mm:ss.sssZ` where T is the delimiter and the optional 'Z' is the timezone in the format `+-hh:mm`. A single letter Z that would mean UTC+0.
+
 ### Error
+### Dictionary
+```JavaScript
+let dictionary = Object.create(null, { // descriptor flags are enumerable:false by default
+  toString: { // define toString property
+    value() { // the value is a function
+      return Object.keys(this).join();
+    }
+  }
+});
+
+dictionary.apple = "Apple";
+dictionary.__proto__ = "test";
+
+// apple and __proto__ is in the loop
+for(let key in dictionary) {
+  alert(key); // "apple", then "__proto__"
+}
+
+// comma-separated list of properties by toString
+alert(dictionary); // "apple,__proto__"
+```
 
 ### Symbol Type
 Object property keys can be strings or symbols. Symbols are unique identifiers. They can have descriptions, which are useful for debugging.
@@ -460,6 +756,25 @@ delete user.newKey;
 for (let key in object) { // where key is our dummy variable
     alert(object[key]); // returns value;
 }
+```
+#### Supporting Keys, Values, and Entries
+Plain objects can use:
+* `Object.keys(user) = ["name", "age"]`
+* `Object.values(user) = ["John", 30]`
+* `Object.entries(user) = [ ["name","John"], ["age",30] ]`
+for for..of loops. Compare to `map.keys()` and `set.values()`.
+
+```JavaScript
+let prices = {
+  banana: 1,
+  orange: 2,
+  meat: 4,
+};
+
+let doublePrices = Object.fromEntries(
+  // convert to array, map, and then fromEntries gives back the object
+  Object.entries(prices).map(([key, value]) => [key, value * 2])
+);
 ```
 
 #### Storage Order
@@ -690,7 +1005,6 @@ let obj = {
 }
 ```
 
-#### Conversion
 Accessing conversion:
 ```JavaScript
 // First try:
@@ -745,6 +1059,12 @@ let total = obj1 + obj2;
 if (user == 1) { ... };
 ```
 
+##### JavaScript Object Notation (JSON)
+Useful for converting complex objects to strings in order to send them over networks or output them to logs without needing to update a `toString()` method for each newly updated property. 
+* `JSON.stringify` - converta objects into JSON. The resulting json string is called a JSON-encoded/ serialized/ stringified/ marshalled object.
+* `JSON.parse` - converts JSON back into an object.
+In JSON, strings use double quotes and object names are double-quoted.
+
 ## Validation
 
 typeof allows us to see which type is stored in a variable or literal.
@@ -795,6 +1115,125 @@ Falsy: Empty values like 0, "", null, undefined, and NaN become false when conve
 Everything else become true, including objects, so they're "truthy."
 Do note that `Boolean("0")` and `Boolean(" ")` are true.
 
+### Destructuring
+Unpacks arrays and objects into a bunch of variables, for convenience. The underlying array or object is not modified.
+
+Works with strings, sets, arrays, maps, and objects and with any assignables on the left side.
+```JavaScript
+// we have an array with the name and surname
+let arr = ["Ilya", "Lee", "Kantor"]
+
+// destructuring assignment
+// sets firstName = arr[0]
+// and surname = arr[1]
+let [firstName, middlenName, surname] = arr;
+// Skipping values
+let [firstName, , surname] = "Ilya Lee Kantor".split(' '); // skip the middle name
+// Missing values
+let [firstName, surname] = []; // firstName and surName are now both undefined
+// Default values
+let [name = "Guest", surname = "Anonymous"] = ["Julius"];
+let [name = prompt('name?'), surname = prompt('surname?')] = ["Julius"];
+
+// loop over keys-and-values
+for (let [key, value] of Object.entries(user)) {
+  alert(`${key}:${value}`); // name:John, then age:30
+}
+
+let [name1, name2, ...rest] = ["Julius", "Caesar", "Consul", "of the Roman Republic"];
+
+alert(name1); // Julius
+alert(name2); // Caesar
+
+// Note that type of `rest` is Array.
+alert(rest[0]); // Consul
+alert(rest[1]); // of the Roman Republic
+alert(rest.length); // 2
+
+// Object Destructuring
+let options = {
+  title: "Menu",
+  width: 100,
+  height: 200
+};
+
+let {title, width, height} = options;
+// Order Doesn't Matter
+let {height, width, title} = { title: "Menu", height: 200, width: 100 }
+// Assigning to different variable names
+let {width: w, height: h, title} = options;
+// width -> w
+// height -> h
+// title -> title
+// Default Values
+let {width = 100, height: h = 200, title} = options;
+// Extract only what you need
+let { title } = options;
+let {title, ...rest} = options;
+// now title="Menu", rest={height: 200, width: 100}
+
+// Without let, need to make sure it won't think it's a code block
+let title, width, height;
+({title, width, height} = {title: "Menu", width: 200, height: 100});
+
+// More detailed
+let options = {
+  size: {
+    width: 100,
+    height: 200
+  },
+  items: ["Cake", "Donut"],
+  extra: true
+};
+
+// destructuring assignment split in multiple lines for clarity
+let {
+  size: { // put size here
+    width,
+    height
+  },
+  items: [item1, item2], // assign items here
+  title = "Menu" // not present in the object (default value is used)
+} = options;
+```
+
+Destructuring makes things a lot more readable when it comes to functions too.
+```JavaScript
+function({
+  incomingProperty: varName = defaultValue
+  ...
+}) {
+    // do something with varName;
+}
+```
+Example:
+```JavaScript
+function showMenu(title = "Untitled", width = 200, height = 100, items = []) {
+  // ...
+}
+// undefined where default values are fine
+showMenu("My Menu", undefined, undefined, ["Item1", "Item2"]);
+
+// Becomes
+
+function showMenu({title = "Untitled", width: w = 200, height = 100, items : [item1, item2]= []}) {
+  // title, items – taken from options,
+  // width, height – defaults used
+  alert( `${title} ${w} ${height}` ); // My Menu 200 100
+  alert( item1 ); // Item1, Item2
+}
+let options = {
+  title: "My menu",
+  items: ["Item1", "Item2"]
+};
+showMenu(options);
+showMenu({}); // all values are default
+
+function showMenu({ title = "Menu", width = 100, height = 200 } = {}) {
+  alert( `${title} ${width} ${height}` );
+}
+showMenu(); // all values are default
+```
 ## Operators
 Operators apply to operands, or arguments.
 
@@ -1101,6 +1540,14 @@ Allows iteration through object keys.
 Iterates over all properties, so not good for arrays where you only want to iterate over numeric ones.
 ## For...Of
 Iterates over elements in an array.
+
+Works with characters in strings and any object that implements Symbol.iterator to make it iterable.
+
+```JavaScript
+for (let char of "test") {
+  alert( char ); // t, then e, then s, then t
+}
+```
 ## If...Else
 ```
 if (statement to be evaluated into a boolean) is true {
@@ -1722,10 +2169,178 @@ request.onsuccess = function() {
   console.log("Book added to the store", request.result);
 };
 
-request.onerror = function() {
+request.onerror = function(event) {
+  // ConstraintError occurs when an object with the same id already exists
+  if (request.error.name == "ConstraintError") {
+    console.log("Book with such id already exists"); // handle the error
+    event.preventDefault(); // don't abort the transaction
+    event.stopPropagation(); // don't bubble error up, "chew" it
+    // use another key for the book?
+  } else {
+    // unexpected error, can't handle it
+    // the transaction will abort
+    transaction.abort(); // implicitly calls
+    // Cancels all modification made by the requests in it and triggers transaction.onabort event.
+  }
+};
+
+// Only complete guarantees that the transaction is saved as a whole. Individual requests may succeed, but the final write operation may go wrong (e.g. I/O error or something).
+transaction.oncomplete = function() {
+  console.log("Transaction is complete");
+};
+```
+
+Don't need onerror/ onsuccess for each request because all events are DOM events and will bubble up from the request -> transaction -> database, so we only need to watch for and handle db errors.
+
+```JavaScript
+db.onerror = function(event) {
+  let request = event.target; // the request that caused the error
+
   console.log("Error", request.error);
 };
 ```
+
+Searching in an Object Store
+
+Can search by keys or by another object field. The object store sorts all values by key internally, so values will return in an order sorted by their keys.
+
+Create a range of keys
+* `IDBKeyRange.only(key)` – a range that consists of only one key, rarely used.
+* `IDBKeyRange.lowerBound(lower, [open])` means: ≥lower (or >lower if open is true)
+* `IDBKeyRange.upperBound(upper, [open])` means: ≤upper (or <upper if open is true)
+* `IDBKeyRange.bound(lower, upper, [lowerOpen], [upperOpen])` means: between lower and upper. If the open flags is true, the corresponding key is not included in the range.
+
+Search methods with a key range query argument
+* `store.get(query)` – search for the first value by a key or a range.
+* `store.getAll([query], [count])` – search for all values, limit by count if given.
+* `store.getKey(query)` – search for the first key that satisfies the query, usually a range.
+* `store.getAllKeys([query], [count])` – search for all keys that satisfy the query, usually a range, up to count if given.
+* `store.count([query])` – get the total count of keys that satisfy the query, usually a range.
+
+```JavaScript
+// get one book
+books.get('js')
+
+// get books with 'css' <= id <= 'html'
+books.getAll(IDBKeyRange.bound('css', 'html'))
+
+// get books with id < 'html'
+books.getAll(IDBKeyRange.upperBound('html', true))
+
+// get all books
+books.getAll()
+
+// get all keys: id > 'js'
+books.getAllKeys(IDBKeyRange.lowerBound('js', true))
+```
+
+Search by any field using a data structure called an index.
+```JavaScript
+/*
+ * @param name: index name
+ * @param keyPath: path to the object field that the index tracks - the field you're searching by
+ * @param option: with properties:
+ *   unique: if true, then there may be only one object in the store with the given value at the keyPath. Enfoce this by generating an error if we try to add a duplicate.
+ *   multiEntry: if the value on the keyPath is an array. By default, the index will treat the whole array as the key, but if multiEntry is true, the index will keep a list of store objects for each value of the array, making each array member become an index key.
+ */
+objectStore.createIndex(name, keyPath, [options]);
+
+openRequest.onupgradeneeded = function() {
+  // we must create the index here, in versionchange transaction
+  let books = db.createObjectStore('books', {keyPath: 'id'});
+  let index = inventory.createIndex('price_idx', 'price'); // index tracks price
+  // price is not unique, so do not set this to true
+  // price is not an array, so multiEntry is not true
+};
+
+// The index now keeps a list of keys at each price
+let transaction = db.transaction("books"); // readonly
+let books = transaction.objectStore("books");
+let priceIndex = books.index("price_idx");
+
+let request = priceIndex.getAll(10);
+// find books where price <= 5
+let request = priceIndex.getAll(IDBKeyRange.upperBound(5));
+
+request.onsuccess = function() {
+  if (request.result !== undefined) {
+    console.log("Books", request.result); // array of books with price = 10, another request with array of books with price <= 5
+  } else {
+    console.log("No such books");
+  }
+};
+
+// delete the book with id='js'
+books.delete('js');
+
+// find the key where price = 5
+let request = priceIndex.getKey(5);
+
+request.onsuccess = function() {
+  let id = request.result;
+  let deleteRequest = books.delete(id); // delete the book where price = 5
+};
+
+books.clear(); // clear the storage
+```
+
+Cursors are special objects that traverse the object story, given a query, and return one key/ value pair at a time to save memory, because sometimes object storage is greater than the available memroy.
+
+Cursor walks the store in key order (default: ascending).
+
+```JavaScript
+/*
+ * @param query: key or key range, same as for getAll.
+ * @param direction: optional argument, which order to use:
+ *   "next": the default, the cursor walks up from the record with the lowest key.
+ *   "prev": the reverse order: down from the record with the biggest key.
+ *   "nextunique", "prevunique": same as above, but skip records with the same key (only for cursors over indexes, e.g. for multiple books with price=5 only the first one will be returned).
+ */
+let request = store.openCursor(query, [direction]);
+// cursor made over object store
+
+let transaction = db.transaction("books");
+let books = transaction.objectStore("books");
+
+let request = books.openCursor();
+
+// called for each book found by the cursor
+request.onsuccess = function() {
+  let cursor = request.result;
+  if (cursor) {
+    let key = cursor.key; // book key (id field)
+    let value = cursor.value; // book object
+    console.log(key, value);
+
+    cursor.advance(count); // advance the cursor count times, skipping values
+    // OR
+    cursor.continue(); // advance the cursor to the next value in range matching (or immediately after key if given).
+  } else {
+    console.log("No more books");
+  }
+};
+// Cursor will trigger request.onsuccess multiple times - once for each result.
+
+// Cusor over index:
+// cursor.key is the index key, like price, cusor.primaryKey property is the object key
+let request = priceIdx.openCursor(IDBKeyRange.upperBound(5));
+
+// called for each record
+request.onsuccess = function() {
+  let cursor = request.result;
+  if (cursor) {
+    let key = cursor.primaryKey; // next object store key (id field)
+    let value = cursor.value; // next object store object (book object)
+    let key = cursor.key; // next index key (price)
+    console.log(key, value);
+    cursor.continue();
+  } else {
+    console.log("No more books");
+  }
+};
+```
+
+Promise wrappers: https://github.com/jakearchibald/idb  
 
 # Security
 ## Same Origin Policy
