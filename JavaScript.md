@@ -193,6 +193,83 @@ Internationalization standard: http://www.ecma-international.org/ecma-402/1.0/EC
 Technically all of the below are objects
 
 ### Array
+Ordered collections of elements.
+```JavaScript
+let arr = new Array();
+let arr = new Array(numericLength); // fills with undefined
+let arr = [];
+let arr = ["initial", "elements",]; // can be a mix of strings, booleans, objects, numbers, functions, etc.
+
+arr[0]; // "initial"
+arr[1] = "replacementValue";
+arr[2] = addedFunction;
+arr[2](); // runs the function at index 2
+
+// Multidimensional
+let matrix = [
+  [1, 2, 3],
+  [4, 5, 6],
+  [7, 8, 9]
+];
+
+alert( matrix[1][1] ); // 5, the central element
+```
+
+Methods and Properties
+* `arr.length` - length of the array, really the greatest index + 1.
+* * Writable, so can increase or truncate the array, irreversibly. Can clear the array with `arr.length = 0;`.
+* `arr.push(element[, element, ...])` - append element(s) to the end
+* * Same as `arr[arr.length] = element`
+* `arr.pop()` - pop off an element from the end - return it and remove it, like a stack .
+* `arr.unshift(element[, element, ...])` - add element(s) to the beginning of the array.
+* `arr.shift()` - extract the first element of array and return it (removes it), like a queue.
+* `String(arr)` - returns a comma-separated list of elements
+* `delete arr[index]` - deletes element at index, makes it undefined
+* `arr.slice([start = 0], [end = length])` - returns a new array copying all items from [start, end) (not including end). Returns a subarray.
+* * Allows for negative indices that will count from the end of the array: `["t", "e", "s", "t"].slice(-2) = s,t`.
+* `arr.splice(index[, deleteCount, ele1, ..., eleN])` - starting from position index, removes deleteCount elements and then inserts ele1, ..., eleN at their place, returns the array of removed elements
+* * To insert elements without removals, set deleteCount to 0
+* * Negative indices specify position from the end of the array.
+* `arr.concat(arg1, arg2...)` - creates a new array from arr, then items from arg1, arg2, etc. which can be arrays (copies all elements) or values themselves
+* * Array-like objects that have `[Symbol.isConcatSpreadable]: true` property are treated like arrays and their elements added instead.
+* `arr.forEach(function(item, index, array) {// do something});` - runs a function for each item in an array. The return of the function, if anything, is thrown away and ignored.
+
+Like objects, arrays are copied by reference, so variables all point and can modify to the same underlying object. 
+
+```JavaScript
+let arr = [1, 2];
+
+let arrayLike = {
+  0: "something",
+  1: "else",
+  [Symbol.isConcatSpreadable]: true,
+  length: 2
+};
+
+alert( arr.concat([3,4], 5, arrayLike) ); // 1,2,3,4,5,something,else
+```
+
+Iterating through elements
+```JavaScript
+let arr = ["Apple", "Orange", "Pear"];
+
+for (let i = 0; i < arr.length; i++) {
+  alert( arr[i] );
+}
+
+// iterates over array elements without an index
+for (let ele of arr) {
+  alert( ele );
+}
+
+arr.forEach(function(item, index, array) {
+  // ... do something with item
+});
+["Bilbo", "Gandalf", "Nazgul"].forEach((item, index, array) => {
+  alert(`${item} is at index ${index} in ${array}`);
+});
+```
+Don't iterate using for...in because that would iterate over all properties, not just the numeric ones.
 
 ### Iterables
 ### Map and Set
@@ -264,6 +341,8 @@ Objects are lists of properties, which are string key: any value pairs.
 ```JavaScript
 let user = new Object(); // "object constructor" syntax
 let userLiteral = {};  // "object literal" syntax
+let pureObject = Object.create(null); // creates a fully blank object - there's no prototype, and therefore no helpful methods like toString(). Object-related methods like Object.something(), like Object.keys(pureObject), will work
+
 let computedProperty = prompt("User inputs key name", "default");
 let obj = {
 
@@ -291,6 +370,15 @@ let obj = {
 
 obj.addedKey = "new key added or reassigned";
 ```
+
+Object-Related Methods
+* `Object.keys(obj)`, `Object.values(obj)`, `Object.entries(obj)` - returns an array of enumerable own string property names/ values/ key-value pairs
+* `Object.getOwnPropertyNames(obj)` - returns an array of all own string keys
+* `Object.getOwnPropertySymbols(obj)` - returns an array of all own symbolic keys
+* `Reflect.ownKeys(obj)` - returns an array of all own keys
+* `obj.hasOwnProperty(key)` - returns true if obj has its own (not inherited) key named "key"
+
+Own keys do not include inherited ones. for...in loops will find inherited ones as well.
 
 #### Constructors
 Reusable object creation code with "new."
@@ -424,7 +512,154 @@ Object.assign(user, { name: "Pete", isAdmin: true });
 let clone = Object.assign({}, user);
 ```
 
+To create a fully identical shallow clone of obj, can also use Object.create - this is more powerful than copying properties with for..in:
+```JavaScript
+let clone = Object.create(Object.getPrototypeOf(obj), Object.getOwnPropertyDescriptors(obj));
+// This call makes a truly exact copy of obj, including all properties: enumerable and non-enumerable, data properties and setters/getters – everything, and with the right [[Prototype]].
+```
+
 If one of the properties of an object is an object, then cloning will only clone a reference to the internal object - they will share that same internal object. To properly clone this, you need deep cloning to check if something is an object that needs to replicated as well.
+
+#### Prototypal Inheritance
+To extend an object with its properties an methods and build a new object on top of it.
+
+Objects have a special hidden property `[[Prototype]]` that is either null or a reference to another object. When we try to read a property from the object and it's missing, we automatically take it from the prototype.
+
+Everything inherits from objects.
+```JavaScript
+// it inherits from Array.prototype?
+alert( arr.__proto__ === Array.prototype ); // true
+
+// then from Object.prototype?
+alert( arr.__proto__.__proto__ === Object.prototype ); // true
+
+// and null on the top.
+alert( arr.__proto__.__proto__.__proto__ ); // null
+// Prototypes are global, so don't modify the prototype for something like a primitive or you'll be changing how everything acts.
+```
+
+Setting it yourself (do note that this is very slow):
+
+```JavaScript
+// Historical getter/ setter
+let animal = {
+  name: "animal",
+  eats: true,
+  walk() {
+    alert(this.name + " walk");
+  },
+};
+let rabbit = {
+  __proto__: animal, // must be either an object or null
+  name: "rabbit",
+  jumps: true,
+};
+// Can chain references, just don't make a circle
+let longEar = {
+  __proto__: rabbit,
+  name: "long-ear rabbit",
+  earLength: 10,
+};
+
+// we can find both properties in rabbit now:
+alert( rabbit.eats ); // true (**)
+alert( rabbit.jumps ); // true
+longEar.walk(); // long-ear walk
+// the value of "this" is still the object before the dot
+// Methods are shared, not internal object state
+
+rabbit.walk = function() { // define own walk function, won't take from Animal
+  alert("Rabbit! Bounce-bounce!");
+};
+rabbit.walk(); // Rabbit! Bounce-bounce!
+```
+
+Iterating Over Properties
+
+The for...in loop will iterate over inherited properties as well.
+```JavaScript
+let animal = {
+  eats: true,
+  stomach: [], // shared amongst all that inherit from animal
+  eat(food) {
+      this.stomach = [food]; // creates a local stomach for each that inherit from it
+  }
+};
+
+let rabbit = {
+  jumps: true,
+  __proto__: animal // as objects are passed by reference, if animal changes, so will rabbit's prototype
+};
+
+// Object.keys only returns own keys
+alert(Object.keys(rabbit)); // jumps
+
+// for..in loops over both own and inherited keys
+for(let prop in rabbit) alert(prop); // jumps, eats
+// __proto__ is not expressed
+
+for(let prop in rabbit) {
+  let isOwn = rabbit.hasOwnProperty(prop);
+
+  if (isOwn) {
+    alert(`Our: ${prop}`); // Our: jumps
+  } else {
+    alert(`Inherited: ${prop}`); // Inherited: eats
+  }
+}
+```
+Object.prototype properties, such as hasOwnProperty, are not seen because they have the flat `enumerable:false`.
+
+Other ways of setting a prototype:
+```JavaScript
+let animal = {
+  eats: true
+};
+function Rabbit(name) {
+  this.name = name;
+}
+
+// The default prototype is an object with the only property constructor, which points back to the function itself
+/* default prototype */
+Rabbit.prototype = { constructor: Rabbit };
+let rabbit2 = new rabbit.constructor("Black Rabbit");
+
+// When a new Rabbit is created, assign its [[Prototype]] to animal. This is only used when new is called.
+Rabbit.prototype = animal;
+let rabbit = new Rabbit("White Rabbit"); //  rabbit.__proto__ == animal
+alert(rabbit.constructor === Rabbit); // false
+// To avoid this last case, don't overwrite Rabbit.prototype fully, just add to it
+Rabbit.prototype.jumps = true;
+// or recreate the constructor manually
+Rabbit.prototype = {
+  jumps: true,
+  constructor: Rabbit
+};
+```
+
+Modern ways of setting the prototype:
+* `Object.create(proto[, descriptors])` – creates an empty object with given proto as `[[Prototype]]` and optional property descriptors.
+* `Object.getPrototypeOf(obj)` – returns the `[[Prototype]]` of obj.
+* `Object.setPrototypeOf(obj, proto)` – sets the `[[Prototype]]` of obj to proto
+```JavaScript
+// create a new object with animal as a prototype
+let rabbit = Object.create(animal);
+let rabbit = Object.create(animal, {
+  jumps: {
+    value: true
+  }
+});
+
+alert(rabbit.jumps); // true
+
+alert(rabbit.eats); // true
+
+alert(Object.getPrototypeOf(rabbit) === animal); // true
+
+Object.setPrototypeOf(rabbit, {}); // change the prototype of rabbit to {}
+
+```
+__proto__ is not a property of an object, but an accessor property of Object.prototype. It's a getter/ setter, a way to access `[[Prototype]]` but not `[[Protytpe]]` itself.
 
 #### Object to Primitive
 The three variants of type conversion are called "hints."
@@ -455,6 +690,7 @@ let obj = {
 }
 ```
 
+#### Conversion
 Accessing conversion:
 ```JavaScript
 // First try:
@@ -859,10 +1095,13 @@ for (;;) {
 }
 ```
 
-## For In
+## For...In
 Allows iteration through object keys.
-## For Of
-## If Else
+
+Iterates over all properties, so not good for arrays where you only want to iterate over numeric ones.
+## For...Of
+Iterates over elements in an array.
+## If...Else
 ```
 if (statement to be evaluated into a boolean) is true {
     do this;
