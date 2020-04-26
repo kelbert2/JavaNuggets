@@ -9,10 +9,94 @@ const IMMUTABLE_VARIABLE = 'value'; // combined declaration and assignment
 let multiple = 1, variables = 2, can = 3, be = '4', assigned = 5;
 ```
 
-In the olden days, only ``var`` was be used to declare variables.
+In the olden days, only `var` was be used to declare variables.
+var has no block scope - they're either funciton-wide or global. If the code-block is inside a function, then var declares a function-level variable. This was in a pre-Lexical Environment world.
+
+var declarations are processed when the function or script starts - so like functions, they can be used before they are declared. Their declaration is hoisted to the top of the function, but their assignment is not - they will still be undefined until that assignment.
+
+To emulate block-level visibility, programmers used "immediately-invoked function expressions," or IIFE:
+```JavaScript
+(function() { // with (), do not need to declare a name
+  var message = "Hello";
+  alert(message); // Hello
+})(); // immediately calls
+
+(function() {
+  alert("Parentheses around the function");
+})();
+
+(function() {
+  alert("Parentheses around the whole thing");
+}());
+
+!function() {
+  alert("Bitwise NOT operator starts the expression");
+}();
+
++function() {
+  alert("Unary plus starts the expression");
+}();
+```
 
 ## Scope and Context
 Variables declared inside a function with the same name as a variable declared outside shadows the outer one. The outer one is ignored.
+
+{ Declare within a block, and it's only visible in there. You can't declare a variable with the same name twice, or you'll get an error.}
+
+If, for, and while also create their own blocks. Every running function, code block, and the script as a whole have internal associated objects called _lexical environments_. These have an environment record that stores all local variables as its properties and the value of this and a reference to the outer code's lexical environment.
+
+```JavaScript
+function makeCounter() {
+  let count = 0;
+
+  return function() {
+    return count++;
+  };
+}
+
+let counter = makeCounter(); // creates a new lexical environment for the call
+// counter.[[Environment]] has a reference to {count: 0}.
+
+alert( counter() ); // 0 // creates a new lexical environment for function() to run, outer reference taken from counter
+alert( counter() ); // 1
+alert( counter() ); // 2
+
+let c = counter(); // stores a reference to the lexical environment of the call to counter()
+```
+When a function runs at the beginning of a call, a new Lexical Environment is automatically created to store the variables and parameters of the call. When the code wants to access a variable, it searches the inner Lexical Environment first, then the outer one, then the one outside that, on and on until the global Lexical Environment is reached or the variable is found.
+
+A closure is a function that remembers its outer variables and can access them. In JavaScript, all functions are naturally closures - they automatically remember where they were created using the hidden [[Environment]] property, allowing their code to access outer variables.
+
+Lexical Environments are gnerally garbage collected when the function call finishes - if there are no references to it. 
+
+### Global Object
+In the browser, this is called `window`; in Node.js, this is called `global`. `globalThis` has now been added to the language and is gaining support.
+
+```JavaScript
+alert("Hello");
+// is the same as
+window.alert("Hello");
+```
+If a value is so important that you’d like to make it available globally, write it directly as a property:
+```JavaScript
+// make current user information global, to let all scripts access it
+window.currentUser = {
+  name: "John"
+};
+
+// somewhere else in code
+alert(currentUser.name);  // John
+
+// or, if we have a local variable with the name "currentUser"
+// get it from window explicitly (safe!)
+alert(window.currentUser.name); // John
+```
+The use of global variables is still greatly discouraged. They are useful to test support of modern language features. From there, you can "polyfill": add functions that are not supported by the environment but exist in the modern standard in order to maintain compatibility.
+```JavaScript
+if (!window.Promise) {
+  window.Promise = ... // custom implementation of the modern language feature
+}
+```
 
 ## Values
 JavaScript is dynamically typed - variables are not bound to just holding a single type through their lifecycle.
@@ -240,7 +324,7 @@ Methods and Properties
 * `arr.includes(item, from)` - returns true if finds index starting search at index from.
 * * Works with NaN.
 * `arr.find((item, index, array) => {// Some condition. If returns true, the search is stopped and item is returned, else undefined is returned; })` and `arr.find((item, index, array) => {similar, can choose to only use (item) => {}, will return the index when the function returns true})`
-* `arr.filter((item, index, array) => {if true, pushes item to result array and conteinues iteration, returns empty array [] if nothing is found that passes the filter})`
+* `arr.filter((item, index, array) => {if true, pushes item to result array and conteinues iteration, returns empty array [] if nothing is found that passes the filter})` - Technically returns the type of arr.constructor(), so this works even if extended from an array class
 * `arr.map((item, index, array) => {transforms each item into a different value and returns an array of these new values})`
 * `arr.sort()` - sorts the array in place (modifies the array itself) and returns the sorted array
 * * Items are sorted by strings by default, so "15" comes before "2". For better string sorting, pass in the function `(a, b) => a > b ? 1 : -1`
@@ -296,7 +380,7 @@ arr.forEach(function(item, index, array) {
   alert(`${item} is at index ${index} in ${array}`);
 });
 ```
-Don't iterate using for...in because that would iterate over all properties, not just the numeric ones.
+Don't iterate using for..in because that would iterate over all properties, not just the numeric ones.
 
 Array-likes are objects that have numeric indexes and `length`.
 
@@ -572,7 +656,22 @@ for(let key in dictionary) {
 // comma-separated list of properties by toString
 alert(dictionary); // "apple,__proto__"
 ```
-
+### Linked List
+```JavaScript
+let list = {
+  value: 1,
+  next: {
+    value: 2,
+    next: {
+      value: 3,
+      next: {
+        value: 4,
+        next: null
+      }
+    }
+  }
+};
+```
 ### Symbol Type
 Object property keys can be strings or symbols. Symbols are unique identifiers. They can have descriptions, which are useful for debugging.
 
@@ -610,7 +709,7 @@ user = {
     name: "userName,
     [id]: 1
 }
-// will not show up in for...in loop
+// will not show up in for..in loop
 Object.keys(user) ignores symbols.
 Object.assign({}, user); // still copies symbol  properties
 
@@ -674,7 +773,7 @@ Object-Related Methods
 * `Reflect.ownKeys(obj)` - returns an array of all own keys
 * `obj.hasOwnProperty(key)` - returns true if obj has its own (not inherited) key named "key"
 
-Own keys do not include inherited ones. for...in loops will find inherited ones as well.
+Own keys do not include inherited ones. for..in loops will find inherited ones as well.
 
 #### Constructors
 Reusable object creation code with "new."
@@ -776,6 +875,136 @@ let doublePrices = Object.fromEntries(
   Object.entries(prices).map(([key, value]) => [key, value * 2])
 );
 ```
+
+#### Property Flags
+Object properties have values and three special attributes called flags:
+* `writable` - if true, value can be changed, otherwise it's read-only.
+* `enumerable` - if true, then this property is listed in for..in loops and `Oject.keys(obj)`, otherwise it is hidden
+* `configurable` - if true, the property can be deleted, and these attributes/ flags cannot be modified, otherwise not
+By default, all are true.
+
+Something like Math.PI is nonwritable, nonenumerable, and nonconfigurable - its value cannot be overwritten, it does not show up when enumerating over the Math Object, and it cannot be deleted.
+```JavaScript
+// Getting Flags
+let descriptor = Object.getOwnPropertyDescriptor(obj, propertyName);
+
+alert( JSON.stringify(descriptor, null, 2 ) );
+/* property descriptor:
+{
+  "value": "John",
+  "writable": true,
+  "enumerable": true,
+  "configurable": true
+}
+*/
+
+// Changing Flags
+Object.defineProperty(obj, propertyName, descriptor);
+// if propertyName exists, update its flags. Otherwise, create a property with the given value and flags, default flags to false if not supplied.
+
+let user = {
+  name: "John",
+  toString() {
+    return this.name;
+  }
+};
+// Writable
+Object.defineProperty(user, "name", {
+  writable: false
+});
+
+user.name = "Pete"; // Error: Cannot assign to read only property 'name'
+
+// Enumerable
+Object.defineProperty(user, "toString", {
+  enumerable: false
+});
+
+// Now our toString disappears:
+for (let key in user) alert(key); // name
+alert(Object.keys(user)); // name
+
+// Configurable
+// Making a property nonconfigurable cannot be undone. You cannot change any other flags after setting this one to false. 
+
+Object.defineProperty(user, "name", {
+  value: "John",
+  writable: false,
+  configurable: false
+});
+// You can assign the property if you haven't yet, but once you do, it's a forever sealed constant.
+
+// won't be able to change user.name or its flags
+// all this won't work:
+//   user.name = "Pete"
+//   delete user.name
+//   defineProperty(user, "name", { value: "Pete" })
+Object.defineProperty(user, "name", {writable: true}); // Error
+```
+
+Cloning with property descriptors:
+```JavaScript
+let clone = Object.defineProperties({}, Object.getOwnPropertyDescriptors(obj));
+```
+Limiting access to the object:
+* `Object.preventExtensions(obj)` - Forbids addition of new properties to the object.
+* `Object.seal(obj)` - Forbides adding and removing of properties. Sets `configurable: false` for all existing properties.
+* `Object.freeze(obj)` - Forbids adding, removing, and changing of properties. Sets `configurable: false, writable: false` for all existing properties.
+Testing properties:
+* `Object.isExtensible(obj)` - Returns false if adding properties is forbidden, otherwise true.
+* `Object.isSealed(obj)` - Returns true if adding and removing properties is forbidden and all existing properties have `configurable: false`.
+* `Object.isFrozen(obj)` - Returns true if adding, removing, and changing properties is forbidden and all current properties are `configurable: false, writable: false`.
+
+#### Accessor Properties
+Data properties are the ones we're most familiar with - they have values. There are also accessor properties that are essentially functions that work on getting and setting values, but externally look like regular properties.
+
+They are call and read normally. They have `enumerable` and `configurable` data properties.
+```JavaScript
+let obj = {
+  get propName() {
+    // getter, the code executed on getting obj.propName
+  },
+  set propName(value) {
+    // setter, the code executed on setting obj.propName = value
+  }
+};
+
+let user = {
+  name: "John",
+  surname: "Smith",
+
+  get fullName() {
+    return `${this.name} ${this.surname}`;
+  }
+};
+alert(user.fullName); // John Smith
+user.fullName = "Test"; // Error (property has only a getter)
+
+// Adding the below will allow the property to be set
+  set fullName(value) {
+    if (value.length < 4) { // setters allow greater control over what will be set.v
+      alert("Name is too short, need at least 4 characters");
+      return;
+    }
+    [this.name, this.surname] = value.split(" ");
+  }
+
+// Although external code can access user._name, generally view properties that start with _ as internal
+let user = {
+  get name() {
+    return this._name;
+  },
+
+  set name(value) {
+    if (value.length < 4) {
+      alert("Name is too short, need at least 4 characters");
+      return;
+    }
+    this._name = value;
+  }
+};
+```
+
 
 #### Storage Order
 
@@ -891,7 +1120,7 @@ rabbit.walk(); // Rabbit! Bounce-bounce!
 
 Iterating Over Properties
 
-The for...in loop will iterate over inherited properties as well.
+The for..in loop will iterate over inherited properties as well.
 ```JavaScript
 let animal = {
   eats: true,
@@ -1061,9 +1290,57 @@ if (user == 1) { ... };
 
 ##### JavaScript Object Notation (JSON)
 Useful for converting complex objects to strings in order to send them over networks or output them to logs without needing to update a `toString()` method for each newly updated property. 
-* `JSON.stringify` - converta objects into JSON. The resulting json string is called a JSON-encoded/ serialized/ stringified/ marshalled object.
-* `JSON.parse` - converts JSON back into an object.
+* `JSON.stringify(value[, replacer, space])` - converta objects into JSON. The resulting json string is called a JSON-encoded/ serialized/ stringified/ marshalled object.
+* * Replacer is an array of properties to encode or a mapping `function(key, value)`. A null replacer just returns as default.
+* * Space is the number of spaces to use for prettier formatting (indents for nested objects), otherwise there are no spaces.
+* `JSON.parse(str[, reviver])` - converts JSON back into an object.
 In JSON, strings use double quotes and object names are double-quoted.
+* * Reviver is an optional `function(key, value)` that gets called for each pair and can transform its value.
+
+JSON supports {Objects}, [Arrays], strings, numbers, booleans, and null. JSON skips Function properties (methods), Symbolic properties, comments, and undefined. There cannot be any circular references. 
+
+To filter out circular references, use the replacer argument. Passing an array of properties ensures that only those properties will be encoded. A function can return the value to replace a value with, or undefined if it should be skipped.
+```JavaScript
+let room = {
+  number: 23
+};
+
+let meetup = {
+  title: "Conference",
+  participants: [{name: "John"}, {name: "Alice"}],
+  place: room // meetup references room
+};
+
+room.occupiedBy = meetup; // Circular reference: room references meetup
+
+alert( JSON.stringify(meetup, ['title', 'participants']) );
+// {"title":"Conference","participants":[{},{}]}
+// Skip only the circular reference: 
+alert( JSON.stringify(meetup, function replacer(key, value) {
+  alert(`${key}: ${value}`);
+  return (key == 'occupiedBy') ? undefined : value;
+}));
+
+/* key:value pairs that come to replacer:
+:             [object Object] // The first call is special. It is made using a special “wrapper object”: {"": meetup}. In other words, the first (key, value) pair has an empty key, and the value is the target object as a whole. 
+title:        Conference
+participants: [object Object],[object Object]
+0:            [object Object]
+name:         John
+1:            [object Object]
+name:         Alice
+place:        [object Object]
+number:       23
+*/
+
+// The reverse with JSON. parse: 
+let meetup = JSON.parse(str, function(key, value) {
+  if (key == 'date') return new Date(value);
+  return value;
+});
+```
+
+`JSON.stringify()` will automatically call a `obj.toJSON()` method if it exists.
 
 ## Validation
 
@@ -1429,6 +1706,321 @@ Don't use >=, >, <, <= with variables that may be null or undefined unless you'r
 ## Prototypal Inheritance
 
 # Classes
+
+Methods are non-enumerable. Can have getters and setters and computed properties.
+```JavaScript
+class User {
+  // Field
+  static staticField = 'static field'; // without initializer is undefined
+
+  constructor(name) {
+    this.name = name;
+    this.sayHi = this.sayHi.bind(this);
+  }
+
+  sayHi() {
+    alert(this.name);
+  }
+  click = () => {
+    alert(this.value);
+  } // doesn't need this binding
+
+  // computed property
+  ['say' + 'Hello']() {
+    alert("Hello");
+  }
+}
+
+// Usage:
+let user = new User("John"); // calls the constructor
+user.sayHi();
+
+// Expression
+let User = class {
+  sayHi() {
+    alert("Hello");
+  }
+};
+// Named Class Expression
+// (no such term in the spec, but that's similar to Named Function Expression)
+let User = class MyClass {
+  sayHi() {
+    alert(MyClass); // MyClass name is visible only inside the class
+  }
+};
+
+new User().sayHi(); // works, shows MyClass definition
+
+alert(MyClass); // error, MyClass name isn't visible outside of the class
+```
+
+### Inheritance
+To build new functionality upon existing (without overwriting), we extend classes. Then `Child.prototype.__proto__ = Parent.prototype` and methods can be inherited.
+```JavaScript
+function f(phrase) {
+  return class {
+    sayHi() { alert(phrase) }
+  }
+}
+
+class User extends f("Hello") {}
+
+new User().sayHi(); // Hello
+```
+
+Parent functions can be overwritten in the child by defining them there:
+```JavaScript
+class Animal {
+  constructor(options) {
+    this.speed = 0;
+    let {name = 'default name'} = options
+    this.name = name;
+  } 
+  /*
+  constructor({ template }) {
+    this.template = template;
+  }
+  */
+
+  run(speed) {
+    this.speed = speed;
+    alert(`${this.name} runs with speed ${this.speed}.`);
+  }
+
+  stop() {
+    this.speed = 0;
+    alert(`${this.name} stands still.`);
+  }
+}
+
+class Rabbit extends Animal {
+  constructor(name, earLength) {
+    super({name}); // have to call before use "this" because it creates this
+    this.earLength = earLength;
+  }
+  hide() {
+    alert(`${this.name} hides!`);
+  }
+
+  stop() { // overrides parent function - this will be called instead
+    super.stop(); // optional - call parent stop
+    // Note that arrow functions do not have super
+    this.hide(); // and then hide
+  }
+}
+
+let rabbit = new Rabbit("White Rabbit");
+
+rabbit.run(5); // White Rabbit runs with speed 5.
+rabbit.stop(); // White Rabbit stands still. White rabbit hides!
+```
+
+In order to enable extension from an extended class that allows for super to be called, properties have the internal property [[HomeObject]]. When the function is specified as a class or object method, [[HomeObject]] is set to that object and cannot be changed. Copying this function, if it uses a super call, may result in errors.
+
+Methods must be defined as method(), not like this:
+```JavaScript
+let animal = {
+  eat: function() { // intentionally writing like this instead of eat() {...
+    // ...
+  }
+};
+
+let rabbit = {
+  __proto__: animal,
+  eat: function() {
+    super.eat();
+  }
+};
+
+rabbit.eat();  // Error calling super (because there's no [[HomeObject]])
+```
+More detail:
+https://javascript.info/class-inheritance
+
+Properties and methods can be static. They can be accessed outside of an instance of the class. These are inheritable.
+```JavaScript
+class Article {
+  static publisher = "Ilya Kantor";
+
+  constructor(title, date) {
+    this.title = title;
+    this.date = date;
+  }
+
+  static createTodays() {
+    // remember, this = Article
+    return new this("Today's digest", new Date());
+  }
+}
+alert( Article.publisher ); // Ilya Kantor
+let article = Article.createTodays();
+
+alert( article.title ); // Today's digest
+
+// Same as assigning to the class itself
+Article.publisher = "Ilya Kantor";
+```
+
+Objects can only have one [[Prototype]] and extend only one other class. Mixins are classes that contain methods that can be used by other classes without the need to inherit from it. They can add behavior.
+```JavaScript
+// mixin
+let sayMixin = {
+  say(phrase) {
+    alert(phrase);
+  }
+};
+// more complicated mixin
+let sayHiMixin = {
+  __proto__: sayMixin, // (or we could use Object.create to set the prototype here)
+  sayHi() {
+    // call parent
+    super.say(`Hello, ${this.name}`);
+  },
+  sayBye() {
+    super.say(`Bye, ${this.name}`);
+  }
+};
+
+// usage:
+class User extends Person{
+  constructor(name) {
+    super(name);
+    this.name = name;
+  }
+}
+
+// copy the methods
+Object.assign(User.prototype, sayHiMixin);
+
+// now User can say hi
+new User("Dude").sayHi(); // Hello Dude!// mixin
+let sayHiMixin = {
+  sayHi() {
+    alert(`Hello ${this.name}`);
+  },
+  sayBye() {
+    alert(`Bye ${this.name}`);
+  }
+};
+
+// usage:
+class User {
+  constructor(name) {
+    this.name = name;
+  }
+}
+
+// copy the methods
+Object.assign(User.prototype, sayHiMixin);
+
+// now User can say hi
+new User("Dude").sayHi(); // Hello Dude!
+``` 
+Event handling mixin:
+```JavaScript
+let eventMixin = {
+  /**
+   * Subscribe to event, usage:
+   *  menu.on('select', function(item) { ... }
+  */
+  on(eventName, handler) { // when that name occurs, function handler runs
+    if (!this._eventHandlers) this._eventHandlers = {};
+    if (!this._eventHandlers[eventName]) {
+      this._eventHandlers[eventName] = [];
+    }
+    this._eventHandlers[eventName].push(handler); // add to list of event handlers, even if has the same name as another
+  },
+
+  /**
+   * Cancel the subscription, usage:
+   *  menu.off('select', handler)
+   */
+  off(eventName, handler) {
+    let handlers = this._eventHandlers && this._eventHandlers[eventName];
+    if (!handlers) return;
+    for (let i = 0; i < handlers.length; i++) {
+      if (handlers[i] === handler) {
+        handlers.splice(i--, 1); // remove from the list
+      }
+    }
+  },
+
+  /**
+   * Generate an event with the given name and data
+   *  this.trigger('select', data1, data2);
+   */
+  trigger(eventName, ...args) {
+    if (!this._eventHandlers || !this._eventHandlers[eventName]) {
+      return; // no handlers for that event name
+    }
+
+    // call the handlers
+    this._eventHandlers[eventName].forEach(handler => handler.apply(this, args));
+  }
+};
+```
+
+### Restricting Property and Method Access
+Encapsulation - separate the internal from the external interface
+* Internal interface – methods and properties, accessible from other methods of the class, but not from the outside. Best to make these private. Conventionally, these names are prefixed with an _.
+* * Almost standard: #private prop or method that can't be accessed from outside or from inheriting classes
+* External interface – methods and properties, accessible also from outside the class. These are public.
+```JavaScript
+class CoffeeMachine {
+
+  #waterAmount = 0;
+
+  get waterAmount() {
+    return this.#waterAmount;
+  }
+
+  set waterAmount(value) {
+    if (value < 0) throw new Error("Negative water");
+    this.#waterAmount = value;
+    // this['#name'] doesn’t work
+  }
+}
+```
+
+### Checking Classes
+`instanceOf` operator checks whether an existing object belongs to a certain class, taking inheritance into account.
+
+This looks for a static method [Symbol.hasInstance](obj) and calls it. If this is not found, check whether Class.prototype is one of the prototypes in the obj prototype chain.
+```JavaScript
+alert( new Rabbit() instanceof Rabbit ); // true
+let arr = [1, 2, 3];
+alert( arr instanceof Object ); // true
+
+// Under the hood:
+obj.__proto__ === Class.prototype?
+obj.__proto__.__proto__ === Class.prototype?
+obj.__proto__.__proto__.__proto__ === Class.prototype?
+...
+// if any answer is true, return true
+// otherwise, if we reached the end of the chain, return false
+// which is used in objA.isPrototypeOf(objB)
+Class.prototype.isPrototypeOf(obj);
+
+// Custom
+class Animal {
+  static [Symbol.hasInstance](obj) {
+    if (obj.canEat) return true;
+  }
+}
+
+let obj = { canEat: true };
+
+alert(obj instanceof Animal); // true: Animal[Symbol.hasInstance](obj) is called
+
+// Can also immitate typeOf returning a string with
+let user = {
+  [Symbol.toStringTag]: "User"
+};
+{}.toString.call(user); // [object User]
+
+```
+ Other ways: https://javascript.info/instanceof
+
 ## Prototypes
 ## Inheritance
 
@@ -1534,12 +2126,12 @@ for (;;) {
 }
 ```
 
-## For...In
-Allows iteration through object keys.
+## For..In
+Allows iteration through object keys. Loops over all enumerable properties.
 
 Iterates over all properties, so not good for arrays where you only want to iterate over numeric ones.
 ## For...Of
-Iterates over elements in an array.
+Iterates over elements in an array-like object.
 
 Works with characters in strings and any object that implements Symbol.iterator to make it iterable.
 
@@ -1613,6 +2205,74 @@ switch (+a) {
 }
 ```
 
+## Error Handling, try..catch
+Instead of dying when an error is encountered, you can do something else.
+
+Code in the try block is executed. If no errors are found, the catch block is ignored. If there is a finally block, that gets executed.
+
+If there is an error, the try execution stops and control flow switches to the beginning of hte catch block. The err variable will have some details about what happened. Then the finally block will execute, even if an error was encountered in the catch block or it returns.
+
+Try..catch only works for runtime errors - not syntax or other parse-time ones. Try..catch also only works for synchronous code. Calling setTimeout(function) within a try block won't work because by the time the function is executed, the engine has already left the try block. The try..catch block can be inside the setTimeout(function).
+
+Errors have:
+* name
+* *  for an undefined variable that’s "ReferenceError"
+* message
+Other non-standard properties are supported in most environments, like
+* stack - current call stack - a string with information about the sequence of nested calls that led to the error.
+
+```JavaScript
+let json = "{ bad json }";
+
+try {
+
+  let user = JSON.parse(json); // <-- when an error occurs...
+
+ if (!user.name) {
+    throw new CustomValidationError("Incomplete data: no name"); // generate an error with the given message if the json doesn't contain a name property
+  }
+} catch (e) { // optional block, error object e not needed up here if not needed down there
+  // ...the execution jumps here
+  if (e instanceof "SyntaxError") { 
+     alert( "Our apologies, the data has errors, we'll try to request it one more time." );
+     alert( e.name );
+     alert( e.message ); // JSON Error: Incomplete data: no name
+  } else if (e instanceof "CustomValidationError") { // works even if we extend CustomValidationError in the future
+  } else {
+      throw e; // rethrow  if don't know how to handle the error
+      // can be caught by an outer try-catch
+  }
+  // send a new network request
+  // offer alternatives to the visitor
+  // log the error
+} finally { // optional block
+    // runs after try or after catch in all cases, including if they return.
+}
+```
+
+You can make your own errors.
+```JavaScript
+let error = new Error(message);
+// or 
+let error = new SyntaxError(message);
+let error = new ReferenceError(message);
+let error = new TypeError(message);
+
+// For built-in errors, the name property is the name of the constructor
+let error = new Error("Things happen o_O");
+alert(error.name); // Error
+alert(error.message); // Things happen o_O
+
+class CustomValidationError extends Error {
+    constructor(property) {
+    super("No property" + property);
+    this.name = "CustomValidationError"; // this.constructor.name
+    this.property = property;
+  }
+}
+```
+
+Reactions to global errors depend on the environment. Node.js has `process.on("uncaughtException")` and the browser can assign a function to `window.onerror = (message, url, line, col, error)` to run in case of an uncaught error, such as one outside of a try..catch block.
 # Functions
 Perform the same action in multiple places.
 
@@ -1634,6 +2294,8 @@ Parameters are passed by value, not reference, so the outer value cannot be modi
 
 Parameters that are not provided are undefined.
 
+Lets are only usable once they've been declared, but functions are ready to use even before then.
+
 ## Function Expressions
 A Function Expression is created when the execution reaches it and is usable only from that moment.
 ```JavaScript
@@ -1643,6 +2305,149 @@ let sayHi = function() { // function expression
 sayHi(); // call, get the result
 ```
 
+They can also be Named Function Expressions (NFE). This allows the function to reference itself internally (for recursion). This name is not visible outside of the function.
+```JavaScript
+let sayHi = function func(who) { // name is func, which is funciton-local - an internal function name
+    if (who) {
+    alert(`Hello, ${who}`);
+  } else {
+    func("Guest"); // use func to re-call itself
+  }
+};
+sayHi("John"); // Hello, John
+func(); // Error, func is not defined (not visible outside of the function)
+
+// Could use sayHi for the nested call, but error if it gets redefined
+let sayHi = function(who) {
+  if (who) {
+    alert(`Hello, ${who}`);
+  } else {
+    sayHi("Guest"); // Error: sayHi is not a function if redefined in the outer Lexial Environment
+  }
+};
+
+let welcome = sayHi;
+sayHi = null;
+
+welcome(); // Error, the nested sayHi call doesn't work any more!
+```
+
+## New Functions
+Rarely used. Create a function literally from a string that is passed at runtime. When created, it references the glocal Lexical Environment, rather than the more specific one where it was created - it will not have access to outer variables, only global ones.
+
+This means it still works with minifiers, which shrink code by removing extra comments and spaces and renaming local variables with shorter names. 
+```JavaScript
+let func = new Function ([arg1, arg2, ...argN], functionBody);
+let sum = new Function('a', 'b', 'return a + b');
+
+alert( sum(1, 2) ); // 3
+
+function getFunc() {
+  let value = "test"; // local variable
+  let func = new Function('alert(value)'); // can only see global variables
+  return func;
+}
+getFunc()(); // error: value is not defined
+```
+## Rest Parameters and Spread Syntax
+To accept an unknown number of arguments, use rest parameters to create an array.
+```JavaScript
+function sumAll(...args) { // args is the name for the array
+  let sum = 0;
+
+  for (let arg of args) sum += arg;
+
+  return sum;
+}
+
+alert( sumAll(1) ); // 1
+alert( sumAll(1, 2) ); // 3
+alert( sumAll(1, 2, 3) ); // 6
+
+function showName(firstName, lastName, ...titles) { // titles gathers all remaining arguments into an array
+  alert( firstName + ' ' + lastName ); // Julius Caesar
+
+  // the rest go into titles array
+  // i.e. titles = ["Consul", "Imperator"]
+  alert( titles[0] ); // Consul
+  alert( titles[1] ); // Imperator
+  alert( titles.length ); // 2
+}
+```
+
+In the olden days, rest parameters didn't exist, but an array-like object named arguments could be used to access arguments by index. It was iterable, but not array - so there was no ability to call methods like `arguments.map(...)` on it. Arrow functions don't have this object - they get it from the outer function.
+
+To do the opposite of this, we can pass a spread object to expand an iterable, like an array or string, into a list of arguments.
+```JavaScript
+let arr = [3, 5, 1];
+
+alert( Math.max(...arr) ); // 5 (spread turns array into a list of arguments)
+alert( Math.max(...arr1, ...arr2, 25) ); // 25
+
+let merged = [0, ...arr, 2, ...arr2];
+alert([...("Hello")]); // H, e, l, l, o
+```
+
+Copying Iterables
+
+Arry.from(obj) works on array-likes, whereas [...obj] only works on iterables.
+```JavaScript
+let arrCopy = [...arr]; // spread the array into a list of parameters
+                        // then put the result into a new array
+let objCopy = { ...obj }; // spread the object into a list of parameters
+                          // then return the result in a new object
+```
+
+## Functions as First Class Objects
+Functions are objects - callable action objects that can be passed by reference to other functions, returned as values, and assigned to variables or stored in data structures. As objects, they also have properties that can be added and removed. 
+
+Properties
+* `.name`
+* `.length` - number of parameters, not counting ...rest parameters
+* can also add custom properties - these are not the same as variables
+```JavaScript
+function sayHi() {
+  alert("Hi");
+}
+let sayHi = function() { // also assigns a name
+  alert("Hi");
+};
+// Name Property
+alert(sayHi.name); // sayHi
+function f(sayHi = function() {}) {
+  alert(sayHi.name); // sayHi (works!)
+}
+
+f();
+
+// function created inside array
+let arr = [function() {}]; // name is ""
+
+// Custom properties
+function sayHi() {
+  alert("Hi");
+
+  // let's count how many times we run
+  sayHi.counter++;
+}
+
+// Properties instead of closures
+function makeCounter() {
+
+  function counter() {
+    return counter.count++;
+  };
+
+  counter.count = 0; // stored in the function directly, not its outer Lexical Environment
+  return counter;
+}
+
+let counter = makeCounter();
+alert( counter() ); // 0
+alert( counter() ); // 1
+
+counter.count = 10; // can be accessed by external code, unlike variables defined within the function
+```
 ## Callbacks
 Callback Functions - functions passed as values.
 
@@ -1669,8 +2474,50 @@ ask(
   function() { alert("You canceled the execution."); }
 ); // anonymous functions - without names
 ```
+## setTimeout and setInterval
+Used for scheduling function execution a certain time later. This is supplied for most enviornments, like browsers and Node.js.
+* `setTimeout` - after an interval of time
+* `setInterval` - run after an interval of time, then repeat continuously at that interval
+```JavaScript
+/*
+ * @param func|code: Function (including arrow functions) or string of code to execute (passing a string is not recommended, but will be done as with new Function(str)).
+ * @param delay: Delay before running in milliseconds.
+ * @param args: Arguments for the function. Not supported in IE9-.
+ */
+let timerId = setTimeout(func|code, [delay = 0], [arg1], [arg2], ...);
+// After one second, say hi:
+let timer = setTimeout(sayHi, 1000, "Hello", "John"); // Hello, John
+clearTimeout(timer); // cancels the execution
 
-## Functions as First Class Objects
+let timerId = setInterval(func|code, [delay], [arg1], [arg2], ...);
+// repeat with the interval of 2 seconds
+let timerId = setInterval(() => alert('tick'), 2000);
+// In most browsers, the internal timer will continue clicking while showing the alert/ confirm/ or prompt - it won't pause until you dismiss the window.
+
+// after 5 seconds stop
+setTimeout(() => { clearInterval(timerId); alert('stop'); }, 5000);
+
+// Nested setTimeouts - allow for variation in time between calls, unlike with setInterval
+let timerId = setTimeout(function tick() {
+  alert('tick');
+  timerId = setTimeout(tick, 2000); // schedule the next call right at the end of the current one
+}, 2000);
+
+// Zero delay setTimeout
+setTimeout(() => alert("World")); // , 0) delay
+// schedules func as soon as possible, but only after the currently executing script is complete
+alert("Hello,");
+// Hello,
+// World
+```
+The garbage collector will not clean up the function until clearInterval or clearTimeout are called.
+
+In the browser, there’s a limitation of how often nested timers can run. The HTML5 standard says: “after five nested timers, the interval is forced to be at least 4 milliseconds.”. The same thing will happen with a setInterval with zero-delay.
+
+Exact delays are otherwise not guaranteed. They might slow down if the function takes longer to execute than its delay, or the CPU is overloaded, or the browser tab is in background mode, or the laptop is on battery. This all may increase the minimal timer resolution (minimal timer delay) to 300ms or even 1000ms depending on the browser and OS-level performance settings.
+
+setTimeout in browsers sets this context to window.
+
 ## This binding
 "this" is evaluated at run-time and generally refers to the object "before the dot."
 
@@ -1688,8 +2535,37 @@ hi(); // Error because this is undefined
 ```
 https://javascript.info/object-methods
 
+When passing object methods as callbacks, you don't want to lose this context of the object.
+
+We can bind this using a special function-like exotic object that is callable as a function and passing the call with a setting of this. Even if the original object that was passed is later changed, the value of this will remain with its original version that was passed to it.
+
+You can also fix some parameters of the original function
+```JavaScript
+let boundFunc = func.bind(context[, arg1]); // fixes the value of this
+boundFunc(); // call
+
+// Fix arguments - Partial Function Application
+function mul(a, b) {
+  return a * b;
+}
+
+let double = mul.bind(null, 2); // partial function - less trivial variant
+
+alert( double(3) ); // = mul(2, 3) = 6
+alert( double(4) ); // = mul(2, 4) = 8
+alert( double(5) ); // = mul(2, 5) = 10
+```
+Fix some arguments, but not the context of this:
+```JavaScript
+function partial(func, ...argsBound) {
+  return function(...args) { // (*)
+    return func.call(this, ...argsBound, ...args);
+  }
+}
+user.sayNow = partial(user.say, new Date().getHours() + ':' + new Date().getMinutes());
+```
 ## Arrow Functions
-Have no "this". They take their "this" from the outer context.
+Have no "this". They take their "this" from the outer context. They also do not have an `arguments` array, but you can still pass parameters.
 
 ```JavaScript
 let func = (arg1, arg2, ...argN) => {
@@ -1706,8 +2582,92 @@ let user = {
         arrow();
     },
 };
-
 ```
+## Decorators and Forwarding, Call/ Apply
+For functions with results that are stable - for the same input, they always return the same output (deterministic), you can cache results to avoid recalculating the same thing.
+
+Decorators are functions that take another function and alter its behavior. This is a design pattern.
+```JavaScript
+function slow(x) {
+  // there can be a heavy CPU-intensive job here
+  alert(`Called with ${x}`);
+  return x;
+}
+function hash(args) { // where args is iterable and array-like, but not necessarily an array
+  return args[0] + ',' + args[1]; // super simple joining of two elements
+  // or see below
+  return [].join.call(args);
+}
+function cachingDecorator(func, hash) {
+  let cache = new Map();
+
+  return function(x) { // create a wrapper around the function
+    let key = hash(arguments); // create single key from array of arguments
+    if (cache.has(key)) {    // if there's such key in cache
+      return cache.get(key); // read the result from it
+    }
+
+    let result = func(x);  // otherwise call func, with this = undefined
+    // OR to use context:
+    let result = func.call(this, x); // "this" is passed correctly now
+    // has no effect if func doesn't use a value of this
+
+    // If multiple arguments
+    let result = func.call(this, ...arguments); // where args is iterable
+    // Same as
+    let result = func.apply(this, arguments); // where args is array-like, often faster because more optimized
+
+    cache.set(key, result);  // and cache (remember) the result
+    return result;
+  };
+}
+
+slow = cachingDecorator(slow); // redefine slow to use the cache
+alert( slow(1) ); // slow(1) is cached
+alert( "Again: " + slow(1) ); // the same, taken from the cache
+
+alert( slow(2) ); // slow(2) is cached
+alert( "Again: " + slow(2) ); // the same as the previous line
+
+let worker = {
+  someMethod() {
+    return 1;
+  },
+
+  slow(x) {
+    alert("Called with " + x);
+    return x * this.someMethod(); // (*)
+  }
+};
+worker.slow = cachingDecorator(worker.slow, hash); // now make it caching with the proper use of this
+```
+This doesn't work with object methods (defined within an object) that access other methods or properties within the object, because this becomes undefined. We need to explicitly set "this" to access that context using `func.call(context, args)`.
+```JavaScript
+func.call(context, arg1, arg2, ...); // runs func with context of this
+function say(phrase) {
+  alert(this.name + ': ' + phrase);
+}
+
+let user = { name: "John" };
+let admin = { name: "Admin" };
+
+// use call to pass different objects as "this"
+say.call( user, "Hello" ); // John: Hello
+say.call( admin, "Hi" ); // Admin: Hi
+```
+ 
+Method borrowing - borrow a join method from a regular array (make it blank for ease) and call it in the context of arguments.
+
+This works because join appends this[0] to "," to this[1] to "," to this[2], etc. So we just set this to arguments, and then we can treat an iterable array-like object with actual array methods.
+```JavaScript
+[].join.call(arguments); // this = arguments
+```
+
+# Asynchronous Programming
+## Promises
+## AJAX
+## Callbacks
+
 
 # Operators and Expressions
 ## Numeric Operators
@@ -1716,17 +2676,379 @@ let user = {
 ### String Manipulation
 ### Regular Expressions
 
-# Asynchronous Programming
-## Promises
-## AJAX
-## Callbacks
 
-# DOM
-Can run JavaScript in the broser by inserting a <script src="path/to/script.js">Or write it here, inline;</script> tag. "path/to/script.js" is a relative path from the current folder (of the HTML page). "/path/to/script.js" is an absolute path from the site root. Your source can also be a full "https://url.domain.com/script.js". If the src is set, any content between the tags will be ignored.
+
+# Browsers
+Platforms are hosts that provide specific functionality, like objects and functions.
+
+The root object of a browser, a host environment, is the window - it's the global object and represents the browser window and allows control of it. The DOM (Document Object Model) is the main entry point to the page that can be used to change or create things there.
+
+CSSOM specification describes stylesheets and style rules.
+
+HTML specification describes the HTML language (tags) and the BOM.
+## BOM
+THe Browser Object Model reprents additional objects provided by the broswer for working with everything except the document.
+* navigator - object that provides background information about the browser and the OS.
+* * navigator.userAgent - about current browser
+* * navigator.platform - OS platform
+* screen
+* location - read the current URL and direct the browser to a new one
+* * location.href - current url, can be set to redirect
+* frames
+* history
+* alert/ confirm/ prompt - pure browser methods to communicate with the user
+* setTimeout
+* XMLHttpRequest
+
+## DOM
+The DOM describes the document structure, manipulations, and events.
+https://dom.spec.whatwg.org
+
+Every HTML tag is an object. Tags are element nodes (elements) and form the tree structure. Nested tags are children of their enclosing parent. Inner text is an object as well - text nodes which contain only a string and no children. There are also comment nodes, since everything in the HTML MUST be in the DOM tree. The document is also a node.
+
+Tags have multiple properties. Some include:
+* style - which has its own assortment of properties
+* innerHTML - tags and text. Can modify, but can't pass a <script> tag that will execute. Can append with +="string.
+* * If overwrite, all content is rewritten and reloaded and repainted and may lose any :selected status.
+* outerHTML - innerHTML plus the element itself. Writing to thise replaces it in the DOM rather than rewriting it, so won't update any variables pointing to the old element, but will update the DOM.
+* offsetWidth - node width in pixels
+* childNodes - returns a collection of all direct children, including inner text that separates them. This is read-only.
+* * Iterate over using for..of. Note that array methods will not work.
+* firstChild
+* lastChild
+* hasChildNodes() - compared to empty. 
+* parentNode - of html tag (document.documentElement) is document
+* nodeName - for elements, is the same as tagName, otherwise is the string with the node type. Always uppercased in HTML mode.
+* nodeType - 1 for element nodes, 3 for text nodes, 9 for the document object
+* nodeContent/ data - usually use data, can be modified.
+
+Element nodes have:
+* children - only children that are element nodes
+* firstElementChild
+* lastElementChild
+* previousElementSibling, nextElementSibling - neighbors
+* parentElement - of html tag (document.documentElement) is null, as it is the root node
+* contains(elemB) - true if elemB is inside elem (decendent) or when elem == elemB.
+* tagName - uppercased in HTML mode.
+* textContent - only text, no <tags> - just extracts their inner text and returns them in one line. Can write to this and will display the literal string, not HTML.
+* hidden - true if in CSS or style: `display: none`
+
+With all attributes, even the non-standard ones that will not create corresponding properties:
+* elem.attributes: a collection of objects that belong to a built-in Attr class, with name and value properties.
+* elem.hasAttribute(name) – checks for existence.
+* elem.getAttribute(name) – gets the value.
+* elem.setAttribute(name, value) – sets the value.
+* elem.removeAttribute(name) – removes the attribute.
+* elem.dataset.propertyName - returns the value of data-property-name attribute.
+* elem.className - assigning this replaces the whole string of classes
+* elem.classList - special object, iterable with for..of
+* * elem.classList.add('class name')
+* * elem.classList.remove('class name')
+* * elem.classList.toggle('class name') - add the class if it doesn't exist, otherwise remove it
+* * elem.classList.contains('class name') - returns true or false
+* elem.style - can't read anything that comes from CSS classes - only operates on the value of the "style" attribute. There is no CSS cascade.
+* * Setting elem.style.width="100px" is the same as setting elem.style="width:100px" or elem.setAttribute("style", "width:100px").
+* * Multi-word properties convert to camelCase. z-index -> zIndex. The dash means uppercase with browser-prefixed properties as well: -moz-border-radius -> MozBorderRadius
+* * To remove some property of style, set the value to "" 
+* elem.style.cssText can be set with multi-property strings: \`color:red; background-color: yellow;`
+* * This will also replace (remove) existing styles
+
+``` HTML
+<body>
+  <div id="elem" about="Elephant"></div> 
+  <!-- Non-standard attribute -->
+  <script>
+    alert( elem.getAttribute('About') ); // 'Elephant', reading
+    // Case-insensitive
+    elem.setAttribute('Test', 123); // writing value as "123"
+    // any value that is assigned becomes a string
+    alert( elem.outerHTML ); // see if the attribute is in HTML (it is)
+    for (let attr of elem.attributes) { // list all
+      alert( `${attr.name} = ${attr.value}` );
+    }
+  </script>
+</body>
+```
+HTML attributes are case-insentive and their values are always strings.
+
+Malformed HTML is automatically created during the making of the DOM. The top tag is alway HTML (DOM node is document.documentElement); spaces before head (node: and after /body (node: document.body, which can be null) are ignored, both tags which are also required; tags are closed; tables must have tbody; etc.
+
+### CSS
+Computed styles in CSS are the values after all CSS rules and inheritance are applied - the result of the CSS cascade, such as relative values like `height: 1em` or `font-size: 125%`.
+
+Resolved stayles are the values finally applied to the element - the absolute fixed ones. Some values may have a floating point, like `height: 50.5px`.
+
+`getComputedstyle(elem[, pseudo = ""])` - reads the resolved values in the CSS of elem, with any pseudo-elements like ::before added.
+
+Example: Can read `getComputedStyle(document.body).marginTop` to get the resolved value of `margin-top`, usually in px. There is no standard rule for properties like `margin` or `padding`, as these are made up of four properties (`*Top`, `*Bottom`, `*Left`, `*Right`).
+
+Styles applied to :visited (psuedoclass) links cannot be accessed from `getComputedStyle(link, ':visited')` because then any arbitrary page could find out whether the user vvisited a link by checking the styles. There is also no way to apply CSS geometry-changing styles in :visited as that too could break privacy.
+
+### Nodes
+Specific HTMLElements inherit from HTMLElement, which has siblings SVGElement and XMLElement which also inherits from Element. Text, Element, and Comment inherit from abstract class Node, which inherits from EventTarget, which allows them to support events.
+
+Some DOM elements have additional properties. HTMLInputElement and HTMLSelectElement have value (<input>, <select>, <textarea>).
+HTMLAnchorElement has href.
+
+Most attributes and corresponding properties auto-update when the other changes. There are some exceptions: input.value synchronizes only from attribute -> property.
+```HTML
+<input>
+<script>
+  let input = document.querySelector('input');
+
+  // attribute => property updates
+  input.setAttribute('value', 'text');
+  alert(input.value); // text
+
+  // NOT property => attribute
+  input.value = 'newValue';
+  alert(input.getAttribute('value')); // text (not updated!)
+</script>
+```
+
+Some properties are not strings. For checkboxes, input.checked is a boolean. The style property is an object. Some differ from the attribute:
+```HTML
+<a id="a" href="#hello">link</a>
+<script>
+  // attribute
+  alert(a.getAttribute('href')); // #hello
+
+  // property
+  alert(a.href ); // full URL in the form http://site.com/page#hello
+</script>
+``` 
+
+### Passing Custom Attributes
+To avoid the potential of future standards using the same name as your custom attributes, use data-* as a prefix.
+```HTML
+<!-- mark the div to show "name" here -->
+<div data-show-info="name"></div>
+<!-- and age here -->
+<div data-show-info="age"></div>
+
+<style>
+  /* styles rely on the custom attribute "order-state" */
+  .order[data-order-state="new"] {
+    color: green;
+  }
+
+  .order[data-order-state="pending"] {
+    color: blue;
+  }
+
+  .order[data-order-state="canceled"] {
+    color: red;
+  }
+</style>
+
+<div class="order" data-order-state="new">
+  A new order.
+</div>
+<div class="order" data-order-state="pending">
+  A pending order.
+</div>
+<div class="order" data-order-state="canceled">
+  A canceled order.
+</div>
+
+<script>
+  // the code finds an element with the mark and shows what's requested
+  let user = {
+    name: "Pete",
+    age: 25
+  };
+
+  for(let div of document.querySelectorAll('[data-show-info]')) {
+    // insert the corresponding info into the field
+    let field = div.getAttribute('data-show-info');
+    div.innerHTML = user[field]; // first Pete into "name", then 25 into "age"
+  }
+
+    // read
+  alert(order.dataset.orderState); // new
+
+  // modify
+    // a bit simpler than removing old/adding a new class
+  div.setAttribute('data-order-state', 'canceled');
+  // Same as
+  order.dataset.orderState = "pending"; // (*)
+</script>
+```
+
+#### Table Elements
+Table elements have additional properties:
+* rows - collection of <tr> elements
+* caption, tHead, tFoot - reference to elements <caption>, <thead>, and <tfoot>
+* tBodies - collection of <tbody> elements, always at least one
+
+<thead>, <tfoot>, and <tbody> also have .rows
+
+Table row elements <tr> elements:
+* cells - collection of <td> and <th> cells inside the given <tr>.
+* sectionRowIndex -  the position (index) of the given <tr> inside the enclosing <thead>/<tbody>/<tfoot>.
+* rowIndex - the number of the <tr> in the table as a whole (including all table rows).
+
+<td> and <th> have cellIndex - number of the cell inside the enclosing <tr>
+
+#### Forms
+
+## Usage
+Can run JavaScript in the browser by inserting a <script src="path/to/script.js">Or write it here, inline;</script> tag. "path/to/script.js" is a relative path from the current folder (of the HTML page). "/path/to/script.js" is an absolute path from the site root. Your source can also be a full "https://url.domain.com/script.js". If the src is set, any content between the tags will be ignored.
 
 Longer scripts are best stored in separate files (rather thn inline) because then the browser will download and store it in its cache for faster loading times and reduced traffic.
-## Document Object
+
+## Searching
+Get by Id:
+```HTML
+<div id="elem"> 
+<!-- ids must be unique -->
+  <div id="elem-content">Element</div>
+</div>
+
+<script>
+  // get the element - not necessary as elem is already a reference to the DOM-element with id="elem", though accessing through this way is not recommended
+  let elem = document.getElementById('elem'); // only a function of document
+
+  // make its background red
+  elem.style.background = 'red';
+
+  let elemContent = window['elem-content']; // ids name global variables that reference their elements. Accessing through this way is not the prefered method, .getElementById is.
+</script>
+```
+
+Get all elements inside elem that match the given CSS selector:
+```HTML
+<ul>
+  <li>The</li>
+  <li>test</li>
+</ul>
+<ul>
+  <li>has</li>
+  <li>passed</li>
+</ul>
+<script>
+  // Can check that css exists in the document
+  if (elem.matches('ul > li:last-child')) {
+
+    let elements = document.querySelectorAll('ul > li:last-child');
+
+    for (let elem of elements) {
+      alert(elem.innerHTML); // "test", "passed"
+    }
+    let firstElement = elem.querySelector('ul > li:last-child');
+
+    // Get nearest ancestor elem that matches the CSS-selector - go up from the element and check each parent, and return the ancestor that matches
+    alert(firstElement.closest('h1')); // null (because h1 is not an ancestor)
+  }
+</script>
+```
+CSS selectors work with pseudo-classes like :hover and :active as well.
+
+There are other ways of getting elements:
+* `elem.getElementsByTagName(tag)` - look for elements with the given tag and returns the collection of them. The tag parameter can also be a star "*" for “any tags”.
+* * `elem.getElementByTagName(tag)` - returns just the first one
+* `elem.getElementsByClassName(className`) - returns elements that have the given CSS class.
+* `document.getElementsByName(name)` - returns elements with the given name attribute, document-wide. Very rarely used.
+
+These returned collections are live, meaning they reflect the current state of the document and auto-update when it changes. `querySelector/All` and `getElementById` are not live.
+
 ### Methods for Dynamically Generating Web Pages
+
+Creating new nodes:
+```JavaScript
+let div = document.createElement('div'); // create a new element with the tag
+div.className = "alert";
+div.innerHTML = "<strong>Hi there!</strong> You've read an important message.";
+let textNode = document.createTextNode('Here I am'); // create new text node with give ntext
+```
+Inserting nodes and text with other nodes:
+* node.append(...nodes or strings) – append nodes or strings at the end of node.
+* node.prepend(...nodes or strings) – insert nodes or strings at the beginning of node.
+* node.before(...nodes or strings) – insert nodes or strings before node.
+* node.after(...nodes or strings) – insert nodes or strings after node - removes the node from the old place.
+* node.replaceWith(...nodes or strings) – replaces node with the given nodes or strings.
+* node.remove() - removes the node
+All text is inserted as text, not HTML.
+
+There is also `elem.insertAdjacentText(where, text)` and `elem.insertAdjacentElement(where, elem)`, but these are rarely used.
+
+You can insert strings that will get parsed as HTML using `elem.insertAdjacentHTML(where, html)` where "where" is a codeword:
+* "beforebegin" – insert html immediately before elem,
+* "afterbegin" – insert html into elem, at the beginning,
+* "beforeend" – insert html into elem, at the end,
+* "afterend" – insert html immediately after elem.
+```HTML
+<div id="div"></div>
+<script>
+  div.insertAdjacentHTML('beforebegin', '<p>Hello</p>');
+  div.insertAdjacentHTML('afterend', '<p>Bye</p>');
+</script>
+
+<!-- Creates: -->
+<p>Hello</p>
+<div id="div"></div>
+<p>Bye</p>
+```
+
+Nodes can be cloned.
+* elem.cloneNode(true) - returns a “deep” clone of the element – with all attributes and sub-elements.
+* elem.cloneNode(false) - returns a clone is without child elements.
+
+DocumentFragment is a special DOM node that serves as a wrapper to pass around lists of nodes. Nodes can be appended to it, but when it is inserted, its content is inserted instead.
+```HTML
+<ul id="ul"></ul>
+
+<script>
+function getListContent() {
+  let fragment = new DocumentFragment();
+
+  for(let i=1; i<=3; i++) {
+    let li = document.createElement('li');
+    li.append(i);
+    fragment.append(li);
+  }
+
+  return fragment;
+}
+
+ul.append(getListContent()); 
+
+// Same as
+
+function getListContent() {
+  let result = [];
+
+  for(let i=1; i<=3; i++) {
+    let li = document.createElement('li');
+    li.append(i);
+    result.push(li);
+  }
+
+  return result;
+}
+
+ul.append(...getListContent()); // append + "..." operator = friends!
+
+</script>
+
+
+<!-- Returns: -->
+<ul>
+  <li>1</li>
+  <li>2</li>
+  <li>3</li>
+</ul>
+```
+
+Ancient peoples once used (all of which return node):
+* `parentElem.appendChild(node)` 
+* `parentElem.insertBefore(node, nextSibling)` - which works even with parentElem.firstChild as the nextSibling
+* `parentElem.replaceChild(node, oldChild)`
+* `parentElem.removeChild(node)`
+* `document.write('HTML string')` - only works while the page is loading, so if called during the parsing stage, the browser will consume it just as if it were initially there in the HTML text. If called afterwards, the existing document content is erased. Very speedy because no DOM modification involved (if called while browser is still readin gthe HTML)
+
+The method comes from times when there was no DOM, no standards… Really old times. It still lives, because there are scripts using it.
+
 
 ## Window Object Hierarchy
 ## Inline-Frames (IFrames)
@@ -2351,3 +3673,17 @@ Both pages must agree to data exchange.
 ``"use strict";`` at the very top of a script will cause it to work the modern, post-ES5 way that may break the functionality of old code.
 
 Classes and modules enable strict mode automatically.
+
+Without `use strict`, if a variable is not found anywhere, a new global variable is created. In `use strict`, this throws an error.
+
+## Recursion and Iteration
+Recursion is a function that calls/ returns itself or a base case, meaning it remakes the method overhead and creates a new stack frame. Recursion makes for concise, elegant code and easy readability, making for easier maintainability.
+
+We can rely on the engine allowing a maximal depth of 10000. 
+
+Each function execution ges an internal data structure called the execution context, which stores where the control flow is now, current values, this, and other details. When a function makes a nested call:
+* The current function is paused and its execution context is remembered in a special data structure called the execution context stack.
+* The nested call executes, creating a new context.
+* When it returns,its execution context is no longer needed and is removed from memory. The old execution context is popped off the stack and resumed from where it stopped.
+
+Anything that can be made with recursion can be made with iteration, which uses a loop. This saves memory but decreases readability. Sometimes the memory optimizations are not worth the effort to rewrite the function.
