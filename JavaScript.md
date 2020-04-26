@@ -2270,9 +2270,10 @@ class CustomValidationError extends Error {
     this.property = property;
   }
 }
-```
+``` 
 
 Reactions to global errors depend on the environment. Node.js has `process.on("uncaughtException")` and the browser can assign a function to `window.onerror = (message, url, line, col, error)` to run in case of an uncaught error, such as one outside of a try..catch block.
+
 # Functions
 Perform the same action in multiple places.
 
@@ -2449,7 +2450,7 @@ alert( counter() ); // 1
 counter.count = 10; // can be accessed by external code, unlike variables defined within the function
 ```
 ## Callbacks
-Callback Functions - functions passed as values.
+Functions - functions passed as values.
 
 ```JavaScript
 function ask(question, yes, no) {
@@ -3049,6 +3050,101 @@ Ancient peoples once used (all of which return node):
 
 The method comes from times when there was no DOM, no standards… Really old times. It still lives, because there are scripts using it.
 
+## Geometry
+### Element Geometry
+Calculating the coordinates of an element. Let's look at some properties of elements.
+
+The offset parent is the nearest ancestor that the browser uses for calculating coordinates during rendering. The parent can be:
+* CSS-positioned (position is absolute, relative, fixed, or sticky)
+* <td>, <th>, or <table>
+* <body>
+offsetParent is null for
+* Not-shown elements (display:none or not in the document)
+* For <body> and <html>
+* For elements with position: fixed
+offsetLeft/ offsetTop are relative to the upper-left corner.
+
+offsetWidth/ Height provide the outer width/ height of the element (full size including borders, padding, and width). These are zero/ null for elements that are not displayed.
+
+Within the element are borders. clientLeft and clientTop are the relative coordinates of the inner side from the outer side - they are generally the width and height of the border, except in languages that are read from right to left. In such languages, scroll bars are on the left and are factored into the clientLeft coordinates.
+
+clientWidth and clientHeight include padding and content width and height.
+
+scrollWidth and scrollHeight are like clientWidth and clientHeight but include the scrolled out (hidden) parts. They can be used to expand elements to their full heights
+
+scrollLeft and scrollTop are the width and height of the hidden, scrolled out part of the element to the left and top (how much is scrolled up or left). This can be used to scroll elements - setting scrollTop to 0 scrolls all the way up and scrollTop to Infinity all the way down.
+
+Beware when using getComputedStyle(elem).width or .height, as these depend on box-sizing - how CSS interprets these values. They also may be "auto", which getComputedStyle will return - which is less than helpful. Some browsers will return width - the scrollbar width while others will ignore the scrollbar.
+
+### Window Geometry
+The clientWidth and clientHeight of document.documentElement (html tag) is the width and height of the window that is available for content (minus the scrollbar - window.innerWidth and window.innerHeight will include the scrollbar).
+
+To get the full size with cross-browser compatibility:
+```JavaScript
+let scrollHeight = Math.max(
+  document.body.scrollHeight, document.documentElement.scrollHeight,
+  document.body.offsetHeight, document.documentElement.offsetHeight,
+  document.body.clientHeight, document.documentElement.clientHeight
+);
+
+// Read-only properties on how much is scrolled:
+alert('Current scroll from the top: ' + window.pageYOffset);
+alert('Current scroll from the left: ' + window.pageXOffset);
+```
+
+To scroll the page from JavaScript, the DOM must be fully built. To scroll the page use `scrollTo(pageX, pageY)` for absolute coordinates of the top left corner. Scrolling to the beginning is `window.scrollTo(0,0)`.
+
+To scroll an element into view: `elem.scrollIntoView(top = true)` scrolls to make the elem visible. If top is true, as it is by default, the page will be scrolled to make elem appear on the top of the window - the upper edge will be aligned with the window top. If top is false, the page scrolls to make elem appear at the bottom - the bottom edge will be aligned with the window bottom.
+
+To make the document unscrollable, as when displaying modals that require immediate attention:
+```JavaScript
+document.body.style.overflow = "hidden"; // forbid scrolling
+document.body.style.overflow = ""; // allow scrolling
+```
+This causes the scrollbar to disappear and content to jump to fill the space it once occupied. You can add padding into the document.body in place of the scrollbar to maintain the content width.
+
+### Coordinates
+Two coordinate systems:
+* Relative to the window - as with position:fixed, calculates from the window's top/ left edge. Denoted as clientX and clientY.
+* Relative to the document - as with position:absolute, calculates from the document's top/ left edge, including width that has been scrolled past. Denoted as pageX and pageY.
+
+The method `elem.getBoundingClientRect()` returns window coordinates for a minimal rectangle that encloses elem as an object of built-in DOMRect class. Main DOMRect properties:
+* x/y - coordinates of the rectangle origin relative to window, can be negative if the element is scrolled past and is now above or to the left of the window. Unsupported by IE and Edge, which do support top/ left (which is the same as x/ y if the width/ height are positive).
+* width/height - of the rectangle, can be negative if rectangle is flipped.
+Derived properties:
+* top/ bottom - Y-coordinate/ distance from the top rectangle edge, change as scroll. bottom = y + height, where top = y. Note that bottom is not necessarily the same as with CSS positioning, which would calculate bottom from the distance to the bottom edge.
+* left/ right - X-coordinate/ distance from the left rectangle edge. right = x + width, where left = x.
+
+To get the most nested element at window coordinates (x, y): `document.elementFromPoint(x, y)`, where x and y are in the visible area. If the coordinates are negative or exceed the window width/ height, then returns null
+```JavaScript
+// Get tag in the middle of the window:
+let centerX = document.documentElement.clientWidth / 2;
+let centerY = document.documentElement.clientHeight / 2;
+
+let elem = document.elementFromPoint(centerX, centerY);
+```
+
+To get the document coordinates of an element rather than the window (so the element will scroll with the document): `elem.getBoundingClientRect()` plus the current page scroll:
+```JavaScript
+function getCoords(elem) {
+  let box = elem.getBoundingClientRect();
+
+  return {
+    top: box.top + window.pageYOffset,
+    left: box.left + window.pageXOffset
+  };
+}
+
+ let message = document.createElement('div');
+  message.style.cssText = "position:absolute; color: red"; // stay with the element on scroll
+
+  let coords = getCoords(elem);
+
+  message.style.left = coords.left + "px";
+  message.style.top = coords.bottom + "px";
+
+  message.innerHTML = html;
+```
 
 ## Window Object Hierarchy
 ## Inline-Frames (IFrames)
@@ -3056,13 +3152,156 @@ The method comes from times when there was no DOM, no standards… Really old ti
 Forward and backward paging
 
 ## Events
+Signal that something has happened. To react to events, assign a handler - a function that runs in the case of the event.
+
+Adding handlers rather than overwriting a previous one is done with eventListeners.
+```JavaScript
+/*
+ * @param event: event name, like "click"
+ * @param handler: handler function(event) with optional event parameter being passed
+ * @param options: object with properties:
+ *   once: if true, listener is automatically removed after it triggers
+ *   capture: where to handle the event. If the entire options argument is false/true, that's the same as {capture: false/true}
+ *   passive: if true, then the handler will not preventDefault()
+ */
+element.addEventListener(event, handler, [options]);
+element.removeEventListener(event, handler, [options]);
+// need to pass the same function that was used in the assignment - so passing an arrow function will not remove it as two arrow functions don't reference the same function. You need to store the function in a variable in order to remove them later
+```
+
+Mouse Events:
+* click – when the mouse clicks on an element (touchscreen devices generate it on a tap).
+* contextmenu – when the mouse right-clicks on an element.
+* mouseover / mouseout – when the mouse cursor comes over / leaves an element.
+* mousedown / mouseup – when the mouse button is pressed / released over an element.
+* mousemove – when the mouse is moved.
+
+Form element events:
+* submit – when the visitor submits a <form>.
+* focus – when the visitor focuses on an element, e.g. on an <input>.
+
+Keyboard events:
+* keydown and keyup – when the visitor presses and then releases the button.
+
+Document events:
+* DOMContentLoaded – when the HTML is loaded and processed, DOM is fully built. Cannot set with a property - can only set with addEventListener("DOMContentLoaded", function(event)).
+
+CSS events:
+* transitionend – when a CSS-animation finishes. Cannot set with a property - can only set with addEventListener("transitionend", function(event)).
+
+Handlers assigned to elements also run if any nested tags experience that event because events bubble. When an event happens on an element, it first runs the handlers on it, then on its parent, then all the way up on other ancestors.
+
+Event properties:
+* type - Such as "click".
+* target - element that initiated the event, doesn't change through the bubbling process
+* currentTarget - Element that handled the event. Same as "this" unless this is bound to something else or the handler is an arrow function. May change with bubbling.
+* stopPropagation() - stops bubbling up for this event. Generally, you don't want to stopPropagation.
+* stopImmediatePropagation() - no handler executes on the current element.
+* clientX/ clientY - Window-relative coordinates of the cursor for mouse events.
+
+Some events, like focus events, don't bubble up.
+
+There are three phases of event propagation:
+* Capturing - the event goes down to the element through its ancestors.
+* * Normally invisible, unless options in addEventListener is set to true or capture is set to true - then the event is caught in this early phase.
+* Target - element reaches the target element.
+* Bubbling - event bubbles up fro mthe element.
+
+Bubbling and capturing allow us to handle elements in a single common ancestor. Be sure to bind `elem.onclick = this.onClick.bind(this)` in the class you want it to be bound to, else elem will be this.
+
+### Default Actions
+Some events are performed automatically. Clicking a link navigates to its URL. Clicking the submit button submits it to the server. Clicking and dragging with the mouse button over text selects that text.
+
+To prevent the browser from performing the default action, there's `event.preventDefault()` or, if the event is assigned using on* (like elem.onclick = fucntion() {return false;}) and not `addEventListener`, return false (this is the only case where the return value from an event handler is ignored).
+```JavaScript
+<a href="/" onclick="return false">Click here</a>
+or
+<a href="/" onclick="event.preventDefault()">here</a>
+
+element.addEventListener(event, handler, {passive: true});
+```
+
+Some events follow each other, like focus events after mousedowns. These will be prevented if the default is prevented. event.defaultPrevented will let other handlers know that the event was handled and not propagated further.
+```JavaScript
+elem.oncontextmenu = function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    alert("Button context menu");
+  };
+// better than stopping propagation:
+ elem.oncontextmenu = function(event) {
+    event.preventDefault();
+    alert("Button context menu");
+  };
+
+  document.oncontextmenu = function(event) {
+    if (event.defaultPrevented) return; // check if already handled
+
+    event.preventDefault();
+    alert("Document context menu");
+  };
+```
+### Custom Events
+
+elem.on* events only work for built-in events.
+
+The property event.isTrusted is true for events that come from real user actions and false for script-generated events.
+```HTML
+<button id="elem" onclick="alert('Click!');">Autoclick</button>
+
+<script>
+/* 
+ * @param type: event type, a string like "click" or our own like "my-event"
+ * options: the object with two optional properties, by default both are false:
+ *   bubbles: true/false – if true, then the event bubbles.
+ *   cancelable: true/false – if true, then the “default action” may be prevented. Later we’ll see what it means for custom events.
+ */
+
+let event = new Event(type[, options]);
+
+  let event = new Event("click");
+  elem.dispatchEvent(event);
+
+  let event = new MouseEvent("click", {
+  bubbles: true,
+  cancelable: true,
+  clientX: 100,
+  clientY: 100
+});
+</script>
+```
+
+It is best to specify which type of event you're creating.
+* UIEvent
+* FocusEvent
+* MouseEvent - includes clientX, clientY properties in options.
+* WheelEvent
+* KeyboardEvent
+* CustomEvent - in the options argument, can add an additional property detail for any custom information
+
+### onclick
+Handler for a click event. Can only have one handler for a click event at a time.
+```HTML
+<input value="Click me" onclick="countRabbits() // need () here" type="button">
+<!-- Assign in JavaScript: -->
+<script>
+  elem.onclick = countRabbits; // no () here, else would be taking the result of the function running
+  // also note the case-sensitive onclick
+</script>
+<!-- Sending parameters -->
+<button onclick="alert(this.innerHTML)">Click me</button> 
+<!-- Value of this is the element -->
+```
 ### onChange
-### onClick
 ### onLoad
 
 ## Forms
 ### Input Objects
 ### Validation
+
+# AJAX
+Asynchronous JavaScript and XML for network requests to get information from the server.
+let promise = fetch(url[, options]) where options are parameters like method, headers, etc. Without options, a GET request is sent.
 
 ## Persistent Storage
 ### Client-Side Data
