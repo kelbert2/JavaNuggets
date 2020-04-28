@@ -502,7 +502,7 @@ alert(value + ", " + key);
 ```
 
 The order of iteration is the order of insertion.
-
+#### Sets
 Sets are sets of values where each value can only occur once - they're unique. There are no keys.
 * `new Set(optionalIterable)` - if an iterable is provided, like an array, copies values into hte new set.
 * `set.add(value)` - returns the set itself, so can be chained. If the value already exists, does nothing and just returns the set.
@@ -2127,11 +2127,11 @@ for (;;) {
 ```
 
 ## For..In
-Allows iteration through object keys. Loops over all enumerable properties.
+Allows iteration through object keys. Loops over all enumerable properties. Best for objects.
 
 Iterates over all properties, so not good for arrays where you only want to iterate over numeric ones.
-## For...Of
-Iterates over elements in an array-like object.
+## For..Of
+Iterates over elements in an iterable array-like object. Doesn't work on objects. Better for arrays and strings.
 
 Works with characters in strings and any object that implements Symbol.iterator to make it iterable.
 
@@ -2475,6 +2475,29 @@ ask(
   function() { alert("You canceled the execution."); }
 ); // anonymous functions - without names
 ```
+Error-first callback style, where the firts argument of hte callback is reserved for an error if it occurs, so it can then call callback(error). Any subsequent arguments are for the successful result, where callback(null, arg1, arg2, ...) are called.
+```JavaScript
+function loadScript(src, callback) {
+  let script = document.createElement('script');
+  script.src = src;
+
+  script.onload = () => callback(null, script);
+  script.onerror = () => callback(new Error(`Script load error for ${src}`));
+
+  document.head.append(script);
+}
+
+// Usage
+loadScript('/my/script.js', function(error, script) {
+  if (error) {
+    // handle error
+  } else {
+    // script loaded successfully
+  }
+});
+```
+Beware of callback hell or the pyramid of doom, which develops when too many callbacks are nested within each other. You can break up callbacks into distinct functions, rather than having them all be anonymous. The best alternative is to use Promises.
+
 ## setTimeout and setInterval
 Used for scheduling function execution a certain time later. This is supplied for most enviornments, like browsers and Node.js.
 * `setTimeout` - after an interval of time
@@ -2666,8 +2689,296 @@ This works because join appends this[0] to "," to this[1] to "," to this[2], etc
 
 # Asynchronous Programming
 ## Promises
-## AJAX
-## Callbacks
+There is so producing code that takes time. The consuming code receives the result when its ready through a promise.
+```JavaScript
+let promise = new Promise(function(resolve, reject) {
+  // if job finishes successfully, resolve(value) else reject(error)
+  // any code after a resolve(value) or reject(error) in a block is ignored
+});
+
+function loadScript(src) {
+  return new Promise(function(resolve, reject) {
+    let script = document.createElement('script');
+    script.src = src;
+
+    script.onload = () => resolve(script);
+    script.onerror = () => reject(new Error(`Script load error for ${src}`));
+
+    document.head.append(script);
+  });
+}
+let promise = loadScript("https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.js");
+
+promise.then(
+  script => alert(`${script.src} is loaded!`),
+  error => alert(`Error: ${error.message}`)
+);
+
+promise.then(script => alert('Another handler...')); // new handler added to the same promise
+```
+Internal properties of Promises:
+* state - initally pending, then settles into either fulfilled or rejected - together called its settled state
+* result - initially undefined, then value or error
+If the Promise is already settled, handlers get the result or error immediately.
+
+Consuming function are registered (subscribed) to the promise using these methods:
+* .then - operates on and returns a promise (or at least a thenable object), so can check together
+* .catch
+* .finally
+```JavaScript
+promise.then(
+  function(result) { /* handle a successful result */ },
+  function(error) { /* handle an error */ }
+);
+// often written as 
+promise.then(
+  result => {},
+  error => {}
+);
+
+// When only interested in doing something in case of an error:
+promise.then(
+  null,
+  error => {errorHandlingFunction(error)}
+);
+// OR
+promise.catch(errorHandlingFunction)
+
+// When want something to run whether or not there was an error:
+new Promise((resolve, reject) => {
+  /* do something that takes time, and then call resolve/reject */
+})
+  // runs when the promise is settled, doesn't matter successfully or not
+  .finally(() => stop loading indicator)
+  // finally has no arguments but does pass through results and errors to the next handler
+  .then(result => show result, err => show error);
+  // can be chained
+
+// Don't have to operate on Promises, just need Thenables
+class Thenable {
+  constructor(num) {
+    this.num = num;
+  }
+  then(resolve, reject) {
+    alert(resolve); // function() { native code }
+    // resolve with this.num*2 after the 1 second
+    setTimeout(() => resolve(this.num * 2), 1000); // (**)
+  }
+}
+```
+To catch all errors, append .catch to the end of a chain. If any of the previous promises reject, it will be caught. Throw new Error and reject(new Error) will both get caught.
+```JavaScript
+fetch('/article/promise-chaining/user.json')
+  .then(response => response.json())
+  .then(user => fetch(`https://api.github.com/users/${user.name}`))
+  .then(response => response.json())
+  .then(githubUser => new Promise((resolve, reject) => {
+    let img = document.createElement('img');
+    img.src = githubUser.avatar_url;
+    img.className = "promise-avatar-example";
+    document.body.append(img);
+
+    setTimeout(() => {
+      img.remove();
+      resolve(githubUser);
+    }, 3000);
+  }))
+  .catch(error => alert(error.message));
+  ```
+
+  The JavaScript engine tracks unhandled promise rejections (no reject function, no .catch) and generates a global error. Errors like this can be caught in the browser: 
+  ```JavaScript
+  window.addEventListener('unhandledrejection', function(event) {
+  // the event object has two special properties:
+  alert(event.promise); // [object Promise] - the promise that generated the error
+  alert(event.reason); // Error: Whoops! - the unhandled error object
+});
+
+new Promise(function() {
+  throw new Error("Whoops!");
+}); // no catch to handle the error
+```
+
+To execute many promises in parallel and wait until all of them are ready, use Promise.all. This is all or nothing - all are successful or the entire object isn't.
+```JavaScript
+let promise = Promise.all([...promises...]);
+
+Promise.all([
+  new Promise(resolve => setTimeout(() => resolve(1), 3000)), // 1
+  new Promise(resolve => setTimeout(() => resolve(2), 2000)), // 2
+  new Promise(resolve => setTimeout(() => resolve(3), 1000))  // 3
+]).then(alert); // 1,2,3 when promises are ready: each promise contributes an array member at the same index it was inserted into
+
+// Don't have to pass promises exclusively
+Promise.all([
+  new Promise((resolve, reject) => {
+    setTimeout(() => resolve(1), 1000)
+  }),
+  2,
+  3
+]).then(alert); // 1, 2, 3
+
+// Array of jobs
+let names = ['iliakan', 'remy', 'jeresig'];
+let requests = names.map(name => fetch(`https://api.github.com/users/${name}`));
+
+Promise.all(requests)
+  .then(responses => {
+    // all responses are resolved successfully
+    for(let response of responses) {
+      alert(`${response.url}: ${response.status}`); // shows 200 for every url
+    }
+    return responses;
+  })
+  // map array of responses into an array of response.json() to read their content
+  .then(responses => Promise.all(responses.map(r => r.json())))
+  // all JSON answers are parsed: "users" is the array of them
+  .then(users => users.forEach(user => alert(user.name)));
+```
+Accepts any iterable and returns a new promise that resolves when all listed promises are settled. The array of their results becomes its result. If any promise is rejected, the promise returned by Promise.all immediately rejects with that error and the results of other promises are ignored, though the other promises are not cancelled.
+
+Promise.allsettled([]) waits for all promises to settle, regardless of their results, and has an array of:
+* {status:"fulfilled", value:result} for successful responses,
+* {status:"rejected", reason:error} for errors.
+
+As this is a newer addition, it may need to be polyfilled:
+```JavaScript
+if(!Promise.allSettled) {
+  Promise.allSettled = function(promises) {
+    return Promise.all(promises.map(p => Promise.resolve(p).then(value => ({
+      state: 'fulfilled',
+      value
+    }), reason => ({
+      state: 'rejected',
+      reason
+    }))));
+  };
+}
+```
+
+If you only want to wait for the first settled promise to get its result or error, there's Promise.race(iterable).
+```JavaScript
+Promise.race([
+  new Promise((resolve, reject) => setTimeout(() => resolve(1), 1000)),
+  new Promise((resolve, reject) => setTimeout(() => reject(new Error("Whoops!")), 2000)),
+  new Promise((resolve, reject) => setTimeout(() => resolve(3), 3000))
+]).then(alert); // 1
+```
+
+Rarely used now with async/ await: Promise.resolve(value) / .reject(error), which return a resolved or a rejected promise. Useful for when a function is expected to return a promise, so you can then use .then() on the next line.
+```JavaScript
+new Promise.resolve(value);
+// Same as
+new Promise(resolve => resolve(value));
+```
+
+Functions that use callbacks can be converted to use promises through promisification:
+```JavaScript
+let loadScriptPromise = function(src) {
+  return new Promise((resolve, reject) => {
+    loadScript(src, (err, script) => {
+      if (err) reject(err)
+      else resolve(script);
+    });
+  })
+}
+// usage:
+// loadScriptPromise('path/script.js').then(...)
+```
+
+Promise handlers like .then, .catch, and .finally are asynchronous. Even if they're immediately resolved, the code lines below them will run before these handlers.
+
+There's an internal queue, PromiseJobs, also called the microtask queue. An unhandled rejection occurs when a promise error is not handled at the end of the microtask queue.
+
+# Async/ Await
+async before a function means that it returns a promise. Values are wrapped in a promise automatically.
+
+```JavaScript
+async function f() {
+  return 1;
+}
+
+// Same as:
+async function f() {
+  return Promise.resolve(1);
+}
+
+f().then(alert); // 1
+```
+await works inside async functions that makes JavaScript wait until that promise settles and returns its result. It acts like promise.then.
+```JavaScript
+async function f() {
+  let promise = new Promise((resolve, reject) => {
+    setTimeout(() => resolve("done!"), 1000)
+  });
+
+  let result = await promise; // pause at this line - wait until the promise settles
+
+  alert(result); // "done!"
+}
+
+f();
+```
+Converting from Promise to async / await:
+```JavaScript
+async function showAvatar() {
+
+  // read our JSON
+  let response = await fetch('/article/promise-chaining/user.json');
+  let user = await response.json();
+
+  // read github user
+  let githubResponse = await fetch(`https://api.github.com/users/${user.name}`);
+  let githubUser = await githubResponse.json();
+
+  // show the avatar
+  let img = document.createElement('img');
+  img.src = githubUser.avatar_url;
+  img.className = "promise-avatar-example";
+  document.body.append(img);
+
+  // wait 3 seconds
+  await new Promise((resolve, reject) => setTimeout(resolve, 3000));
+
+  img.remove();
+
+  return githubUser;
+}
+
+showAvatar();
+
+// Can wrap in an anonymous async function:
+(async () => {
+  let response = await fetch('/article/promise-chaining/user.json');
+  let user = await response.json();
+  ...
+})();
+```
+await accepts thenables. If the promise resolves normally, the result is returned. If it is rejected, it throws an error.
+```JavaScript
+async function f() {
+  await Promise.reject(new Error("Whoops!"));
+}
+// Same as
+async function f() {
+  throw new Error("Whoops!");
+}
+```
+You can wrap the await in a try..catch block or append .catch(function) at the end of the call to the async function.
+```JavaScript
+async function f() {
+  try {
+    let response = await fetch('/no-user-here');
+    let user = await response.json();
+  } catch(err) {
+    // catches errors both in fetch and response.json
+    alert(err);
+  }
+}
+// OR
+f().catch(alert); // takes in the error object that gets passed
+```
+
 
 
 # Operators and Expressions
@@ -2709,7 +3020,7 @@ Every HTML tag is an object. Tags are element nodes (elements) and form the tree
 
 Tags have multiple properties. Some include:
 * style - which has its own assortment of properties
-* innerHTML - tags and text. Can modify, but can't pass a <script> tag that will execute. Can append with +="string.
+* innerHTML - tags and text. Can modify, but can't pass a <script> tag that will execute. Can append with +="string".
 * * If overwrite, all content is rewritten and reloaded and repainted and may lose any :selected status.
 * outerHTML - innerHTML plus the element itself. Writing to thise replaces it in the DOM rather than rewriting it, so won't update any variables pointing to the old element, but will update the DOM.
 * offsetWidth - node width in pixels
@@ -2733,6 +3044,7 @@ Element nodes have:
 * tagName - uppercased in HTML mode.
 * textContent - only text, no <tags> - just extracts their inner text and returns them in one line. Can write to this and will display the literal string, not HTML.
 * hidden - true if in CSS or style: `display: none`
+* tabindex - if assigned, deviates from the default focusable order
 
 With all attributes, even the non-standard ones that will not create corresponding properties:
 * elem.attributes: a collection of objects that belong to a built-in Attr class, with name and value properties.
@@ -2950,6 +3262,7 @@ There are other ways of getting elements:
 * * `elem.getElementByTagName(tag)` - returns just the first one
 * `elem.getElementsByClassName(className`) - returns elements that have the given CSS class.
 * `document.getElementsByName(name)` - returns elements with the given name attribute, document-wide. Very rarely used.
+* `document.elementFromPoint(clientX, clientY)` - returns the most nested element on given window-relative coordinates, or null if coordinates are out of the window.
 
 These returned collections are live, meaning they reflect the current state of the document and auto-update when it changes. `querySelector/All` and `getElementById` are not live.
 
@@ -3169,20 +3482,6 @@ element.removeEventListener(event, handler, [options]);
 // need to pass the same function that was used in the assignment - so passing an arrow function will not remove it as two arrow functions don't reference the same function. You need to store the function in a variable in order to remove them later
 ```
 
-Mouse Events:
-* click – when the mouse clicks on an element (touchscreen devices generate it on a tap).
-* contextmenu – when the mouse right-clicks on an element.
-* mouseover / mouseout – when the mouse cursor comes over / leaves an element.
-* mousedown / mouseup – when the mouse button is pressed / released over an element.
-* mousemove – when the mouse is moved.
-
-Form element events:
-* submit – when the visitor submits a <form>.
-* focus – when the visitor focuses on an element, e.g. on an <input>.
-
-Keyboard events:
-* keydown and keyup – when the visitor presses and then releases the button.
-
 Document events:
 * DOMContentLoaded – when the HTML is loaded and processed, DOM is fully built. Cannot set with a property - can only set with addEventListener("DOMContentLoaded", function(event)).
 
@@ -3254,7 +3553,7 @@ The property event.isTrusted is true for events that come from real user actions
  * @param type: event type, a string like "click" or our own like "my-event"
  * options: the object with two optional properties, by default both are false:
  *   bubbles: true/false – if true, then the event bubbles.
- *   cancelable: true/false – if true, then the “default action” may be prevented. Later we’ll see what it means for custom events.
+ *   cancelable: true/false – if true, then the “default action” may be prevented.
  */
 
 let event = new Event(type[, options]);
@@ -3277,7 +3576,52 @@ It is best to specify which type of event you're creating.
 * MouseEvent - includes clientX, clientY properties in options.
 * WheelEvent
 * KeyboardEvent
-* CustomEvent - in the options argument, can add an additional property detail for any custom information
+* CustomEvent - in the options argument, can add an additional property detail for any custom information that can then be accessed by handlers as event.detail
+```JavaScript
+
+  // additional details come with the event to the handler
+  elem.addEventListener("hello", function(event) {
+    alert(event.detail.name);
+  });
+
+  elem.dispatchEvent(new CustomEvent("hello", {
+    detail: { name: "John" }
+  }));
+
+    function hide() {
+    let event = new CustomEvent("hide", {
+      cancelable: true // without that flag preventDefault doesn't work
+    });
+    if (!elem.dispatchEvent(event)) {
+      alert('The action was prevented by a handler');
+    } else {
+      rabbit.hidden = true;
+    }
+  }
+
+  elem.addEventListener('hide', function(event) {
+    if (confirm("Call preventDefault?")) {
+      event.preventDefault();
+    }
+
+```
+
+Usually events are processed asynchronously - if while the browser is processing onclick a new event occurs, it waits until the onclick processing is finished. This is true except when an event initiates another event - control will jump to the nested event handler and then come back.
+### cut, copy, and paste
+ClipboardEvents provide access to data that is copied/ pasted. event.preventDefault() prevents the action (copy or paste).
+
+Prevent all clipboard interaction:
+```JavaScript
+<input type="text" id="input">
+<script>
+  input.oncut = input.oncopy = input.onpaste = function(event) {
+    alert(event.type + ' - ' + event.clipboardData.getData('text/plain'));
+    return false;
+  };
+</script>
+```
+
+The clipboard is global OS-level. Most browsers allow read/ write access to the clipboard only in the scope of certain user actions, like onclick event handlers. Most browsers forbid the generation of custom clipboard events with dispatchEvent.
 
 ### onclick
 Handler for a click event. Can only have one handler for a click event at a time.
@@ -3292,16 +3636,1059 @@ Handler for a click event. Can only have one handler for a click event at a time
 <button onclick="alert(this.innerHTML)">Click me</button> 
 <!-- Value of this is the element -->
 ```
-### onChange
+### onchange
+The change event triggers when the element has finished changing. For text inputs, onchange fires when it loses focus. For select and checkbox and radio inputs, onchange fires right after the selection changes.
 ### onLoad
+The DOM lifecycle goes through three important events:
+* DOMContentLoaded - Browser is fully loaded HTML and the DOM tree is built, but external resources like <img> and stylesheets may not yet be loaded.
+* * DOM is ready, so can lookup DOM nodes.
+* load - External resources are also loaded.
+* * Styles are applied, image sizes are known.
+* beforeunload/ unload - User is leaving the page.
+* * beforeunload - Check if user saved changes, ask if they really want to leave
+* * unload - User has almost left, but we can still initiate some operations, like sending out stats.
+
+document.readyState tells the current loading state:
+* loading
+* interactive - document was fully read
+* complete - fully read and all resources (images, stylesheets, etc.) are loaded too
+
+```JavaScript
+document.addEventListener("DOMContentLoaded", ready);
+// not "document.onDOMContentLoaded = ..."
+
+if (document.readyState == 'loading') {
+  // loading yet, wait for the event
+  document.addEventListener('DOMContentLoaded', work);
+} else {
+  // DOM is ready!
+  work();
+}
+
+// print state changes, rarely used:
+document.addEventListener('readystatechange', () => console.log(document.readyState));
+```
+When processing an HTML document and finding a <script>
+ tag, the browser pauses and executes the script before it finishes building the DOM. This is true unless scripts have async attribute or are genearted dynamically with document.createElement('script') and then added to the webpage.
+
+Scripts after <link type="text/css" rel="stylesheet" href="style.css"> will wait to execute for the stylesheet to load, meaning DOMContentLoaded will wait on the stylesheet if its waiting on the script.
+
+Once the page fully loaded, on DOMContentLoaded, some browsers may try to autofill forms.
+
+```JavaScript
+window.onload = function() {}; // same as window.addEventListener('load', (event) => {});
+
+window.onbeforeunload = function() { // cancelling the event asks the user for additional confirmation before they navigate away
+  return false; // also counts as false if return a non-empty string
+};
+```
+
+On unload, can do things that don't involve delays, like closing related popup windows. To send data to a server, use sendBeacon to send data in the background so the transition to another page is not delayed - the browser leaves the page, but it still performs sendBeacon.
+```JavaScript
+let analyticsData = { /* object with gathered data */ }; // usually stringified
+
+window.addEventListener("unload", function() {
+  navigator.sendBeacon("/analytics", JSON.stringify(analyticsData));
+}; // sent as a POST
+```
+
+To load a script in the background - rather than having the HTML pause - use the defer attribute. These will never block the page and always execute when the DOM is ready, but before DOMContentLoaded event. defer is ignored if the script has no src - it doesn't work for inline scripts. defer is used for scripts that need the whole DOM or whose relative execution order is important.
+```HTML
+<script defer src="https://javascript.info/article/script-async-defer/long.js?speed=1"></script>
+```
+Browsers scan the page for scripts and download them in parallel. But scripts will still execute in document order.
+
+The HTML attribute async means that it's completely independent - DOMContentLoaded won't wait for it. They can execute in any order, depending on what loads first. This works great with ads.
+
+Appending a script to the document body - adding a script dynamically - starts it loading right away and behaving asynchronously. Nothing waits for them, and they wait for nothing. The scripts run in load-first order. To avoid this, set the attribute to false.
+```JavaScript
+  let script = document.createElement('script');
+  script.src = src;
+  script.async = false;
+  document.body.append(script);
+
+// Tracking the loading of the script
+script.onload = function() {
+
+};
+script.onerror = function() {
+  alert("Error loading " + this.src);
+};
+```
+
+Basically any resource that has an external source has an .onload and .onerror function that ca nbe set. This works for img and iframe. Images start loading when they get a source and iframes trigger onload when the loading is finished, both for success and in case of error.
+
+#### Cross-Origin Policy (CORS)
+Scripts from one site can't access contents of the other site. One origin (domain/ port/ protocol triplet) can't access content from another (including subdomains and other ports). Information about the internals of a script with an outside source, including stack traces after an error, are hidden.
+
+To allow cross-origin access, the script tag needs to have the crossorigin attribute, plus the remote server must provide special headers.
+* No crossorigin attribute – access prohibited.
+* crossorigin="anonymous" – access allowed if the server responds with the header Access-Control-Allow-Origin with * or our origin. Browser does not send authorization information and cookies to remote server.
+* crossorigin="use-credentials" – access allowed if the server sends back the header Access-Control-Allow-Origin with our origin and Access-Control-Allow-Credentials: true. Browser sends authorization information and cookies to remote server.
+```HTML
+<script crossorigin="anonymous" src="https://cors.javascript.info/article/onload-onerror/crossorigin/error.js"></script>
+<!-- If the server provides an Access-Control-Allow-Origin header, we can receive the full error report, if it errors out. -->
+```
+
+### Mouse Events
+Can use with on*="function()" in HTML tags.
+* click – when the mouse clicks on an element (touchscreen devices generate it on a tap) (mousedown and then mouseup over the same element as done with the left mouse button).
+* contextmenu – when the mouse right-clicks on an element.
+* dblclick - when the mouse is clicked twice. May select text
+* mousemove - checked from time to time, so fast movement will cause some elements to be skipped.
+* mouseover / mouseout – when the mouse cursor comes over / leaves an element. The mouse can only be over a single element at a time, so the most nested one and top by z-index, but will bubble up to the parent, which may be behind a child. 
+* * event.target - element where mouse came over in mouseover or the element the mouse left in mouseout.
+* * event.relatedTarget - element from which the mouse came in mouseover, new under-the-pointer element with mouseout. Can be null if came from out of the window or left the window. Useful when we want to avoid a parent's mouseout event when going from parent to child.
+* mouseenter / mouseleave - transitions inside the element, like to or from decendants, are not counted; events don't bubble, so they cannot be delegated to be handled by an ancestor.
+* mousedown / mouseup – when the mouse button is pressed / released over an element.
+* * event.which determines with button on the mouse was pressed. left button is 1, middle is 2, and right is 3.
+* mousemove – when the mouse is moved.
+
+Mouse events have coordinates of the mouse at the time of the event:
+* Window-relative: clientX and clientY, as measured from the upper-left corner
+* Document-relative: pageX and pageY.
+
+All mouse events also include information about pressed modifier keys, which are true if the corresponding key was pressed during the event:
+* shiftKey: Shift
+* altKey: Alt (or Opt for Mac)
+* ctrlKey: Ctrl
+* metaKey: Cmd for Mac
+Macs generally use Cmd where Windows and Linux users would use Ctrl. Left click with Ctrl is interpreted as a right-click on Macs automatically.
+```JavaScript
+ button.onclick = function(event) {
+    if (event.altKey && event.shiftKey) {
+      alert('Hooray!');
+    }
+  };
+```
+Disabling copying, as triggered with ctrl+c.
+```HTML
+<div oncopy="alert('Copying forbidden!');return false">
+  Dear user,
+  The copying is forbidden for you.
+  If you know JS or HTML, then you can get everything from the page source though.
+</div>
+```
+
+Delegating events in a parent table with the power of bubbling:
+```JavaScript
+// <td> under the mouse right now (if any)
+let currentElem = null;
+
+table.onmouseover = function(event) {
+  // before entering a new element, the mouse always leaves the previous one
+  // if currentElem is set, we didn't leave the previous <td>,
+  // that's a mouseover inside it, ignore the event
+  if (currentElem) return;
+
+  let target = event.target.closest('td');
+
+  // we moved not into a <td> - ignore
+  if (!target) return;
+
+  // moved into <td>, but outside of our table (possible in case of nested tables)
+  // ignore
+  if (!table.contains(target)) return;
+
+  // hooray! we entered a new <td>
+  currentElem = target;
+  onEnter(currentElem);
+};
+
+
+table.onmouseout = function(event) {
+  // if we're outside of any <td> now, then ignore the event
+  // that's probably a move inside the table, but out of <td>,
+  // e.g. from <tr> to another <tr>
+  if (!currentElem) return;
+
+  // we're leaving the element – where to? Maybe to a descendant?
+  let relatedTarget = event.relatedTarget;
+
+  while (relatedTarget) {
+    // go up the parent chain and check – if we're still inside currentElem
+    // then that's an internal transition – ignore it
+    if (relatedTarget == currentElem) return;
+
+    relatedTarget = relatedTarget.parentNode;
+  }
+
+  // we left the <td>. really.
+  onLeave(currentElem);
+  currentElem = null;
+};
+
+// any functions to handle entering/leaving an element
+function onEnter(elem) {
+  elem.style.background = 'pink';
+
+  // show that in textarea
+  text.value += `over -> ${currentElem.tagName}.${currentElem.className}\n`;
+  text.scrollTop = 1e6;
+}
+
+function onLeave(elem) {
+  elem.style.background = '';
+
+  // show that in textarea
+  text.value += `out <- ${elem.tagName}.${elem.className}\n`;
+  text.scrollTop = 1e6;
+}
+```
+
+#### Drag and Drop
+In the spec: https://html.spec.whatwg.org/multipage/dnd.html#dnd
+
+To get a greater degree of control, can implement with mouse events:
+```JavaScript
+// Draggable
+ball.onmousedown = function(event) {
+
+  // shift position so can pick up the target on one of its corners and it won't jump to, say, centered on the mouse
+  let shiftX = event.clientX - ball.getBoundingClientRect().left;
+  let shiftY = event.clientY - ball.getBoundingClientRect().top;
+
+  ball.style.position = 'absolute';
+  ball.style.zIndex = 1000;
+  document.body.append(ball);
+
+  moveAt(event.pageX, event.pageY);
+
+  // moves the ball at (pageX, pageY) coordinates
+  // taking initial shifts into account
+  function moveAt(pageX, pageY) {
+    ball.style.left = pageX - shiftX + 'px';
+    ball.style.top = pageY - shiftY + 'px';
+  }
+
+  function onMouseMove(event) {
+    moveAt(event.pageX, event.pageY);
+  }
+
+  // move the ball on mousemove
+  document.addEventListener('mousemove', onMouseMove);
+
+  // drop the ball, remove unneeded handlers
+  ball.onmouseup = function() {
+    document.removeEventListener('mousemove', onMouseMove);
+    ball.onmouseup = null;
+  };
+};
+
+ball.ondragstart = function() { // disable default behavior for dragging images
+  return false;
+};
+
+// Droppable Target
+let currentDroppable = null; // potential droppable that we're flying over right now
+
+function onMouseMove(event) {
+  moveAt(event.pageX, event.pageY);
+
+  // Make the ball hidden for an instant to check if over the droppable target
+  ball.hidden = true;
+  let elemBelow = document.elementFromPoint(event.clientX, event.clientY);
+  ball.hidden = false;
+
+  // mousemove events may trigger out of the window (when the ball is dragged off-screen)
+  // if clientX/clientY are out of the window, then elementFromPoint returns null
+  if (!elemBelow) return;
+
+  // potential droppables are labeled with the class "droppable" (can be other logic)
+  let droppableBelow = elemBelow.closest('.droppable');
+
+  if (currentDroppable != droppableBelow) {
+    // we're flying in or out...
+    // note: both values can be null
+    //   currentDroppable=null if we were not over a droppable before this event (e.g over an empty space)
+    //   droppableBelow=null if we're not over a droppable now, during this event
+
+    if (currentDroppable) {
+      // the logic to process "flying out" of the droppable (remove highlight)
+      leaveDroppable(currentDroppable);
+    }
+    currentDroppable = droppableBelow;
+    if (currentDroppable) {
+      // the logic to process "flying in" of the droppable
+      enterDroppable(currentDroppable);
+    }
+  }
+}
+```
+Taken from: https://javascript.info/mouse-drag-and-drop
+
+### Keyboard Events
+Keyboard events:
+* keydown and keyup – when the visitor presses and then releases the button.
+* older days - keypress
+If a key is pressed for a long enough time, it starts to auto-repeat, triggering the keydown event again and again until it's finally released with keyUp.
+
+Properties
+* event.repeat - if true, can trigger events based on auto-repeat (when held down).
+* event.code - physical key code, like the location on the keyboard (so unaffected by language changes, even if the keyboard is laid out differently due to the language), like "KeyZ", "Digit0", "Enter", and "Tab". ShiftRight and ShiftLeft are different.
+* event.key - get the character, which will be different if it is pressed with or without Shift or depending on the language. All Shifts are the same, something like F1 has the same value as event.code.
+Olden days, now deprecated due to so many browser incompatibilities.
+* keyCode
+* charCode
+* which
+
+OS-based special keys cannot be canceled, like Alt+F4 in Windows closing the current browser window.
+
+The Fn key has no associated keyboard event because often implemented on a lower level the the OS.
+
+### Scrolling
+Event
+* scroll
+```JavaScript
+window.addEventListener('scroll', function() {
+  document.getElementById('showScroll').innerHTML = window.pageYOffset + 'px';
+});
+```
+onscroll triggers after the scroll has already happened, so event.preventDefault() won't prevent scrolling. It's more reliable to use the CSS overflow property to disable scrollbars.
+
+Infinite scroll:
+```JavaScript
+function populate() {
+  while(true) {
+    // document bottom
+    let windowRelativeBottom = document.documentElement.getBoundingClientRect().bottom;
+
+    // if the user scrolled far enough (<100px to the end)
+    if (windowRelativeBottom < document.documentElement.clientHeight + 100) {
+      // let's add more data
+      document.body.insertAdjacentHTML("beforeend", `<p>Date: ${new Date()}</p>`);
+    }
+  }
+}
+```
 
 ## Forms
 ### Input Objects
 ### Validation
 
+## Forms
+document.forms stores a collection of all the forms in the document - accessible by index document.forms[number] or document.forms.name, set in <form name="name">. 
+
+All control elements of some form formy are accessible through formy.elements. For elements with the same name, like radio buttons have to have, form.elements.radioButtonName is a collection. Fieldsets also have an elements collection. formy.elements.name = formy.name. All elements reference the form they're part of through element.form
+
+input and textarea
+* .value - string, note is not innerHTML.
+* input.checked - boolean for textboxes.
+
+select and option
+
+select elements have:
+* select.options - collection of <option> subelements.
+* select.value - value of currently selected <option>.
+* select.selectedIndex - number of the currently selected <option>.
+Setting values:
+```JavaScript
+select.options[2].selected = true;
+select.selectedIndex = 2;
+select.value = 'banana';
+```
+If the select tag has the multiple attribute, can select multiple options at once.
+```HTML
+<select id="select" multiple>
+  <option value="blues" selected>Blues</option>
+  <option value="rock" selected>Rock</option>
+  <option value="classic">Classic</option>
+</select>
+
+<script>
+  // get all selected values from multi-select
+  let selected = Array.from(select.options)
+    .filter(option => option.selected)
+    .map(option => option.value);
+
+  alert(selected); // blues,rock
+</script>
+```
+Options have
+* selected
+* index
+* text - content seen by the visitor.
+
+Option elements are easy to create outside of HTML:
+```JavaScript
+option = new Option(text, value, defaultSelected, selected);
+```
+Where defaultSelected sets the HTML attribute (option.getAttribute('selected')) and selected is whether the option is selected.
+
+### Events
+The input event triggers every time after a value is modified by the user - pasting or speech recognition trigger, as do keyboard actions. Pressing arrow keys and other actions that don't involve value changes doesn't trigger oninput to fire.
+
+### Form element events
+* submit – when the visitor submits a <form>.
+* * click <input type="submit"> or <input type="image"> generates an event.
+* * press Enter on an input field generates an event. Also triggers a click event.
+* * form.submit()
+* focus – when the visitor focuses on an element, either by clicking or using Tab to navigate into it. The autofocus HTML attribute puts the focus into an element by default when the page loads.
+* blur - when the element loses focus.
+buttons, inputs, selects, a/ links are guaranteed to be able to be interacted with. Formatting elements like div, span, and table are unfocusable by default. To cheange this, set a tabindex.
+* focusin / focusout - bubbling focus and blur. Must be assigned with elem.addEventListener("focusin", function()) rather than onfocusin.
+
+#### Submission
+Handler checks data, shows any errors and calls event.preventDefault() so error-ridden data isn't sent to the server. If there are no errors, can submit the form.
+
+#### Focus, Blur, and TabIndex
+The HTML attribute tabindex is the order of the element when Tab is used to switch between elements. Elements with tabindex == 1 go first, then the ones above, then elements that are focusable but don't have tabindexes. tabindex="0" puts an element among those without tabindexes, so they are still focusable but only after the greater tab indexes. It maintains the default switching order. tabindex="-1" allows for programmic focusing - the Tab key will ignore these elements, but elem.focus() still works.
+
+focus and blur do not bubble. Some frameworks have them bubble, however. Due to historical reasons, focus and blur propagate down during the capturing phase, and the focusin and focusout events bubble.
+
+The currently focused element is document.activeElement.
+
+
+
 # AJAX
 Asynchronous JavaScript and XML for network requests to get information from the server.
-let promise = fetch(url[, options]) where options are parameters like method, headers, etc. Without options, a GET request is sent.
+
+let `promise = fetch(url[, options])` where options are parameters like method, headers, etc. Without options, a GET request is sent.
+```JavaScript
+let promise = fetch(url, {
+  method: "GET", // POST, PUT, DELETE, etc.
+  headers: {
+    // the content type header value is usually auto-set
+    // depending on the request body
+    "Content-Type": "text/plain;charset=UTF-8"
+  },
+  body: undefined // string, FormData, Blob, BufferSource, or URLSearchParams
+  referrer: "about:client", // or "" to send no Referer header,
+  // or an url from within the current origin
+  referrerPolicy: "no-referrer-when-downgrade", // no-referrer, origin, same-origin...
+  mode: "cors", // same-origin, no-cors - only simple cross-origin requests are allowed
+  credentials: "same-origin", // - don't send for cross-origin requests, omit, include
+  cache: "default", // no-store, reload - populate cache with response if allowed, no-cache, force-cache - even if it's stale or make a regular HTTP-request, or only-if-cached - even if it's stale, or error
+  redirect: "follow", // manual, error
+  integrity: "", // a checksum hash, like "sha256-abcdef1234567890"
+  keepalive: false, // true - perform the request in the background even after leaves the page. Body limit is 64kb
+  signal: undefined, // AbortController to abort request
+  window: window // null
+});
+```
+
+The promise resolves with an object of the Response class as soon as the server responds with headers - when it might not have the body yet. The promise rejects if the fetch was unable to make an HTTP-request (network problems) or there is no such site.
+
+Response properties:
+* status - HTTP status code.
+* ok - boolean, true if status code is 200-299.
+* headers - map-like object with HTTP headers
+
+To get the response body, we need to make an additional method call:
+* response.text() – read the response and return as text.
+* response.json() – parse the response as JSON.
+* response.formData() – return the response as FormData object.
+* response.blob() – return the response as Blob (binary data with type).
+* response.arrayBuffer() – return the response as ArrayBuffer (low-level representaion of binary data).
+
+response.body is a ReadableStream object, so the body can be read chunk-by-chunk.
+
+Only one body-reading method can be used. If we’ve already got the response with response.text(), then response.json() won’t work, as the body content has already been processed.
+```JavaScript
+let url = 'https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits';
+let response = await fetch(url, options); // resolves with response headers
+
+let result = await response.json(); // read response body and parse as JSON
+
+alert(commits[0].author.login);
+
+// Same as with promises:
+fetch('https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits', options)
+  .then(response => response.json())
+  .then(result => alert(result[0].author.login));
+```
+
+#### Response Headers
+Response-like headers are available in Map-like headers object in response.headers.
+```JavaScript
+let response = await fetch('https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits');
+
+// get one header
+alert(response.headers.get('Content-Type')); // application/json; charset=utf-8
+
+// iterate over all headers
+for (let [key, value] of response.headers) {
+  alert(`${key} = ${value}`);
+}
+
+// Setting headers
+let response = fetch(protectedUrl, {
+  headers: {
+    Authentication: 'secret'
+  }
+});
+```
+Some HTTP headers cannot be set. They're exclusively controlled by the browser.
+
+#### POST Requests
+POST requests are requests with another methods.
+
+fetch options
+* method – HTTP-method, e.g. POST.
+* headers - object with request headers.
+* body – the request data to send, one of:
+* * a string (e.g. JSON-encoded), most often used.
+* * FormData object, to submit the data as form/multipart.
+* * Blob/BufferSource to send binary data.
+* * URLSearchParams, to submit the data in x-www-form-urlencoded encoding, rarely used.
+```JavaScript
+let user = {
+  name: 'John',
+  surname: 'Smith'
+};
+
+let response = await fetch('/article/fetch/post/user', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json;charset=utf-8'
+  },
+  body: JSON.stringify(user)
+});
+
+let result = await response.json();
+alert(result.message);
+```
+If the request body is a string, Content-Type header is set to text/plain;charset=UTF-8 by default. Sending JSON-encoded data requires this to be reset.
+
+Binary data like images can be sent using Blob or BufferSource objects.
+
+Black/ white drawing with mouseover:
+```HTML
+<body style="margin:0">
+  <canvas id="canvasElem" width="100" height="80" style="border:1px solid"></canvas>
+
+  <input type="button" value="Submit" onclick="submit()">
+
+  <script>
+    canvasElem.onmousemove = function(e) {
+      let ctx = canvasElem.getContext('2d');
+      ctx.lineTo(e.clientX, e.clientY);
+      ctx.stroke();
+    };
+
+    async function submit() {
+      let blob = await new Promise(resolve => canvasElem.toBlob(resolve, 'image/png'));
+      let response = await fetch('/article/fetch/post/image', {
+        method: 'POST',
+        body: blob
+      });
+
+      // the server responds with confirmation and the image size
+      let result = await response.json();
+      alert(result.message);
+    }
+
+    // Same as  with pure promises:
+    function submit() {
+  canvasElem.toBlob(function(blob) {
+    fetch('/article/fetch/post/image', {
+      method: 'POST',
+      body: blob
+    })
+      .then(response => response.json())
+      .then(result => alert(JSON.stringify(result, null, 2)))
+  }, 'image/png');
+}
+
+  </script>
+</body>
+```
+### FormData and Sending Forms
+Using a form element, capture its fields. fetch accepts FormData as an object that will be encoded and sent out with Content-Type: multipart/ form-data.
+```JavaScript
+let formData = new FormData([form]);
+
+formElem.onsubmit = async (e) => {
+    e.preventDefault();
+
+    let response = await fetch('/article/formdata/post/user', {
+      method: 'POST',
+      body: new FormData(formElem)
+    });
+
+    let result = await response.json();
+
+    alert(result.message);
+  };
+```
+
+FormData can be modified with methods:
+* formData.append(name, value) – add a form field with the given name and value.
+* * formData.append(name, blob, fileName) – add a field as if it were <input type="file">, the third argument fileName sets file name (not form field name), as it were a name of the file in user’s filesystem.
+* formData.delete(name) – remove the field with the given name.
+* formData.get(name) – get the value of the field with the given name.
+* formData.set(name, value) or formData.set(name, blob, fileName) - remove all fields with the given name and append a new field. 
+* formData.has(name) – if there exists a field with the given name, returns true, otherwise false.
+Forms can have multiple fields with the same name. You can iterate over formData fields using a for..of loop.
+
+Appending information allows more information to be sent, like `formData.append("image", imageBlob, "image.png");` which is the same as submitting a file named "image.png" with `<input type="file" name="image">`.  
+
+#### Tracking Download Progress
+Can't track upload progress. response.body is a ReadableStream - a special object that sends data chunk-by-chunk as it comes. We can track download progress:
+```JavaScript
+// Step 1: start the fetch and obtain a reader
+let response = await fetch('https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits?per_page=100');
+
+// instead of response.json() and other methods, obtain a stream reader
+const reader = response.body.getReader();
+
+// Step 2: get total length - may be absent for cross-origin requests
+const contentLength = +response.headers.get('Content-Length');
+
+// Step 3: read the data
+let receivedLength = 0; // received that many bytes at the moment
+let chunks = []; // array of received binary chunks (comprises the body)
+
+// infinite loop while the body is downloading
+while(true) {
+  // done is true for the last chunk
+  // value is Uint8Array of the chunk bytes
+  const {done, value} = await reader.read();
+
+  if (done) {
+    break;
+  }
+
+  chunks.push(value);
+  receivedLength += value.length;
+
+  console.log(`Received ${receivedLength} of ${contentLength}`)
+}
+
+// if need a string:
+// Step 4: concatenate chunks into single Uint8Array
+let chunksAll = new Uint8Array(receivedLength); // (4.1)
+let position = 0;
+for(let chunk of chunks) {
+  // copy chunks
+  chunksAll.set(chunk, position); // (4.2)
+  position += chunk.length;
+}
+
+// Step 5: decode into a string
+let result = new TextDecoder("utf-8").decode(chunksAll);
+
+// if find with binary:
+let blob = new Blob(chunks);
+
+// We're done!
+let commits = JSON.parse(result);
+alert(commits[0].author.login);
+```
+
+#### Aborting Asynchronous Events
+AbortController can abort asynchronous tasks including fetch. It a single method abort() and a single property signal. When abort is called, the abort event triggers on controller.signal and the controller.signal.aborted property becomes true.
+
+```JavaScript
+let controller = new AbortController();
+let signal = controller.signal;
+// Listen to abort on signal
+fetch(url, {
+  signal: controller.signal
+});
+
+// triggers when controller.abort() is called
+signal.addEventListener('abort', () => alert("abort!"));
+
+controller.abort(); // abort!
+
+alert(signal.aborted); // true
+
+// Aborting a fetch rejects its promise with error AbortError, which can be handled in try..catch.
+try {
+  let response = await fetch('/article/fetch-abort/demo/hang', {
+    signal: controller.signal
+  });
+} catch(err) {
+  if (err.name == 'AbortError') { // handle abort()
+    alert("Aborted!");
+  } else {
+    throw err;
+  }
+}
+```
+One AbortController can be used with multiple fetches. It will be able to abort them all.
+
+#### Cross-Origin Resource Sharing (CORS)
+Protects the internet from evil hackers - a script from one site cannot access the content of another site. The browser adds an Origin header: your/url (Domain, protocol, port without a path) to cross-origin requests. If the request is accepted, there is special Access-Control-Allow-Origin header added to the response that contains your/origin or a star.
+
+Simple requests have:
+* Simple method: GET, POST, or HEAD
+* Simple headers:
+* * Accept
+* * Accept-Language
+* * Content-Language
+* * Content-Type - application/x-www-form-urlencoded, mutlipart/form-data, or text/plain.
+Simple requests can be made with a form or a script without any special methods.
+
+JavaScript can only access simple response headers:
+* Cache-Control
+* Content-Language
+* Content-Type
+* Expires
+* Last-Modified
+* Pragma
+
+To access any other response header, the service must send an Access-Control-Expose-Headers: non-simple,header,names.
+
+To access the percentage of progress of a download, can use XMLHttpRequest instead of fetch (supporting in old browsers without polyfills).
+
+To send a non-simple request, the browser sends a preflight request asking for permission using method OPTIONS with headers:
+*  Access-Control-Request-Method - header has the method of the non-simple request.
+* Access-Control-Request-Headers - header provides a comma-separated list of its non-simple HTTP-headers.
+If the server agrees to serve these requests, it will respond with an empty body, status 200, and headers:
+* Access-Control-Allow-Methods - must have the allowed method.
+* Access-Control-Allow-Headers - must have a list of allowed headers.
+* Additionally, Access-Control-Max-Age - may specify a number of seconds to cache the permissions, so the browser won’t have to send a preflight for subsequent requests that satisfy given permissions.
+
+```JavaScript
+// For the non-simple request:
+let response = await fetch('https://site.com/service.json', {
+  method: 'PATCH',
+  headers: {
+    'Content-Type': 'application/json',
+    'API-Key': 'secret'
+  }
+});
+// The browser on its own sends a preflight request:
+OPTIONS /service.json // path is same as main request
+Host: site.com
+Origin: https://javascript.info // source origin
+Access-Control-Request-Method: PATCH // requested method
+Access-Control-Request-Headers: Content-Type,API-Key // non-simple headers
+
+// If allowed, the server responds with
+200 OK
+Access-Control-Allow-Methods: PUT,PATCH,DELETE
+Access-Control-Allow-Headers: API-Key,Content-Type,If-Modified-Since,Cache-Control
+Access-Control-Max-Age: 86400
+
+// The broswer now makes the main request
+PATCH /service.json
+Host: site.com
+Content-Type: application/json
+API-Key: secret
+Origin: https://javascript.info // used because it's cross-origin
+
+// The server appends this to the main response:
+Access-Control-Allow-Origin: https://javascript.info
+```
+
+By default, a cross-origin request doesn't bring any credentials, like cookies or HTTP authentication. Usually requests to a site are accompanied by all cookies from that domain. To send credentials in fetch, the option credentials: "include" must be added.
+``` JavaScript
+fetch('http://another.com', {
+  credentials: "include"
+});
+// If the server agrees to accept the request with credentials:
+200 OK
+Access-Control-Allow-Origin: https://javascript.info // cannot use * with credentials
+Access-Control-Allow-Credentials: true
+```
+
+#### URLs
+protocol://hostname:port/pathname?search#hash
+
+Origin: https//site.com:8080
+
+href: /path/page?p1=v1&p2=v2#hash
+
+```JavaScript
+new URL(url, [base]);
+
+let url1 = new URL('https://javascript.info/profile/admin');
+// Same as:
+let url2 = new URL('/profile/admin', 'https://javascript.info');
+```
+
+Search Parameters
+
+Need to be encoded if contain spaces, non-latin letters, etc.
+url.searchParams provides methods:
+* append(name, value) – add the parameter by name,
+* delete(name) – remove the parameter by name,
+* get(name) – get the parameter by name,
+* getAll(name) – get all parameters with the same name (that’s possible, e.g. ?user=John&user=Pete),
+* has(name) – check for the existance of the parameter by name,
+* set(name, value) – set/replace the parameter,
+* sort() – sort parameters by name, rarely needed,
+.searchParams is also iterable with decoded values, similar to Map.
+```JavaScript
+// iterate over search parameters (decoded)
+for(let [name, value] of url.searchParams) {
+  alert(`${name}=${value}`); // q=test me!, then tbs=qdr:y
+}
+```
+
+If using a string instead of a url object, need to encode/ decode manually:
+* encodeURI – encodes URL as a whole, only characters that are totally forbidden in the URL (:, ?, =, &, #).
+* decodeURI – decodes it back.
+* encodeURIComponent – encodes a single URL component, such as a search parameter, or a hash, or a pathname, including characters #, $, &, +, ,, /, :, ;, =, ? and @.
+* decodeURIComponent – decodes it back.
+
+#### XMLHttpRequest
+```JavaScript
+let xhr = new XMLHttpRequest();
+xhr.withCredentials = true; // if want to send cookies and HTTP-authorization, which aren't enabled by default
+
+/*
+ * @param method - HTTP-method, like "GET" or "POST"
+ * @param URL - string or URL object
+ * @param async - if false, then request is synchronous
+ * @param user, password - login for basic HTTP auth (if required)
+ */
+xhr.open(method, URL, [async, user, password]); // configures the request, does not open it
+// async = false: execution pauses at send and resumes when the response is received. Blocks in-page JavaScript, may make it impossible to scroll. Used rarely.
+
+xhr.responseType = 'json';
+/*
+
+    "" (default) – get as string,
+    "text" – get as string,
+    "arraybuffer" – get as ArrayBuffer (for binary data, see chapter ArrayBuffer, binary arrays),
+    "blob" – get as Blob (for binary data, see chapter Blob),
+    "document" – get as XML document (can use XPath and other XML methods),
+    "json" – get as JSON (parsed automatically).
+*/
+
+xhr.send([body]);
+
+// Events triggered solely on uploading
+// loadstart
+// progress - triggers periodically during the upload
+xhr.upload.onprogress = function(event) {
+  alert(`Uploaded ${event.loaded} of ${event.total} bytes`);
+};
+// abort
+// load - finished successfully
+xhr.upload.onload = function() {
+  alert(`Upload finished successfully.`);
+};
+// timeout - if timeout property is set
+// error - non-HTTP error
+xhr.upload.onerror = function() {
+  alert(`Error during the upload: ${xhr.status}`);
+};
+// loadend - finished with either success or error, on abort or timeout
+  // track completion: both successful or not
+xhr.onloadend = function() {
+  if (xhr.status == 200) {
+    console.log("success");
+  } else {
+    console.log("error " + this.status);
+  }
+};
+
+// Listen for a response
+xhr.onload = function() { // when complete - even if status of failure, response is fully downloaded
+  if (xhr.status != 200) { // analyze HTTP status of the response
+    alert(`Error ${xhr.status}: ${xhr.statusText}`); // e.g. 404: Not Found
+  } else { // show the result
+    alert(`Done, got ${xhr.response.length} bytes`); // responseText is the server
+  }
+};
+
+xhr.onerror = function() { // only triggers if the request couldn't be made at all - like network being down or invalid URL
+  alert(`Network Error`);
+};
+
+xhr.onprogress = function(event) { // triggers periodically
+  // event.loaded - how many bytes downloaded
+  // event.lengthComputable = true if the server sent Content-Length header
+  // event.total - total number of bytes (if lengthComputable)
+  alert(`Received ${event.loaded} of ${event.total}`);
+};
+
+xhr.timeout = 10000; // timeout in ms, 10 seconds
+```
+XMLHttpRequest can send custom headers
+* setRequestHeader(name, value) - can't be undone, deleted, or overwritten.
+* getResponseHeader(string name)
+* getAllResponseHeaders() - returns all respons headers except Set-Cookie and Set-Cookie2 in a single line with line breaks \r\n in bvetween.
+```JavaScript
+// Example:
+Cache-Control: max-age=31536000
+Content-Length: 4260
+Content-Type: image/png
+Date: Sat, 08 Sep 2012 16:53:16 GMT
+```
+
+Once server has response, xhr has the properties
+* status
+* statusText - message
+* response - body
+
+##### Resumable File Upload
+If upload fails, like if it was buffered by a local network proxy or the remote server died and couldn't process it or it was lost in the middle and never reached the receiver, we need to know how many bytes were successfully received by the server. This is done through an additional request.
+```JavaScript
+let fileId = file.name + '-' + file.size + '-' + +file.lastModifiedDate;
+// Send request to ask how many bytes the server has, assuming the server tracks uploads by the X-File-Id header
+let response = await fetch('status', {
+  headers: {
+    'X-File-Id': fileId
+  }
+});
+
+// The server has that many bytes
+let startByte = +await response.text(); // 0 if doesn't yet exist
+xhr.open("POST", "upload", true);
+
+// File id, so that the server knows which file we upload
+xhr.setRequestHeader('X-File-Id', fileId);
+
+// The byte we're resuming from, so the server knows we're resuming
+xhr.setRequestHeader('X-Start-Byte', startByte);
+// server can check records to see if there was an upload of that fileId with the uploaded size of X-Start-Byte.
+
+xhr.upload.onprogress = (e) => {
+  console.log(`Uploaded ${startByte + e.loaded} of ${startByte + e.total}`);
+};
+
+// file can be from input.files[0] or another source
+xhr.send(file.slice(startByte)); // Blob method to send file from startByte
+```
+
+### Persistent Connections with Servers
+Regular requests, or periodic polling, can get you new information ofa server. However, the delay with which messages are passed is up to 10 seconds between requests. Being bombarded with requests every 10 seconds is quite a lot to handle performance-wise anyway.
+#### Long Polling
+This works when messages are rare. Each message is received in a separate request, supplied with headers, authentication overhead, etc.
+
+Send a request to the server. Server won't close the connection until it has a message to send (the connection hangs). When a message appears, the server responds to the request with it. Upon receipt or loss of connection, the browser immediately makes a new request. This works with servers that can work with many pending connections, such as those that don't run one memory-heavy process per connect.
+```JavaScript
+async function subscribe() {
+  let response = await fetch("/subscribe");
+
+  if (response.status == 502) {
+    // Status 502 is a connection timeout error,
+    // may happen when the connection was pending for too long,
+    // and the remote server or a proxy closed it
+    // let's reconnect
+    await subscribe();
+  } else if (response.status != 200) {
+    // An error - let's show it
+    showMessage(response.statusText);
+    // Reconnect in one second
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await subscribe();
+  } else {
+    // Get and show the message
+    let message = await response.text();
+    showMessage(message);
+    // Call subscribe() again to get the next message
+    await subscribe();
+  }
+}
+
+subscribe();
+```
+#### WebSocket
+For services that require continuous data exchange, like online games or real-time trading systems.
+
+A protocol that provides a way to exchange data between browser and server via a persistent connection. Data is passed in both directions as packets without breaking the connection or additional HTTP-requests.
+
+```JavaScript
+let socket = new WebSocket("ws://javascript.info"); // wss:// for encrypted, like HTTPS
+// wss:// is more reliable.
+// starts connecting immediately
+socket.readyState
+// vlaue of:
+// 0 - CONNECTING, not yet established
+// 1 - OPEN, communicating
+// 2 - CLOSING
+// 3 - CLOSED
+
+// Listen to events on the socket
+socket.onopen = function(e) {
+  alert("[open] Connection established");
+  alert("Sending to server");
+  socket.send("My name is John");
+};
+
+socket.onmessage = function(event) {
+  alert(`[message] Data received from server: ${event.data}`);
+  // always receives text as strings, can choose bvetween Blob (direct integration with <a> and <img> tags) and ArrayBuffer (for accessing individual data bytes) for binary data
+  socket.bufferType = blobl // default
+};
+
+socket.onclose = function(event) {
+  if (event.wasClean) {
+    alert(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+  } else {
+    // e.g. server process killed or network down
+    // event.code is usually 1006 in this case
+    alert('[close] Connection died');
+  }
+};
+
+socket.onerror = function(error) {
+  alert(`[error] ${error.message}`);
+};
+
+// Send Text or binary data
+socket.send(body); // where body is in string or binary format, including Blob, ArrayBuffer, etc.
+// Can only send as fast as the network speed allows. 
+// Can see how many bytes are buffered (stored) in memory because the network isn't fast enough to send their calls:
+// every 100ms examine the socket and send more data
+// only if all the existing data was sent out
+setInterval(() => {
+  if (socket.bufferedAmount == 0) {
+    socket.send(moreData());
+  }
+}, 100);
+
+// Closing the Connection
+// Sen a connection close frame:
+socket.close([code = 1000], [reason]);
+// closing party:
+socket.close(1000, "Work complete");
+
+// the other party
+socket.onclose = event => {
+  // event.code === 1000
+  // event.reason === "Work complete"
+  // event.wasClean === true (clean close)
+};
+```
+Common close values:
+* 1000 - default, normal closure
+* 1006 - can't code manually, but indicates connection was lost - no close frame was sent.
+* 1001 – the party is going away, e.g. server is shutting down, or a browser leaves the page.
+* 1009 – the message is too big to process.
+* 1011 – unexpected error on server.
+https://tools.ietf.org/html/rfc6455#section-7.4.1
+
+WebSocket objects are cross-origin by nature and don't require any special headers to be. JavaScript can't set WebSocket headers, so it can't emulate them.
+
+Example request:
+```JavaScript
+let socket = new WebSocket("wss://javascript.info/chat");
+let socket = new WebSocket("wss://javascript.info/chat", ["soap", "wamp"]); // array of subprotocols
+
+GET /chat
+Host: javascript.info
+Origin: https://javascript.info // origin of client page
+Connection: Upgrade // means client wants to change the protocol
+Upgrade: websocket // requested protocol is websocket
+Sec-WebSocket-Key: Iv8io/9s+lYFgZWcXczP8Q== // random browser-generated key for security
+Sec-WebSocket-Version: 13 // WebSocket protocol version
+// Optional Headers
+Sec-WebSocket-Extensions: deflate-frame // browser supports data compression
+Sec-WebSocket-Protocol: soap, wamp // indicates desire to transfer data in SOAP or WAMP (WebSocket Application Messaging Protocol)
+
+// Response
+101 Switching Protocols
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: hsBlbuDTkk24srzEOTBUlZAlC2g= // Sec-WebSocket-Key recoded using a special algorithm to establish that the response corresponds to the request
+// Optional Headers
+Sec-WebSocket-Extensions: deflate-frame
+Sec-WebSocket-Protocol: soap // if only supports SOAP of the requested subprotocols
+```
+WebSocket communication consists of frames - dat afragments that can be sent from either side with form:
+* text frames
+* binary data frames
+* ping/pong frames - check connection to the client from the server, browser responds automatically
+* connection close frame
+
 
 ## Persistent Storage
 ### Client-Side Data
