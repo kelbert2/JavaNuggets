@@ -10,9 +10,9 @@ let multiple = 1, variables = 2, can = 3, be = '4', assigned = 5;
 ```
 
 In the olden days, only `var` was be used to declare variables.
-var has no block scope - they're either funciton-wide or global. If the code-block is inside a function, then var declares a function-level variable. This was in a pre-Lexical Environment world.
+`var` has no block scope - they're either function-wide or global. If the code-block is inside a function, then `var` declares a function-level variable. This was in a pre-Lexical Environment world.
 
-var declarations are processed when the function or script starts - so like functions, they can be used before they are declared. Their declaration is hoisted to the top of the function, but their assignment is not - they will still be undefined until that assignment.
+`var` declarations are processed when the function or script starts - so like functions, they can be used before they are declared. Their declaration is hoisted to the top of the function, but their assignment is not - they will still be undefined until that assignment (declaration is hoisted, assignment is not).
 
 To emulate block-level visibility, programmers used "immediately-invoked function expressions," or IIFE:
 ```JavaScript
@@ -2277,6 +2277,12 @@ Reactions to global errors depend on the environment. Node.js has `process.on("u
 # Functions
 Perform the same action in multiple places.
 
+Primitives are passed by value, objects like arrays are passed by reference, so such things can be modified within the function.
+
+Functions can accept an arbirtrary number of arguments. Too many and the extra ones are ignored. Too few and the missing ones are undefined. 
+
+All declared functions havea special `arguments` local variable.
+
 ## Function Declarations
 A Function Declaration can be called earlier than it is defined. It is visible to the whole script because it is created at initialization of the script.
 
@@ -3000,18 +3006,25 @@ CSSOM specification describes stylesheets and style rules.
 HTML specification describes the HTML language (tags) and the BOM.
 ## BOM
 THe Browser Object Model reprents additional objects provided by the broswer for working with everything except the document.
-* navigator - object that provides background information about the browser and the OS.
-* * navigator.userAgent - about current browser
-* * navigator.platform - OS platform
+* `navigator` - object that provides background information about the browser and the OS.
+* * `navigator.userAgent` - about current browser.
+* * `navigator.platform` - OS platform.
+* * `navigator.cookieEnabled` - Boolean, read-only.
 * screen
 * location - read the current URL and direct the browser to a new one
 * * location.href - current url, can be set to redirect
 * frames
 * history
 * alert/ confirm/ prompt - pure browser methods to communicate with the user
-* setTimeout
-* XMLHttpRequest
+* `setTimeout`
+* `XMLHttpRequest`
 
+Preferred Languages (read-only).
+```JavaScript
+preferredLanguages = globalObj.navigator.languages; //["en-US", "zh-CN", "ja-JP"] 
+let firstElemOfArray = navigator.language; //"en-US"
+// changed with a langaugechange event fired upon window.
+```
 ## DOM
 The DOM describes the document structure, manipulations, and events.
 https://dom.spec.whatwg.org
@@ -3019,52 +3032,53 @@ https://dom.spec.whatwg.org
 Every HTML tag is an object. Tags are element nodes (elements) and form the tree structure. Nested tags are children of their enclosing parent. Inner text is an object as well - text nodes which contain only a string and no children. There are also comment nodes, since everything in the HTML MUST be in the DOM tree. The document is also a node.
 
 Tags have multiple properties. Some include:
-* style - which has its own assortment of properties
-* innerHTML - tags and text. Can modify, but can't pass a <script> tag that will execute. Can append with +="string".
+* `style` - which has its own assortment of properties
+* `innerHTML` - tags and text. Can modify, but can't pass a <script> tag that will execute. Can append with +="string".
 * * If overwrite, all content is rewritten and reloaded and repainted and may lose any :selected status.
-* outerHTML - innerHTML plus the element itself. Writing to thise replaces it in the DOM rather than rewriting it, so won't update any variables pointing to the old element, but will update the DOM.
-* offsetWidth - node width in pixels
-* childNodes - returns a collection of all direct children, including inner text that separates them. This is read-only.
+* `outerHTML` - `innerHTML` plus the element itself. Writing to thise replaces it in the DOM rather than rewriting it, so won't update any variables pointing to the old element, but will update the DOM.
+* `offsetWidth` - node width in pixels.
+* `childNodes` - returns a collection of all direct children, including inner text that separates them. This is read-only.
 * * Iterate over using for..of. Note that array methods will not work.
-* firstChild
-* lastChild
-* hasChildNodes() - compared to empty. 
-* parentNode - of html tag (document.documentElement) is document
-* nodeName - for elements, is the same as tagName, otherwise is the string with the node type. Always uppercased in HTML mode.
-* nodeType - 1 for element nodes, 3 for text nodes, 9 for the document object
-* nodeContent/ data - usually use data, can be modified.
+* `firstChild`
+* `lastChild`
+* `hasChildNodes()` - compared to empty. 
+* `parentNode` - of html tag (document.documentElement) is document
+* `nodeName` - for elements, is the same as tagName, otherwise is the string with the node type. Always uppercased in HTML mode.
+* `nodeType` - 1 for element nodes, 3 for text nodes, 9 for the document object
+* `nodeContent`/ `data` - usually use data, can be modified.
 
 Element nodes have:
-* children - only children that are element nodes
-* firstElementChild
-* lastElementChild
-* previousElementSibling, nextElementSibling - neighbors
-* parentElement - of html tag (document.documentElement) is null, as it is the root node
-* contains(elemB) - true if elemB is inside elem (decendent) or when elem == elemB.
-* tagName - uppercased in HTML mode.
-* textContent - only text, no <tags> - just extracts their inner text and returns them in one line. Can write to this and will display the literal string, not HTML.
-* hidden - true if in CSS or style: `display: none`
-* tabindex - if assigned, deviates from the default focusable order
+* `children` - only children that are element nodes.
+* `firstElementChild`
+* `lastElementChild`
+* `previousElementSibling`, `nextElementSibling` - neighbors.
+* `parentElement` - of html tag (`document.documentElement`) is null, as it is the root node
+* `contains(elemB) `- true if elemB is inside elem (decendent) or when elem == elemB.
+* `tagName` - uppercased in HTML mode.
+* `textContent` - only text, no <tags> - just extracts their inner text and returns them in one line. Can write to this and will display the literal string, not HTML.
+* `hidden` - true if in CSS or style: `display: none`.
+* `tabindex` - if assigned, deviates from the default focusable order.
 
 With all attributes, even the non-standard ones that will not create corresponding properties:
-* elem.attributes: a collection of objects that belong to a built-in Attr class, with name and value properties.
-* elem.hasAttribute(name) – checks for existence.
-* elem.getAttribute(name) – gets the value.
-* elem.setAttribute(name, value) – sets the value.
-* elem.removeAttribute(name) – removes the attribute.
-* elem.dataset.propertyName - returns the value of data-property-name attribute.
-* elem.className - assigning this replaces the whole string of classes
-* elem.classList - special object, iterable with for..of
-* * elem.classList.add('class name')
-* * elem.classList.remove('class name')
-* * elem.classList.toggle('class name') - add the class if it doesn't exist, otherwise remove it
-* * elem.classList.contains('class name') - returns true or false
-* elem.style - can't read anything that comes from CSS classes - only operates on the value of the "style" attribute. There is no CSS cascade.
-* * Setting elem.style.width="100px" is the same as setting elem.style="width:100px" or elem.setAttribute("style", "width:100px").
-* * Multi-word properties convert to camelCase. z-index -> zIndex. The dash means uppercase with browser-prefixed properties as well: -moz-border-radius -> MozBorderRadius
-* * To remove some property of style, set the value to "" 
-* elem.style.cssText can be set with multi-property strings: \`color:red; background-color: yellow;`
-* * This will also replace (remove) existing styles
+* `elem.attributes` - a collection of objects that belong to a built-in Attr class, with name and value properties.
+* `elem.hasAttribute(name)` – checks for existence.
+* `elem.getAttribute(name)` – gets the value.
+* `elem.setAttribute(name, value)` – sets the value.
+* `elem.removeAttribute(name)` – removes the attribute.
+* `elem.dataset.propertyName` - returns the value of data-property-name attribute.
+Classes and styling:
+* `elem.className` - assigning this replaces the whole string of classes
+* `elem.classList` - special object, iterable with for..of
+* * `elem.classList.add('class name')`
+* * `elem.classList.remove('class name')`
+* * `elem.classList.toggle('class name')` - add the class if it doesn't exist, otherwise remove it.
+* * `elem.classList.contains('class name')` - returns true or false.
+* `elem.style` - can't read anything that comes from CSS classes - only operates on the value of the "style" attribute. There is no CSS cascade.
+* * Setting `elem.style.width="100px"` is the same as setting `elem.style="width:100px"` or `elem.setAttribute("style", "width:100px")`.
+* * Multi-word properties convert to camelCase. z-index -> zIndex. The dash means uppercase with browser-prefixed properties as well: -moz-border-radius -> MozBorderRadius.
+* * To remove some property of style, set the value to "".
+* `elem.style.cssText` can be set with multi-property strings: \`color:red; background-color: yellow;`.
+* * This will also replace (remove) existing styles.
 
 ``` HTML
 <body>
@@ -3098,7 +3112,7 @@ Example: Can read `getComputedStyle(document.body).marginTop` to get the resolve
 Styles applied to :visited (psuedoclass) links cannot be accessed from `getComputedStyle(link, ':visited')` because then any arbitrary page could find out whether the user vvisited a link by checking the styles. There is also no way to apply CSS geometry-changing styles in :visited as that too could break privacy.
 
 ### Nodes
-Specific HTMLElements inherit from HTMLElement, which has siblings SVGElement and XMLElement which also inherits from Element. Text, Element, and Comment inherit from abstract class Node, which inherits from EventTarget, which allows them to support events.
+Specific HTMLElements inherit from `HTMLElement`, which has siblings `SVGElement` and `XMLElement` which also inherits from `Element`. `Text`, `Element`, and `Comment` inherit from abstract class `Node`, which inherits from `EventTarget`, which allows them to support events.
 
 Some DOM elements have additional properties. HTMLInputElement and HTMLSelectElement have value (<input>, <select>, <textarea>).
 HTMLAnchorElement has href.
@@ -3132,7 +3146,7 @@ Some properties are not strings. For checkboxes, input.checked is a boolean. The
 ``` 
 
 ### Passing Custom Attributes
-To avoid the potential of future standards using the same name as your custom attributes, use data-* as a prefix.
+To avoid the potential of future standards using the same name as your custom attributes, use `data-*` as a prefix.
 ```HTML
 <!-- mark the div to show "name" here -->
 <div data-show-info="name"></div>
@@ -3190,18 +3204,18 @@ To avoid the potential of future standards using the same name as your custom at
 
 #### Table Elements
 Table elements have additional properties:
-* rows - collection of <tr> elements
-* caption, tHead, tFoot - reference to elements <caption>, <thead>, and <tfoot>
-* tBodies - collection of <tbody> elements, always at least one
+* `rows` - collection of <tr> elements.
+* `caption`, `tHead`, `tFoot` - reference to elements <caption>, <thead>, and <tfoot>.
+* `tBodies` - collection of <tbody> elements, always at least one.
 
 <thead>, <tfoot>, and <tbody> also have .rows
 
 Table row elements <tr> elements:
-* cells - collection of <td> and <th> cells inside the given <tr>.
-* sectionRowIndex -  the position (index) of the given <tr> inside the enclosing <thead>/<tbody>/<tfoot>.
-* rowIndex - the number of the <tr> in the table as a whole (including all table rows).
+* `cells` - collection of <td> and <th> cells inside the given <tr>.
+* `sectionRowIndex` -  the position (index) of the given <tr> inside the enclosing <thead>/<tbody>/<tfoot>.
+* `rowIndex` - the number of the <tr> in the table as a whole (including all table rows).
 
-<td> and <th> have cellIndex - number of the cell inside the enclosing <tr>
+<td> and <th> have `cellIndex` - number of the cell inside the enclosing <tr>.
 
 #### Forms
 
@@ -3276,12 +3290,12 @@ div.innerHTML = "<strong>Hi there!</strong> You've read an important message.";
 let textNode = document.createTextNode('Here I am'); // create new text node with give ntext
 ```
 Inserting nodes and text with other nodes:
-* node.append(...nodes or strings) – append nodes or strings at the end of node.
-* node.prepend(...nodes or strings) – insert nodes or strings at the beginning of node.
-* node.before(...nodes or strings) – insert nodes or strings before node.
-* node.after(...nodes or strings) – insert nodes or strings after node - removes the node from the old place.
-* node.replaceWith(...nodes or strings) – replaces node with the given nodes or strings.
-* node.remove() - removes the node
+* `node.append(...nodes or strings)` – append nodes or strings at the end of node.
+* `node.prepend(...nodes or strings)` – insert nodes or strings at the beginning of node.
+* `node.before(...nodes or strings)` – insert nodes or strings before node.
+* `node.after(...nodes or strings)` – insert nodes or strings after node - removes the node from the old place.
+* `node.replaceWith(...nodes or strings)` – replaces node with the given nodes or strings.
+* `node.remove()` - removes the node.
 All text is inserted as text, not HTML.
 
 There is also `elem.insertAdjacentText(where, text)` and `elem.insertAdjacentElement(where, elem)`, but these are rarely used.
@@ -3305,10 +3319,10 @@ You can insert strings that will get parsed as HTML using `elem.insertAdjacentHT
 ```
 
 Nodes can be cloned.
-* elem.cloneNode(true) - returns a “deep” clone of the element – with all attributes and sub-elements.
-* elem.cloneNode(false) - returns a clone is without child elements.
+* `elem.cloneNode(true)` - returns a “deep” clone of the element – with all attributes and sub-elements.
+* `elem.cloneNode(false)` - returns a clone is without child elements.
 
-DocumentFragment is a special DOM node that serves as a wrapper to pass around lists of nodes. Nodes can be appended to it, but when it is inserted, its content is inserted instead.
+`DocumentFragment` is a special DOM node that serves as a wrapper to pass around lists of nodes. Nodes can be appended to it, but when it is inserted, its content is inserted instead.
 ```HTML
 <ul id="ul"></ul>
 
@@ -3359,7 +3373,7 @@ Ancient peoples once used (all of which return node):
 * `parentElem.insertBefore(node, nextSibling)` - which works even with parentElem.firstChild as the nextSibling
 * `parentElem.replaceChild(node, oldChild)`
 * `parentElem.removeChild(node)`
-* `document.write('HTML string')` - only works while the page is loading, so if called during the parsing stage, the browser will consume it just as if it were initially there in the HTML text. If called afterwards, the existing document content is erased. Very speedy because no DOM modification involved (if called while browser is still readin gthe HTML)
+* `document.write('HTML string')` - only works while the page is loading, so if called during the parsing stage, the browser will consume it just as if it were initially there in the HTML text. If called afterwards, the existing document content is erased. Very speedy because no DOM modification involved (if called while browser is still reading the HTML).
 
 The method comes from times when there was no DOM, no standards… Really old times. It still lives, because there are scripts using it.
 
@@ -3375,22 +3389,22 @@ offsetParent is null for
 * Not-shown elements (display:none or not in the document)
 * For <body> and <html>
 * For elements with position: fixed
-offsetLeft/ offsetTop are relative to the upper-left corner.
+`offsetLeft`/ `offsetTop` are relative to the upper-left corner.
 
-offsetWidth/ Height provide the outer width/ height of the element (full size including borders, padding, and width). These are zero/ null for elements that are not displayed.
+`offsetWidth`/ `offsetHeight` provide the outer width/ height of the element (full size including borders, padding, and width). These are zero/ null for elements that are not displayed.
 
-Within the element are borders. clientLeft and clientTop are the relative coordinates of the inner side from the outer side - they are generally the width and height of the border, except in languages that are read from right to left. In such languages, scroll bars are on the left and are factored into the clientLeft coordinates.
+Within the element are borders. `clientLeft` and `clientTop` are the relative coordinates of the inner side from the outer side - they are generally the width and height of the border, except in languages that are read from right to left. In such languages, scroll bars are on the left and are factored into the `clientLeft` coordinates.
 
-clientWidth and clientHeight include padding and content width and height.
+`clientWidth` and `clientHeight` include padding and content width and height.
 
-scrollWidth and scrollHeight are like clientWidth and clientHeight but include the scrolled out (hidden) parts. They can be used to expand elements to their full heights
+`scrollWidth` and `scrollHeight` are like `clientWidth` and `clientHeight` but include the scrolled out (hidden) parts. They can be used to expand elements to their full heights
 
-scrollLeft and scrollTop are the width and height of the hidden, scrolled out part of the element to the left and top (how much is scrolled up or left). This can be used to scroll elements - setting scrollTop to 0 scrolls all the way up and scrollTop to Infinity all the way down.
+`scrollLeft` and `scrollTop` are the width and height of the hidden, scrolled out part of the element to the left and top (how much is scrolled up or left). This can be used to scroll elements - setting `scrollTop` to 0 scrolls all the way up and `scrollTop` to Infinity all the way down.
 
-Beware when using getComputedStyle(elem).width or .height, as these depend on box-sizing - how CSS interprets these values. They also may be "auto", which getComputedStyle will return - which is less than helpful. Some browsers will return width - the scrollbar width while others will ignore the scrollbar.
+Beware when using `getComputedStyle(elem).width` or `.height`, as these depend on box-sizing - how CSS interprets these values. They also may be "auto", which getComputedStyle will return - which is less than helpful. Some browsers will return width - the scrollbar width while others will ignore the scrollbar.
 
 ### Window Geometry
-The clientWidth and clientHeight of document.documentElement (html tag) is the width and height of the window that is available for content (minus the scrollbar - window.innerWidth and window.innerHeight will include the scrollbar).
+The `clientWidth` and `clientHeight` of `document.documentElement` (html tag) is the width and height of the window that is available for content (minus the scrollbar - `window.innerWidth` and `window.innerHeight` will include the scrollbar).
 
 To get the full size with cross-browser compatibility:
 ```JavaScript
@@ -3418,17 +3432,17 @@ This causes the scrollbar to disappear and content to jump to fill the space it 
 
 ### Coordinates
 Two coordinate systems:
-* Relative to the window - as with position:fixed, calculates from the window's top/ left edge. Denoted as clientX and clientY.
-* Relative to the document - as with position:absolute, calculates from the document's top/ left edge, including width that has been scrolled past. Denoted as pageX and pageY.
+* Relative to the window - as with position:fixed, calculates from the window's top/ left edge. Denoted as `clientX` and `clientY`.
+* Relative to the document - as with position:absolute, calculates from the document's top/ left edge, including width that has been scrolled past. Denoted as `pageX` and `pageY`.
 
 The method `elem.getBoundingClientRect()` returns window coordinates for a minimal rectangle that encloses elem as an object of built-in DOMRect class. Main DOMRect properties:
-* x/y - coordinates of the rectangle origin relative to window, can be negative if the element is scrolled past and is now above or to the left of the window. Unsupported by IE and Edge, which do support top/ left (which is the same as x/ y if the width/ height are positive).
-* width/height - of the rectangle, can be negative if rectangle is flipped.
+* `x` / `y` - coordinates of the rectangle origin relative to window, can be negative if the element is scrolled past and is now above or to the left of the window. Unsupported by IE and Edge, which do support top/ left (which is the same as x/ y if the width/ height are positive).
+* `width` / `height` - of the rectangle, can be negative if rectangle is flipped. 
 Derived properties:
-* top/ bottom - Y-coordinate/ distance from the top rectangle edge, change as scroll. bottom = y + height, where top = y. Note that bottom is not necessarily the same as with CSS positioning, which would calculate bottom from the distance to the bottom edge.
-* left/ right - X-coordinate/ distance from the left rectangle edge. right = x + width, where left = x.
+* `top` / `bottom` - Y-coordinate/ distance from the top rectangle edge, change as scroll. `bottom = y + height`, where `y = top`. Note that bottom is not necessarily the same as with CSS positioning, which would calculate bottom from the distance to the bottom edge.
+* `left` / `right` - X-coordinate/ distance from the left rectangle edge. `right = x + width`, where `x = left`.
 
-To get the most nested element at window coordinates (x, y): `document.elementFromPoint(x, y)`, where x and y are in the visible area. If the coordinates are negative or exceed the window width/ height, then returns null
+To get the most nested element at window coordinates (x, y): `document.elementFromPoint(x, y)`, where x and y are in the visible area. If the coordinates are negative or exceed the window width/ height, then returns null.
 ```JavaScript
 // Get tag in the middle of the window:
 let centerX = document.documentElement.clientWidth / 2;
@@ -3483,20 +3497,20 @@ element.removeEventListener(event, handler, [options]);
 ```
 
 Document events:
-* DOMContentLoaded – when the HTML is loaded and processed, DOM is fully built. Cannot set with a property - can only set with addEventListener("DOMContentLoaded", function(event)).
+* `DOMContentLoaded` – when the HTML is loaded and processed, DOM is fully built. Cannot set with a property - can only set with addEventListener("DOMContentLoaded", function(event)).
 
 CSS events:
-* transitionend – when a CSS-animation finishes. Cannot set with a property - can only set with addEventListener("transitionend", function(event)).
+* `transitionend` – when a CSS-animation finishes. Cannot set with a property - can only set with addEventListener("transitionend", function(event)).
 
 Handlers assigned to elements also run if any nested tags experience that event because events bubble. When an event happens on an element, it first runs the handlers on it, then on its parent, then all the way up on other ancestors.
 
 Event properties:
-* type - Such as "click".
-* target - element that initiated the event, doesn't change through the bubbling process
-* currentTarget - Element that handled the event. Same as "this" unless this is bound to something else or the handler is an arrow function. May change with bubbling.
-* stopPropagation() - stops bubbling up for this event. Generally, you don't want to stopPropagation.
-* stopImmediatePropagation() - no handler executes on the current element.
-* clientX/ clientY - Window-relative coordinates of the cursor for mouse events.
+* `type` - Such as "click".
+* `target` - element that initiated the event, doesn't change through the bubbling process.
+* `currentTarget` - Element that handled the event. Same as "this" unless this is bound to something else or the handler is an arrow function. May change with bubbling.
+* `stopPropagation()` - stops bubbling up for this event. Generally, you don't want to stopPropagation.
+* `stopImmediatePropagation()` - no handler executes on the current element.
+* `clientX` / `clientY` - Window-relative coordinates of the cursor for mouse events.
 
 Some events, like focus events, don't bubble up.
 
@@ -3520,7 +3534,7 @@ or
 element.addEventListener(event, handler, {passive: true});
 ```
 
-Some events follow each other, like focus events after mousedowns. These will be prevented if the default is prevented. event.defaultPrevented will let other handlers know that the event was handled and not propagated further.
+Some events follow each other, like focus events after mousedowns. These will be prevented if the default is prevented. `event.defaultPrevented` will let other handlers know that the event was handled and not propagated further.
 ```JavaScript
 elem.oncontextmenu = function(event) {
     event.preventDefault();
@@ -3542,9 +3556,9 @@ elem.oncontextmenu = function(event) {
 ```
 ### Custom Events
 
-elem.on* events only work for built-in events.
+`elem.on*` events only work for built-in events.
 
-The property event.isTrusted is true for events that come from real user actions and false for script-generated events.
+The property `event.isTrusted` is true for events that come from real user actions and false for script-generated events.
 ```HTML
 <button id="elem" onclick="alert('Click!');">Autoclick</button>
 
@@ -3571,12 +3585,12 @@ let event = new Event(type[, options]);
 ```
 
 It is best to specify which type of event you're creating.
-* UIEvent
-* FocusEvent
-* MouseEvent - includes clientX, clientY properties in options.
-* WheelEvent
-* KeyboardEvent
-* CustomEvent - in the options argument, can add an additional property detail for any custom information that can then be accessed by handlers as event.detail
+* `UIEvent`
+* `FocusEvent`
+* `MouseEvent` - includes `clientX`, `clientY` properties in options.
+* `WheelEvent`
+* `KeyboardEvent`
+* `CustomEvent` - in the options argument, can add an additional property detail for any custom information that can then be accessed by handlers as `event.detail`.
 ```JavaScript
 
   // additional details come with the event to the handler
@@ -3606,9 +3620,9 @@ It is best to specify which type of event you're creating.
 
 ```
 
-Usually events are processed asynchronously - if while the browser is processing onclick a new event occurs, it waits until the onclick processing is finished. This is true except when an event initiates another event - control will jump to the nested event handler and then come back.
+Usually events are processed asynchronously - if while the browser is processing onclick a new event occurs, it waits until the `onclick` processing is finished. This is true except when an event initiates another event - control will jump to the nested event handler and then come back.
 ### cut, copy, and paste
-ClipboardEvents provide access to data that is copied/ pasted. event.preventDefault() prevents the action (copy or paste).
+`ClipboardEvents` provide access to data that is copied/ pasted. event.`preventDefault()` prevents the action (copy or paste).
 
 Prevent all clipboard interaction:
 ```JavaScript
@@ -3621,7 +3635,7 @@ Prevent all clipboard interaction:
 </script>
 ```
 
-The clipboard is global OS-level. Most browsers allow read/ write access to the clipboard only in the scope of certain user actions, like onclick event handlers. Most browsers forbid the generation of custom clipboard events with dispatchEvent.
+The clipboard is global OS-level. Most browsers allow read/ write access to the clipboard only in the scope of certain user actions, like `onclick` event handlers. Most browsers forbid the generation of custom clipboard events with `dispatchEvent`.
 
 ### onclick
 Handler for a click event. Can only have one handler for a click event at a time.
@@ -3637,18 +3651,18 @@ Handler for a click event. Can only have one handler for a click event at a time
 <!-- Value of this is the element -->
 ```
 ### onchange
-The change event triggers when the element has finished changing. For text inputs, onchange fires when it loses focus. For select and checkbox and radio inputs, onchange fires right after the selection changes.
+The change event triggers when the element has finished changing. For text inputs, `onchange` fires when it loses focus. For select and checkbox and radio inputs, `onchange` fires right after the selection changes.
 ### onLoad
 The DOM lifecycle goes through three important events:
-* DOMContentLoaded - Browser is fully loaded HTML and the DOM tree is built, but external resources like <img> and stylesheets may not yet be loaded.
+* `DOMContentLoaded` - Browser is fully loaded HTML and the DOM tree is built, but external resources like <img> and stylesheets may not yet be loaded.
 * * DOM is ready, so can lookup DOM nodes.
-* load - External resources are also loaded.
+* `load` - External resources are also loaded.
 * * Styles are applied, image sizes are known.
-* beforeunload/ unload - User is leaving the page.
-* * beforeunload - Check if user saved changes, ask if they really want to leave
-* * unload - User has almost left, but we can still initiate some operations, like sending out stats.
+* `beforeunload`/ `unload` - User is leaving the page.
+* * `beforeunload` - Check if user saved changes, ask if they really want to leave
+* * `unload` - User has almost left, but we can still initiate some operations, like sending out stats.
 
-document.readyState tells the current loading state:
+`document.readyState` tells the current loading state:
 * loading
 * interactive - document was fully read
 * complete - fully read and all resources (images, stylesheets, etc.) are loaded too
@@ -3669,11 +3683,11 @@ if (document.readyState == 'loading') {
 document.addEventListener('readystatechange', () => console.log(document.readyState));
 ```
 When processing an HTML document and finding a <script>
- tag, the browser pauses and executes the script before it finishes building the DOM. This is true unless scripts have async attribute or are genearted dynamically with document.createElement('script') and then added to the webpage.
+ tag, the browser pauses and executes the script before it finishes building the DOM. This is true unless scripts have async attribute or are genearted dynamically with `document.createElement('script')` and then added to the webpage.
 
-Scripts after <link type="text/css" rel="stylesheet" href="style.css"> will wait to execute for the stylesheet to load, meaning DOMContentLoaded will wait on the stylesheet if its waiting on the script.
+Scripts after <link type="text/css" rel="stylesheet" href="style.css"> will wait to execute for the stylesheet to load, meaning `DOMContentLoaded` will wait on the stylesheet if its waiting on the script.
 
-Once the page fully loaded, on DOMContentLoaded, some browsers may try to autofill forms.
+Once the page fully loaded, on `DOMContentLoaded`, some browsers may try to autofill forms.
 
 ```JavaScript
 window.onload = function() {}; // same as window.addEventListener('load', (event) => {});
@@ -3683,7 +3697,7 @@ window.onbeforeunload = function() { // cancelling the event asks the user for a
 };
 ```
 
-On unload, can do things that don't involve delays, like closing related popup windows. To send data to a server, use sendBeacon to send data in the background so the transition to another page is not delayed - the browser leaves the page, but it still performs sendBeacon.
+On `unload`, can do things that don't involve delays, like closing related popup windows. To send data to a server, use `sendBeacon` to send data in the background so the transition to another page is not delayed - the browser leaves the page, but it still performs `sendBeacon`.
 ```JavaScript
 let analyticsData = { /* object with gathered data */ }; // usually stringified
 
@@ -3692,13 +3706,13 @@ window.addEventListener("unload", function() {
 }; // sent as a POST
 ```
 
-To load a script in the background - rather than having the HTML pause - use the defer attribute. These will never block the page and always execute when the DOM is ready, but before DOMContentLoaded event. defer is ignored if the script has no src - it doesn't work for inline scripts. defer is used for scripts that need the whole DOM or whose relative execution order is important.
+To load a script in the background - rather than having the HTML pause - use the `defer` attribute. These will never block the page and always execute when the DOM is ready, but before `DOMContentLoaded` event. `defer` is ignored if the script has no `src` - it doesn't work for inline scripts. `defer` is used for scripts that need the whole DOM or whose relative execution order is important.
 ```HTML
 <script defer src="https://javascript.info/article/script-async-defer/long.js?speed=1"></script>
 ```
 Browsers scan the page for scripts and download them in parallel. But scripts will still execute in document order.
 
-The HTML attribute async means that it's completely independent - DOMContentLoaded won't wait for it. They can execute in any order, depending on what loads first. This works great with ads.
+The HTML attribute `async` means that it's completely independent - `DOMContentLoaded` won't wait for it. They can execute in any order, depending on what loads first. This works great with ads.
 
 Appending a script to the document body - adding a script dynamically - starts it loading right away and behaving asynchronously. Nothing waits for them, and they wait for nothing. The scripts run in load-first order. To avoid this, set the attribute to false.
 ```JavaScript
@@ -3716,43 +3730,52 @@ script.onerror = function() {
 };
 ```
 
-Basically any resource that has an external source has an .onload and .onerror function that ca nbe set. This works for img and iframe. Images start loading when they get a source and iframes trigger onload when the loading is finished, both for success and in case of error.
+Basically any resource that has an external source has an `.onload` and `.onerror` function that can be set. This works for <img> and <iframe>. Images start loading when they get a source and iframes trigger `onload` when the loading is finished, both for success and in case of error.
 
 #### Cross-Origin Policy (CORS)
 Scripts from one site can't access contents of the other site. One origin (domain/ port/ protocol triplet) can't access content from another (including subdomains and other ports). Information about the internals of a script with an outside source, including stack traces after an error, are hidden.
 
-To allow cross-origin access, the script tag needs to have the crossorigin attribute, plus the remote server must provide special headers.
-* No crossorigin attribute – access prohibited.
-* crossorigin="anonymous" – access allowed if the server responds with the header Access-Control-Allow-Origin with * or our origin. Browser does not send authorization information and cookies to remote server.
-* crossorigin="use-credentials" – access allowed if the server sends back the header Access-Control-Allow-Origin with our origin and Access-Control-Allow-Credentials: true. Browser sends authorization information and cookies to remote server.
+For the page:
+`http://store.company.com/dir/page.html`
+* `http://store.company.com/dir2/other.html` - same origin, different path
+* `http://store.company.com/dir/inner/another.html` - same origin, different path
+* `https://store.company.com/page.html` - different origin - different protocol
+* `http://store.company.com:81/dir/page.html` - different origin - different port (http:// is 80 by default)
+* `http://news.company.com/dir/page.html` - different origin - different host
+
+
+To allow cross-origin access, the script tag needs to have the `crossorigin` attribute, plus the remote server must provide special headers.
+* No `crossorigin` attribute – access prohibited.
+* `crossorigin="anonymous"` – access allowed if the server responds with the header `Access-Control-Allow-Origin` with `*` or our origin. Browser does not send authorization information and cookies to remote server.
+* `crossorigin="use-credentials"` – access allowed if the server sends back the header `Access-Control-Allow-Origin` with our origin and `Access-Control-Allow-Credentials: true`. Browser sends authorization information and cookies to remote server.
 ```HTML
 <script crossorigin="anonymous" src="https://cors.javascript.info/article/onload-onerror/crossorigin/error.js"></script>
 <!-- If the server provides an Access-Control-Allow-Origin header, we can receive the full error report, if it errors out. -->
 ```
 
 ### Mouse Events
-Can use with on*="function()" in HTML tags.
-* click – when the mouse clicks on an element (touchscreen devices generate it on a tap) (mousedown and then mouseup over the same element as done with the left mouse button).
-* contextmenu – when the mouse right-clicks on an element.
-* dblclick - when the mouse is clicked twice. May select text
-* mousemove - checked from time to time, so fast movement will cause some elements to be skipped.
-* mouseover / mouseout – when the mouse cursor comes over / leaves an element. The mouse can only be over a single element at a time, so the most nested one and top by z-index, but will bubble up to the parent, which may be behind a child. 
-* * event.target - element where mouse came over in mouseover or the element the mouse left in mouseout.
-* * event.relatedTarget - element from which the mouse came in mouseover, new under-the-pointer element with mouseout. Can be null if came from out of the window or left the window. Useful when we want to avoid a parent's mouseout event when going from parent to child.
-* mouseenter / mouseleave - transitions inside the element, like to or from decendants, are not counted; events don't bubble, so they cannot be delegated to be handled by an ancestor.
-* mousedown / mouseup – when the mouse button is pressed / released over an element.
-* * event.which determines with button on the mouse was pressed. left button is 1, middle is 2, and right is 3.
-* mousemove – when the mouse is moved.
+Can use with` on*="function()"` in HTML tags.
+* `click` – when the mouse clicks on an element (touchscreen devices generate it on a tap) (mousedown and then mouseup over the same element as done with the left mouse button).
+* `contextmenu` – when the mouse right-clicks on an element.
+* `dblclick` - when the mouse is clicked twice. May select text
+* `mousemove` - checked from time to time, so fast movement will cause some elements to be skipped.
+* `mouseover` / `mouseout` – when the mouse cursor comes over / leaves an element. The mouse can only be over a single element at a time, so the most nested one and top by z-index, but will bubble up to the parent, which may be behind a child. 
+* * `event.target` - element where mouse came over in mouseover or the element the mouse left in mouseout.
+* * `event.relatedTarget` - element from which the mouse came in mouseover, new under-the-pointer element with `mouseout`. Can be `null` if came from out of the window or left the window. Useful when we want to avoid a parent's `mouseout` event when going from parent to child.
+* `mouseenter` / `mouseleave` - transitions inside the element, like to or from decendants, are not counted; events don't bubble, so they cannot be delegated to be handled by an ancestor.
+* `mousedown` / `mouseup` – when the mouse button is pressed / released over an element.
+* * `event.which` determines with button on the mouse was pressed. The left button is 1, middle is 2, and right is 3.
+* `mousemove` – when the mouse is moved.
 
 Mouse events have coordinates of the mouse at the time of the event:
-* Window-relative: clientX and clientY, as measured from the upper-left corner
-* Document-relative: pageX and pageY.
+* Window-relative: `clientX` and `clientY`, as measured from the upper-left corner.
+* Document-relative: `pageX` and `pageY`.
 
 All mouse events also include information about pressed modifier keys, which are true if the corresponding key was pressed during the event:
-* shiftKey: Shift
-* altKey: Alt (or Opt for Mac)
-* ctrlKey: Ctrl
-* metaKey: Cmd for Mac
+* `shiftKey`: Shift
+* `altKey`: Alt (or Opt for Mac)
+* `ctrlKey`: Ctrl
+* `metaKey`: Cmd for Mac
 Macs generally use Cmd where Windows and Linux users would use Ctrl. Left click with Ctrl is interpreted as a right-click on Macs automatically.
 ```JavaScript
  button.onclick = function(event) {
@@ -3919,32 +3942,32 @@ Taken from: https://javascript.info/mouse-drag-and-drop
 
 ### Keyboard Events
 Keyboard events:
-* keydown and keyup – when the visitor presses and then releases the button.
-* older days - keypress
+* `keydown` and `keyup` – when the visitor presses and then releases the button.
+* older days - `keypress`
 If a key is pressed for a long enough time, it starts to auto-repeat, triggering the keydown event again and again until it's finally released with keyUp.
 
 Properties
-* event.repeat - if true, can trigger events based on auto-repeat (when held down).
-* event.code - physical key code, like the location on the keyboard (so unaffected by language changes, even if the keyboard is laid out differently due to the language), like "KeyZ", "Digit0", "Enter", and "Tab". ShiftRight and ShiftLeft are different.
-* event.key - get the character, which will be different if it is pressed with or without Shift or depending on the language. All Shifts are the same, something like F1 has the same value as event.code.
+* `event.repeat` - if true, can trigger events based on auto-repeat (when held down).
+* `event.code` - physical key code, like the location on the keyboard (so unaffected by language changes, even if the keyboard is laid out differently due to the language), like "KeyZ", "Digit0", "Enter", and "Tab". `ShiftRight` and `ShiftLeft` are different.
+* `event.key` - get the character, which will be different if it is pressed with or without Shift or depending on the language. All Shifts are the same, something like F1 has the same value as `event.code`.
 Olden days, now deprecated due to so many browser incompatibilities.
-* keyCode
-* charCode
-* which
+* `keyCode`
+* `charCode`
+* `which`
 
 OS-based special keys cannot be canceled, like Alt+F4 in Windows closing the current browser window.
 
-The Fn key has no associated keyboard event because often implemented on a lower level the the OS.
+The `Fn` key has no associated keyboard event because often implemented on a lower level the the OS.
 
 ### Scrolling
 Event
-* scroll
+* `scroll`
 ```JavaScript
 window.addEventListener('scroll', function() {
   document.getElementById('showScroll').innerHTML = window.pageYOffset + 'px';
 });
 ```
-onscroll triggers after the scroll has already happened, so event.preventDefault() won't prevent scrolling. It's more reliable to use the CSS overflow property to disable scrollbars.
+`onscroll` triggers after the scroll has already happened, so event.`preventDefault()` won't prevent scrolling. It's more reliable to use the CSS overflow property to disable scrollbars.
 
 Infinite scroll:
 ```JavaScript
@@ -3967,20 +3990,20 @@ function populate() {
 ### Validation
 
 ## Forms
-document.forms stores a collection of all the forms in the document - accessible by index document.forms[number] or document.forms.name, set in <form name="name">. 
+`document.forms` stores a collection of all the forms in the document - accessible by index `document.forms[number]` or `document.forms.name`, set in <form name="name">. 
 
-All control elements of some form formy are accessible through formy.elements. For elements with the same name, like radio buttons have to have, form.elements.radioButtonName is a collection. Fieldsets also have an elements collection. formy.elements.name = formy.name. All elements reference the form they're part of through element.form
+All control elements of some form formy are accessible through formy.elements. For elements with the same name, like radio buttons have to have, `form.elements.radioButtonName` is a collection. Fieldsets also have an elements collection. `formy.elements.name = formy.name`. All elements reference the form they're part of through `element.form`.
 
 input and textarea
-* .value - string, note is not innerHTML.
-* input.checked - boolean for textboxes.
+* `.value` - string, note is not innerHTML.
+* `input.checked` - boolean for textboxes.
 
-select and option
+### select and option
 
 select elements have:
-* select.options - collection of <option> subelements.
-* select.value - value of currently selected <option>.
-* select.selectedIndex - number of the currently selected <option>.
+* `select.options` - collection of <option> subelements.
+* `select.value` - value of currently selected <option>.
+* `select.selectedIndex` - number of the currently selected <option>.
 Setting values:
 ```JavaScript
 select.options[2].selected = true;
@@ -4005,45 +4028,46 @@ If the select tag has the multiple attribute, can select multiple options at onc
 </script>
 ```
 Options have
-* selected
-* index
-* text - content seen by the visitor.
+* `selected`
+* `index`
+* `text` - content seen by the visitor.
 
 Option elements are easy to create outside of HTML:
 ```JavaScript
 option = new Option(text, value, defaultSelected, selected);
 ```
-Where defaultSelected sets the HTML attribute (option.getAttribute('selected')) and selected is whether the option is selected.
+Where `defaultSelected` sets the HTML attribute (`option.getAttribute('selected')`) and `selected` is whether the option is selected.
 
 ### Events
 The input event triggers every time after a value is modified by the user - pasting or speech recognition trigger, as do keyboard actions. Pressing arrow keys and other actions that don't involve value changes doesn't trigger oninput to fire.
 
 ### Form element events
-* submit – when the visitor submits a <form>.
+* `submit` – when the visitor submits a <form>.
 * * click <input type="submit"> or <input type="image"> generates an event.
 * * press Enter on an input field generates an event. Also triggers a click event.
-* * form.submit()
-* focus – when the visitor focuses on an element, either by clicking or using Tab to navigate into it. The autofocus HTML attribute puts the focus into an element by default when the page loads.
-* blur - when the element loses focus.
-buttons, inputs, selects, a/ links are guaranteed to be able to be interacted with. Formatting elements like div, span, and table are unfocusable by default. To cheange this, set a tabindex.
-* focusin / focusout - bubbling focus and blur. Must be assigned with elem.addEventListener("focusin", function()) rather than onfocusin.
+* * `form.submit()`
+* `focus` – when the visitor focuses on an element, either by clicking or using Tab to navigate into it. The autofocus HTML attribute puts the focus into an element by default when the page loads.
+* `blur` - when the element loses focus.
+<button>s, <input>s, <select>s, <a>/ links are guaranteed to be able to be interacted with. Formatting elements like <div>, <span>, and <table> are unfocusable by default. To cheange this, set a `tabindex`.
+
+* `focusin` / `focusout` - bubbling focus and blur. Must be assigned with `elem.addEventListener("focusin", function())` rather than `onfocusin`.
 
 #### Submission
-Handler checks data, shows any errors and calls event.preventDefault() so error-ridden data isn't sent to the server. If there are no errors, can submit the form.
+Handler checks data, shows any errors and calls `event.preventDefault()` so error-ridden data isn't sent to the server. If there are no errors, can submit the form.
 
 #### Focus, Blur, and TabIndex
-The HTML attribute tabindex is the order of the element when Tab is used to switch between elements. Elements with tabindex == 1 go first, then the ones above, then elements that are focusable but don't have tabindexes. tabindex="0" puts an element among those without tabindexes, so they are still focusable but only after the greater tab indexes. It maintains the default switching order. tabindex="-1" allows for programmic focusing - the Tab key will ignore these elements, but elem.focus() still works.
+The HTML attribute `tabindex` is the order of the element when Tab is used to switch between elements. Elements with `tabindex == 1` go first, then the ones above, then elements that are focusable but don't have tabindexes. `tabindex="0"` puts an element among those without tabindexes, so they are still focusable but only after the greater tab indexes. It maintains the default switching order. `tabindex="-1"` allows for programmic focusing - the Tab key will ignore these elements, but `elem.focus()` still works.
 
-focus and blur do not bubble. Some frameworks have them bubble, however. Due to historical reasons, focus and blur propagate down during the capturing phase, and the focusin and focusout events bubble.
+`focus` and `blur` do not bubble. Some frameworks have them bubble, however. Due to historical reasons, `focus` and `blur` propagate down during the capturing phase, and the `focusin` and `focusout` events bubble.
 
-The currently focused element is document.activeElement.
+The currently focused element is `document.activeElement`.
 
 
 
 # AJAX
 Asynchronous JavaScript and XML for network requests to get information from the server.
 
-let `promise = fetch(url[, options])` where options are parameters like method, headers, etc. Without options, a GET request is sent.
+let `promise = fetch(url[, options])` where options are parameters like method, headers, etc. Without options, a `GET` request is sent.
 ```JavaScript
 let promise = fetch(url, {
   method: "GET", // POST, PUT, DELETE, etc.
@@ -4070,20 +4094,20 @@ let promise = fetch(url, {
 The promise resolves with an object of the Response class as soon as the server responds with headers - when it might not have the body yet. The promise rejects if the fetch was unable to make an HTTP-request (network problems) or there is no such site.
 
 Response properties:
-* status - HTTP status code.
-* ok - boolean, true if status code is 200-299.
-* headers - map-like object with HTTP headers
+* `status` - HTTP status code.
+* `ok` - boolean, true if status code is 200-299.
+* `headers` - map-like object with HTTP headers
 
 To get the response body, we need to make an additional method call:
-* response.text() – read the response and return as text.
-* response.json() – parse the response as JSON.
-* response.formData() – return the response as FormData object.
-* response.blob() – return the response as Blob (binary data with type).
-* response.arrayBuffer() – return the response as ArrayBuffer (low-level representaion of binary data).
+* `response.text()` – read the response and return as text.
+* `response.json()` – parse the response as JSON.
+* `response.formData()` – return the response as FormData object.
+* `response.blob()` – return the response as Blob (binary data with type).
+* `response.arrayBuffer()` – return the response as ArrayBuffer (low-level representaion of binary data).
 
-response.body is a ReadableStream object, so the body can be read chunk-by-chunk.
+`response.body` is a `ReadableStream` object, so the body can be read chunk-by-chunk.
 
-Only one body-reading method can be used. If we’ve already got the response with response.text(), then response.json() won’t work, as the body content has already been processed.
+Only one body-reading method can be used. If we’ve already got the response with `response.text()`, then `response.json()` won’t work, as the body content has already been processed.
 ```JavaScript
 let url = 'https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits';
 let response = await fetch(url, options); // resolves with response headers
@@ -4099,7 +4123,7 @@ fetch('https://api.github.com/repos/javascript-tutorial/en.javascript.info/commi
 ```
 
 #### Response Headers
-Response-like headers are available in Map-like headers object in response.headers.
+Response-like headers are available in Map-like headers object in `response.headers`.
 ```JavaScript
 let response = await fetch('https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits');
 
@@ -4121,16 +4145,16 @@ let response = fetch(protectedUrl, {
 Some HTTP headers cannot be set. They're exclusively controlled by the browser.
 
 #### POST Requests
-POST requests are requests with another methods.
+`POST` requests are requests with another methods.
 
 fetch options
-* method – HTTP-method, e.g. POST.
-* headers - object with request headers.
-* body – the request data to send, one of:
+* `method` – HTTP-method, e.g. POST.
+* `headers` - object with request headers.
+* `body` – the request data to send, one of:
 * * a string (e.g. JSON-encoded), most often used.
-* * FormData object, to submit the data as form/multipart.
-* * Blob/BufferSource to send binary data.
-* * URLSearchParams, to submit the data in x-www-form-urlencoded encoding, rarely used.
+* * `FormData` object, to submit the data as form/multipart.
+* * `Blob` / `BufferSource` to send binary data.
+* * `URLSearchParams`, to submit the data in x-www-form-urlencoded encoding, rarely used.
 ```JavaScript
 let user = {
   name: 'John',
@@ -4148,9 +4172,9 @@ let response = await fetch('/article/fetch/post/user', {
 let result = await response.json();
 alert(result.message);
 ```
-If the request body is a string, Content-Type header is set to text/plain;charset=UTF-8 by default. Sending JSON-encoded data requires this to be reset.
+If the request body is a string, `Content-Type` header is set to `text/plain;charset=UTF-8` by default. Sending JSON-encoded data requires this to be reset.
 
-Binary data like images can be sent using Blob or BufferSource objects.
+Binary data like images can be sent using `Blob` or `BufferSource` objects.
 
 Black/ white drawing with mouseover:
 ```HTML
@@ -4194,7 +4218,7 @@ Black/ white drawing with mouseover:
 </body>
 ```
 ### FormData and Sending Forms
-Using a form element, capture its fields. fetch accepts FormData as an object that will be encoded and sent out with Content-Type: multipart/ form-data.
+Using a form element, capture its fields. fetch accepts `FormData` as an object that will be encoded and sent out with `Content-Type: multipart/ form-data`.
 ```JavaScript
 let formData = new FormData([form]);
 
@@ -4213,18 +4237,18 @@ formElem.onsubmit = async (e) => {
 ```
 
 FormData can be modified with methods:
-* formData.append(name, value) – add a form field with the given name and value.
-* * formData.append(name, blob, fileName) – add a field as if it were <input type="file">, the third argument fileName sets file name (not form field name), as it were a name of the file in user’s filesystem.
-* formData.delete(name) – remove the field with the given name.
-* formData.get(name) – get the value of the field with the given name.
-* formData.set(name, value) or formData.set(name, blob, fileName) - remove all fields with the given name and append a new field. 
-* formData.has(name) – if there exists a field with the given name, returns true, otherwise false.
+* `formData.append(name, value)` – add a form field with the given name and value.
+* * `formData.append(name, blob, fileName)` – add a field as if it were <input type="file">, the third argument fileName sets file name (not form field name), as it were a name of the file in user’s filesystem.
+* `formData.delete(name)` – remove the field with the given name.
+* `formData.get(name)` – get the value of the field with the given name.
+* `formData.set(name, value)` or `formData.set(name, blob, fileName)` - remove all fields with the given name and append a new field. 
+* `formData.has(name)` – if there exists a field with the given name, returns true, otherwise false.
 Forms can have multiple fields with the same name. You can iterate over formData fields using a for..of loop.
 
-Appending information allows more information to be sent, like `formData.append("image", imageBlob, "image.png");` which is the same as submitting a file named "image.png" with `<input type="file" name="image">`.  
+Appending information allows more information to be sent, like `formData.append("image", imageBlob, "image.png");` which is the same as submitting a file named "image.png" with <input type="file" name="image">.  
 
 #### Tracking Download Progress
-Can't track upload progress. response.body is a ReadableStream - a special object that sends data chunk-by-chunk as it comes. We can track download progress:
+Can't track upload progress. `response.body` is a `ReadableStream` - a special object that sends data chunk-by-chunk as it comes. We can track download progress:
 ```JavaScript
 // Step 1: start the fetch and obtain a reader
 let response = await fetch('https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits?per_page=100');
@@ -4277,7 +4301,7 @@ alert(commits[0].author.login);
 ```
 
 #### Aborting Asynchronous Events
-AbortController can abort asynchronous tasks including fetch. It a single method abort() and a single property signal. When abort is called, the abort event triggers on controller.signal and the controller.signal.aborted property becomes true.
+`AbortController` can abort asynchronous tasks including fetch. It a single method `abort()` and a single property `signal`. When `abort` is called, the abort event triggers on `controller.signal` and the `controller.signal.aborted` property becomes true.
 
 ```JavaScript
 let controller = new AbortController();
@@ -4307,39 +4331,40 @@ try {
   }
 }
 ```
-One AbortController can be used with multiple fetches. It will be able to abort them all.
+One `AbortController` can be used with multiple fetches. It will be able to abort them all.
 
 #### Cross-Origin Resource Sharing (CORS)
-Protects the internet from evil hackers - a script from one site cannot access the content of another site. The browser adds an Origin header: your/url (Domain, protocol, port without a path) to cross-origin requests. If the request is accepted, there is special Access-Control-Allow-Origin header added to the response that contains your/origin or a star.
+Protects the internet from evil hackers - a script from one site cannot access the content of another site. The browser adds an `Origin` header: /your/url (domain, protocol, port without a path) to cross-origin requests. If the request is accepted, there is special `Access-Control-Allow-Origin` header added to the response that contains /your/origin or a star.
 
 Simple requests have:
-* Simple method: GET, POST, or HEAD
+* Simple method: `GET`, `POST`, or `HEAD`
 * Simple headers:
-* * Accept
-* * Accept-Language
-* * Content-Language
-* * Content-Type - application/x-www-form-urlencoded, mutlipart/form-data, or text/plain.
+* * `Accept`
+* * `Accept-Language`
+* * `Content-Language`
+* * `Content-Type` - `application/x-www-form-urlencoded`, `mutlipart/form-data`, or `text/plain`.
 Simple requests can be made with a form or a script without any special methods.
 
 JavaScript can only access simple response headers:
-* Cache-Control
-* Content-Language
-* Content-Type
-* Expires
-* Last-Modified
-* Pragma
+* `Cache-Control`
+* `Content-Language`
+* `Content-Type`
+* `Expires`
+* `Last-Modified`
+* `Pragma`
 
-To access any other response header, the service must send an Access-Control-Expose-Headers: non-simple,header,names.
+To access any other response header, the service must send an `Access-Control-Expose-Headers: non-simple,header,names`.
 
-To access the percentage of progress of a download, can use XMLHttpRequest instead of fetch (supporting in old browsers without polyfills).
+To access the percentage of progress of a download, can use `XMLHttpRequest` instead of fetch (supporting in old browsers without polyfills).
 
-To send a non-simple request, the browser sends a preflight request asking for permission using method OPTIONS with headers:
-*  Access-Control-Request-Method - header has the method of the non-simple request.
-* Access-Control-Request-Headers - header provides a comma-separated list of its non-simple HTTP-headers.
+To send a non-simple request, the browser sends a preflight request asking for permission using method `OPTIONS` with headers:
+*  `Access-Control-Request-Method` - header has the method of the non-simple request.
+* `Access-Control-Request-Headers` - header provides a comma-separated list of its non-simple HTTP-headers.
+
 If the server agrees to serve these requests, it will respond with an empty body, status 200, and headers:
-* Access-Control-Allow-Methods - must have the allowed method.
-* Access-Control-Allow-Headers - must have a list of allowed headers.
-* Additionally, Access-Control-Max-Age - may specify a number of seconds to cache the permissions, so the browser won’t have to send a preflight for subsequent requests that satisfy given permissions.
+* `Access-Control-Allow-Methods` - must have the allowed method.
+* `Access-Control-Allow-Headers` - must have a list of allowed headers.
+* Additionally, `Access-Control-Max-Age` - may specify a number of seconds to cache the permissions, so the browser won’t have to send a preflight for subsequent requests that satisfy given permissions.
 
 ```JavaScript
 // For the non-simple request:
@@ -4374,7 +4399,7 @@ Origin: https://javascript.info // used because it's cross-origin
 Access-Control-Allow-Origin: https://javascript.info
 ```
 
-By default, a cross-origin request doesn't bring any credentials, like cookies or HTTP authentication. Usually requests to a site are accompanied by all cookies from that domain. To send credentials in fetch, the option credentials: "include" must be added.
+By default, a cross-origin request doesn't bring any credentials, like cookies or HTTP authentication. Usually requests to a site are accompanied by all cookies from that domain. To send credentials in fetch, the option `credentials: "include"` must be added.
 ``` JavaScript
 fetch('http://another.com', {
   credentials: "include"
@@ -4386,11 +4411,11 @@ Access-Control-Allow-Credentials: true
 ```
 
 #### URLs
-protocol://hostname:port/pathname?search#hash
+`protocol://hostname:port/pathname?search#hash`
 
-Origin: https//site.com:8080
+Origin: `https//site.com:8080`
 
-href: /path/page?p1=v1&p2=v2#hash
+href: `/path/page?p1=v1&p2=v2#hash`
 
 ```JavaScript
 new URL(url, [base]);
@@ -4403,15 +4428,15 @@ let url2 = new URL('/profile/admin', 'https://javascript.info');
 Search Parameters
 
 Need to be encoded if contain spaces, non-latin letters, etc.
-url.searchParams provides methods:
-* append(name, value) – add the parameter by name,
-* delete(name) – remove the parameter by name,
-* get(name) – get the parameter by name,
-* getAll(name) – get all parameters with the same name (that’s possible, e.g. ?user=John&user=Pete),
-* has(name) – check for the existance of the parameter by name,
-* set(name, value) – set/replace the parameter,
-* sort() – sort parameters by name, rarely needed,
-.searchParams is also iterable with decoded values, similar to Map.
+`url.searchParams` provides methods:
+* `append(name, value)` – add the parameter by name,
+* `delete(name)` – remove the parameter by name,
+* `get(name)` – get the parameter by name,
+* `getAll(name)` – get all parameters with the same name (that’s possible, e.g. ?user=John&user=Pete),
+* `has(name)` – check for the existance of the parameter by name,
+* `set(name, value)` – set/replace the parameter,
+* `sort()` – sort parameters by name, rarely needed,
+`.searchParams` is also iterable with decoded values, similar to Map.
 ```JavaScript
 // iterate over search parameters (decoded)
 for(let [name, value] of url.searchParams) {
@@ -4420,10 +4445,10 @@ for(let [name, value] of url.searchParams) {
 ```
 
 If using a string instead of a url object, need to encode/ decode manually:
-* encodeURI – encodes URL as a whole, only characters that are totally forbidden in the URL (:, ?, =, &, #).
-* decodeURI – decodes it back.
-* encodeURIComponent – encodes a single URL component, such as a search parameter, or a hash, or a pathname, including characters #, $, &, +, ,, /, :, ;, =, ? and @.
-* decodeURIComponent – decodes it back.
+* `encodeURI` – encodes URL as a whole, only characters that are totally forbidden in the URL (:, ?, =, &, #).
+* `decodeURI` – decodes it back.
+* `encodeURIComponent` – encodes a single URL component, such as a search parameter, or a hash, or a pathname, including characters #, $, &, +, ,, /, :, ;, =, ? and @.
+* `decodeURIComponent` – decodes it back.
 
 #### XMLHttpRequest
 ```JavaScript
@@ -4501,9 +4526,9 @@ xhr.onprogress = function(event) { // triggers periodically
 xhr.timeout = 10000; // timeout in ms, 10 seconds
 ```
 XMLHttpRequest can send custom headers
-* setRequestHeader(name, value) - can't be undone, deleted, or overwritten.
-* getResponseHeader(string name)
-* getAllResponseHeaders() - returns all respons headers except Set-Cookie and Set-Cookie2 in a single line with line breaks \r\n in bvetween.
+* `setRequestHeader(name, value)` - can't be undone, deleted, or overwritten.
+* `getResponseHeader(string name)`
+* `getAllResponseHeaders()` - returns all respons headers except `Set-Cookie` and `Set-Cookie2` in a single line with line breaks `\r\n` in between.
 ```JavaScript
 // Example:
 Cache-Control: max-age=31536000
@@ -4512,10 +4537,10 @@ Content-Type: image/png
 Date: Sat, 08 Sep 2012 16:53:16 GMT
 ```
 
-Once server has response, xhr has the properties
-* status
-* statusText - message
-* response - body
+Once server has response, `xhr` has the properties
+* `status`
+* `statusText` - message.
+* `response` - body.
 
 ##### Resumable File Upload
 If upload fails, like if it was buffered by a local network proxy or the remote server died and couldn't process it or it was lost in the middle and never reached the receiver, we need to know how many bytes were successfully received by the server. This is done through an additional request.
@@ -4649,11 +4674,11 @@ socket.onclose = event => {
 };
 ```
 Common close values:
-* 1000 - default, normal closure
-* 1006 - can't code manually, but indicates connection was lost - no close frame was sent.
-* 1001 – the party is going away, e.g. server is shutting down, or a browser leaves the page.
-* 1009 – the message is too big to process.
-* 1011 – unexpected error on server.
+* `1000` - default, normal closure
+* `1006` - can't code manually, but indicates connection was lost - no close frame was sent.
+* `1001` – the party is going away, e.g. server is shutting down, or a browser leaves the page.
+* `1009` – the message is too big to process.
+* `1011` – unexpected error on server.
 https://tools.ietf.org/html/rfc6455#section-7.4.1
 
 WebSocket objects are cross-origin by nature and don't require any special headers to be. JavaScript can't set WebSocket headers, so it can't emulate them.
@@ -4777,12 +4802,12 @@ Exists only within the current browser tab. Shared between iframes in the same t
 Survives page refreshes, but not opening/ closing the tab.
 
 #### Storage Events
-When data is updated (setItem, removeItem, clear) in localStorage or sessionStorage, the storage event triggers with properties:
-* key - key that was changed, null if .clear() was called
-* oldValue - null if the key is newly added
-* newValue - null if the key is removed
-* url - of the document where the update happened
-* storageArea - either localStorage or sessionStorage that was modified by the event
+When data is updated (`setItem`, `removeItem`, `clear`) in `localStorage` or `sessionStorage`, the storage event triggers with properties:
+* `key` - key that was changed, `null` if `.clear()` was called.
+* `oldValue` - `null` if the key is newly added.
+* `newValue` - `null` if the key is removed.
+* `url` - of the document where the update happened.
+* `storageArea` - either `localStorage` or `sessionStorage` that was modified by the event.
 
 The event triggers on all window objects where the storage is accessible except the one that caused it, i.e. all the ones that share that storage.
 
@@ -4799,7 +4824,7 @@ localStorage.setItem('now', Date.now());
 ```
 
 ### Cookies
-Small strings of data stored directly in the browser. Usually set by a "Set-Cookie" HTTP-header with a unique session identifier. The next time a request is set to the same domain, the browser sends the cookie using the "Cookie" HTTP- header so the server knows which session made the request.
+Small strings of data stored directly in the browser. Usually set by a `"Set-Cookie"` HTTP-header with a unique session identifier. The next time a request is set to the same domain, the browser sends the cookie using the "Cookie" HTTP- header so the server knows which session made the request.
 
 Can access cookies from the browser using `document.cookie` which returns name=value pairs deliminated by ;s:  `cookie1=value1; cookie2=value2;...`
 
@@ -4866,7 +4891,7 @@ document.cookie = "user=John; max-age=0";
 
 Cookies are domain-based; they don't distinguish between protocols. By default, if we set a cookie at http://site.com, then it also appears at https://site.com and vice versa.
 
-If a cookie has sensitive content that shouldn't be sent over unencrypted HTTP, set the secure flag so it doesn't appear when accessed over HTTP but will over HTTPs.
+If a cookie has sensitive content that shouldn't be sent over unencrypted HTTP, set the `secure` flag so it doesn't appear when accessed over HTTP but will over HTTPs.
 ```JavaScript
 // assuming we're on https:// now
 // set the cookie secure (only accessible if over HTTPS)
