@@ -225,8 +225,8 @@ for (Type t : collection) {
 Best for random access and ordering, indexed
 When reach end, doubles in size
 * `.get(index)`
-* `.add(index, value)`
-* `.set(index, value)`
+* `.add(index, value)` - adds to the end or inserts into position and pushes everything ahead of it one position.
+* `.set(index, value)` - replaces value at index - value MUST exist.
 * `.indexOf(value)`
 * `.toArray()`
 * `.clear()`
@@ -254,6 +254,7 @@ fruits.forEach((tmp) -> {
 });
 /* ternary operator (boolean) ? (value if true) : (value if false);  */
         int tmp = (fruits.contains("honeydew")) ? fruits.indexOf("honeydew") : -1;
+String firstIndex = fruits.get(0);
 ```
 
 Vectors are synchronized.
@@ -389,9 +390,9 @@ Can store in an array.
 
 Finding indices:
 ```Java
-parentIndex = (index - 2) / 2;
-leftChild = index * 2 + 1;
-rightChild = index * 2 + 2;
+int parentIndex = (index - 2) / 2;
+int leftChild = index * 2 + 1;
+int rightChild = index * 2 + 2;
 ```
 
 ### Min Heap
@@ -1540,6 +1541,28 @@ void dealingWithInputStreams() throws IOException { // uses specific input strea
     }
 ```
 
+String Tokenizer is quicker than split:
+```JavaScript
+public static void main(String[] args) {
+    List<String> tokens = new ArrayList<>();
+    Scanner scanner = new Scanner(System.in);
+    
+    StringTokenizer st = new StringTokenizer(scanner.nextLine());
+    while (st != null && st. hasMoreElements()) {
+        tokens.add(st.nextToken());
+    }
+    // OR
+    while(scanner.hasNext()) {
+        tokens.add(scanner.next()); // converts tokens to String values
+    }
+
+    System.out.println(tokens);
+    scanner.close();
+}
+```
+
+Buffered Reader is faster than scanner:
+```
 # Concepts
 ### Big O Time and Space
 
@@ -2076,3 +2099,10 @@ protected void finalize() throws Throwable {
     /* Close open files, release resources, etc. */
 }
 ```
+
+# Graphs
+Graphs often reprensented as arrays of numbers.
+```Java
+graph[i][j] = flowCapacity;
+```
+where i and j are two vertexes. 0 means there is no direct edge connecting them to each other.

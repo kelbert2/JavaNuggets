@@ -102,9 +102,9 @@ if (!window.Promise) {
 JavaScript is dynamically typed - variables are not bound to just holding a single type through their lifecycle.
 
 ## Primitives
-* number - integer ranging from -2^{53} to 2^{53} and floating point, ``Infinity``, ``-Infinity``, ``NaN`` (not a number)
-* * A script will never stop with a fatal error, but will instead return ``NaN`` as a result if you, for example, try to divide a string by 2.
-* BigInt - arbirtrarily long numbers, created by appending ``n`` to the end of a larger integer literal: ``1234n``
+* number - integer ranging from -2^{53} to 2^{53} and floating point, `Infinity`, `-Infinity`, `NaN` (not a number)
+* * A script will never stop with a fatal error, but will instead return `NaN` as a result if you, for example, try to divide a string by 2.
+* BigInt - arbirtrarily long numbers, created by appending `n` to the end of a larger integer literal: `1234n`
 * "string", 'string', \`string with ${embeddedVariables + or + operations + to + evaluate}!`
 * boolean - `true` or `false`; 
 * null - nothing, empty, value unknown, does not exist
@@ -112,7 +112,7 @@ JavaScript is dynamically typed - variables are not bound to just holding a sing
 * * `canCheckForUndefined == null;`
 
 ### Primitive Wrappers
-Objects that wrap around primitives and offer methods and properties and is then destroyed. Undefined and null do not have corresponding wrapper objects.
+Objects that wrap around primitives and offer methods and properties and are then destroyed. Undefined and null do not have corresponding wrapper objects.
 ```JavaScript
 let str = "Hello"; // primitive created
 
@@ -3752,7 +3752,29 @@ To allow cross-origin access, the script tag needs to have the `crossorigin` att
 <script crossorigin="anonymous" src="https://cors.javascript.info/article/onload-onerror/crossorigin/error.js"></script>
 <!-- If the server provides an Access-Control-Allow-Origin header, we can receive the full error report, if it errors out. -->
 ```
+#### JSONP
+Before Cross-Origin Resouorce Sharing standards, JSON with padding was the only way to get a JOSN response from a server of a different origin by using hte <script> element.
 
+Requests can be sent, but not read from websites with different origins.
+
+The <script> element can load and excute JavaScript from a source of foreign origin. It automatically parses and executes returned code as JavaScript. By passing a callback into the query, a function will be called when the response is parsed and excuted in the browser's context.
+```JavaScript
+https://www.server.com/api/resource/1?callback=callbackName
+
+callbackName({
+  "server": "response"
+}); // executed as if window were calling it.
+```
+#### Cross-Side Scripting Attacks (XSS)
+Injecting malicious scripts client-side. Can access cookies, session tokens, and any other sensitive information because it appears to be from a trusted source.
+##### DOM-Based XSS
+Entire tainted data flow from source to sink takes place in the browser - the data never leaves, all sources and sinks are in the DOM. Could be the URL or an element and the sink is a sensitive method that causes the execution of the malicious script. vThe DOM environment is modified so the code vfor the page itself executes differently. The attack payload is placed in the response page, due to a server-side flaw.
+
+##### Stored XSS/ Persistent
+User input permanently stored on the target server - database, message forum, visitor log, comment field. Victim retrieves the stored data when it requests the stored information.
+
+##### Reflected XSS/ Non-Persistent
+Injected script is reflected off the web server - error message, search result, any response that includes some of the input sent to server as part of the request. Reflected attacks are delivered to victims via another route, like an email message or on some other website. The user is tricked into clicking a malicious link, submitting a form, or browsing to the malicious site, and the injected code travels to the vulnerable website which the browser then executes because it comes from a seemingly trusted source.
 ### Mouse Events
 Can use with` on*="function()"` in HTML tags.
 * `click` – when the mouse clicks on an element (touchscreen devices generate it on a tap) (mousedown and then mouseup over the same element as done with the left mouse button).
