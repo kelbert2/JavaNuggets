@@ -734,11 +734,14 @@ Nodes connecting to other nodes
 ### Trees
 Starts with a root node. Each node has zero (in the case of a leaf node) or more (branch) child nodes. No cycles.
 
+Height is the longest length of the path from root to leaf. At least theta(log n), exactly if balanced. Height is from below, to a leaf, which is the maximum of the heights of its children + 1. Depth of a node is its distance to the root.
+
 Quicker than arrays at insertion/deletion and slower than unordered linkedLists
+
 O(log(n))
 
 #### Binary trees
-Up to two children.
+Up to two children, where all keys to the left of the root are less than the root which is less than all keys to the right.
 
 * All binary trees have the smallest possible height: O(log(n))
      * Parents have at most 2 children
@@ -748,6 +751,121 @@ Up to two children.
      * Min levels for L leaves: log(L)+1
      * Full binary tree (0-2 children): leaf nodes = internal nodes + 1
      * Complete binary trees mean all levels are completely filled except, possibly, the last lev el that has all keys as left as possible.
+
+Predecesors are a node's left subtree's right-most child, if it exists, or the 
+```Java
+// Recursive
+public static Node findPredecessor(Node root, Node prec, int key) {
+    // base case
+    if (root == null) {
+        return prec;
+    }
+
+    // if node with key's value is found, the predecessor is the maximum node its left subtree - i.e. the rightmost node in the left subtree
+    if (root.data == key) {
+        if (root.left != null) {
+            return findMaximum(root.left);
+        }
+    } else if (key < root.data) {
+        // if given key is less, recur for the left subtree
+        return findPredecessor(root.left, prec, key);
+    } else {
+        // given key is more than the root node, recur for the right subtree
+        // update predecessor
+        prec = root;
+        return findPredecessor(root.right, prec, key);
+    }
+    return prec;
+}
+// Iterative
+public static Node findPredecessorIterative(Node root, int key) {
+    Node prec = null;
+    while (true) {
+        // if key is less than root, visit left subtree
+        if (key < root.data) {
+            root = root.left;
+        } else if (key > root.data) {
+            // if key is more than root, visit right subtree
+            // update predecessor
+            prec = root;
+            root = root.right;
+        } else {
+            // if find node with key's value, predecessor is rightmost node in its left subtree
+            if (root.left != null) {
+                prec = findMaximum(root.left);
+            }
+            break;
+        }
+        // key doesn't exist in the tree
+        if (root == null) {
+            return null;
+        }
+    }
+    return prec;
+}
+
+// Find right-most node.
+public static Node findMaximum(Node root) {
+    while (root.right != null) {
+        root = root.right;
+    }
+     return root;
+}
+
+    Node inOrderSuccessor(Node root, Node n) { 
+        // if the right subtree of node exists, the successor is there, so find the leftmost node of the right subtree
+        if (n.right != null) { 
+            return minValue(n.right); 
+        } 
+        // else the sucessor is an ancestor - travel up the parent pointers until find a node that is a left child - its parent is the successor
+        Node p = n.parent; 
+        while (p != null && n == p.right) { 
+            n = p; 
+            p = p.parent; 
+        } 
+        return p; 
+    } 
+  
+    /* Given a non-empty binary search tree, return the minimum data   
+     value found in that tree. Note that the entire tree does not need 
+     to be searched. */
+     // leftmost node
+    Node minValue(Node node) { 
+        Node current = node; 
+  
+        /* loop down to find the leftmost leaf */
+        while (current.left != null) { 
+            current = current.left; 
+        } 
+        return current; 
+    } 
+
+    // Without parent pointers
+    
+    Node inOrderSuccessor(Node root, Node n) { 
+        if (n.right != null) {
+            return minValue(n.right);
+        }
+        Node succ = null; 
+  
+        // Start from root and search for successor down the tree 
+        while (root != null) { 
+            if (n.key < root.key) { 
+                succ = root; 
+                root = root.left; 
+            } else if (n.key > root.key) {
+                root = root.right;
+            } else {
+                break;
+            }
+        }
+    } 
+  
+    return succ; 
+} 
+
+```
+
 
 ##### Binary Search Trees
 Relative ordering and quick insert time
@@ -765,6 +883,308 @@ Perfect if full and complete.
 
 2^k-1 nodes for _k_ levels.
 
+#### Self-Balancing Binary Trees
+Maintain In-Order ordering.
+##### AVL Tree
+Have left and right subtree heights differ by at most +- 1.
+
+Most unbalanced if, say, the right subtree is always 1 larger than the left.
+
+Balancing one level may affect the balance of the next above.
+```Java
+T1, T2 and T3 are subtrees of the tree 
+rooted with y (on the left side) or x (on 
+the right side)           
+     y                               x
+    / \     Right Rotation          /  \
+   x   T3   - - - - - - - >        T1   y 
+  / \       < - - - - - - -            / \
+ T1  T2     Left Rotation            T2  T3
+Keys in both of the above trees follow the 
+following order 
+ keys(T1) < key(x) < keys(T2) < key(y)
+ ```
+
+ Insert new node, w. Starting from it, travel up and find the first unbalanced node, z, with some child y between z and the newly inserted node w.
+
+ * Right Rotation - node x inserted into the left subtree of z, making node z unbalanced with some child y between them. Make y the new root, z the right child (because z > y), x the left child. z gets y's right child as its left child.
+ ```Java
+         z                                      y 
+        / \                                   /   \
+       y   T4      Right Rotate (z)          x      z
+      / \          - - - - - - - - ->      /  \    /  \ 
+     x   T3                               T1  T2  T3  T4
+    / \
+  T1   T2
+```
+ * Left Rotation - same but symmetric. Switch the child in the unbalanced subtree with the subtree's root. In this case, the former parent is now the right subtree and the previous left child of the child remains there.
+ ```Java
+  z                                y
+ /  \                            /   \ 
+T1   y     Left Rotate(z)       z      x
+    /  \   - - - - - - - ->    / \    / \
+   T2   x                     T1  T2 T3  T4
+       / \
+     T3  T4
+```
+ * Left-Right Rotation - Combination. The right child of a left child makes the root unbalanced. Need to switch the child and grandchild, and then the new child with the parent.
+ ```Java
+     z                               z                           x
+    / \                            /   \                        /  \ 
+   y   T4  Left Rotate (y)        x    T4  Right Rotate(z)    y      z
+  / \      - - - - - - - - ->    /  \      - - - - - - - ->  / \    / \
+T1   x                          y    T3                    T1  T2 T3  T4
+    / \                        / \
+  T2   T3                    T1   T2
+  ```
+ * Right-Left Rotation - Combination. The left child of a right child makes the node unbalanced.
+ ```Java
+   z                            z                             x
+  / \                          / \                         /    \ 
+T1   y   Right Rotate (y)    T1   x      Left Rotate(z)   z      y
+    / \  - - - - - - - - ->     /  \   - - - - - - - ->  / \    / \
+   x   T4                      T2   y                  T1  T2  T3  T4
+  / \                              /  \
+T2   T3                           T3   T4
+```
+
+Code:
+Normal BST insertion.
+
+Update height of current node.
+
+Get balance factor - difference between heights of children for the current node.
+
+If balance factor > 1, then unbalanced and need to rotate. Check for case by comparing newly inserted key with key in the left subtree's root.
+
+If balance factor < -1, then unbalanced. Check for case by comparing newly inserted key with key in the right subtree's root.
+```Java
+class Node { 
+    int key, height; 
+    Node left, right; 
+  
+    Node(int d) { 
+        key = d; 
+        height = 1; 
+    } 
+} 
+
+class AVLTree { 
+    Node root; 
+  
+    // A utility function to get the height of the tree 
+    int height(Node N) { 
+        if (N == null) 
+            return 0; 
+        return N.height; 
+    } 
+  
+    // A utility function to get maximum of two integers 
+    int max(int a, int b) { 
+        return (a > b) ? a : b; 
+    } 
+  
+    // A utility function to right rotate subtree rooted with y 
+/*
+         y                                      x 
+        / \                                   /   \
+       x   T1      Right Rotate (y)          z      y
+      / \          - - - - - - - - ->      /  \    /  \ 
+     z   T2                               T4  T3  T2  T1
+    / \
+  T4   T3
+*/
+    Node rightRotate(Node y) { 
+        Node x = y.left; 
+        Node T2 = x.right; 
+  
+        // Perform rotation 
+        x.right = y; 
+        y.left = T2; 
+  
+        // Update heights 
+        y.height = max(height(y.left), height(y.right)) + 1; 
+        x.height = max(height(x.left), height(x.right)) + 1; 
+  
+        // Return new root 
+        return x; 
+    } 
+  
+    // A utility function to left rotate subtree rooted with x 
+/*
+  x                                y
+ /  \                            /   \ 
+T1   y     Left Rotate(x)       x      z
+    /  \   - - - - - - - ->    / \    / \
+   T2   z                     T1  T2 T3  T4
+       / \
+     T3  T4
+*/
+    Node leftRotate(Node x) { 
+        Node y = x.right; 
+        Node T2 = y.left; 
+  
+        // Perform rotation 
+        y.left = x; 
+        x.right = T2; 
+  
+        //  Update heights 
+        x.height = max(height(x.left), height(x.right)) + 1; 
+        y.height = max(height(y.left), height(y.right)) + 1; 
+  
+        // Return new root 
+        return y; 
+    } 
+  
+    // Get Balance factor of node N 
+    int getBalance(Node N) { 
+        if (N == null) 
+            return 0; 
+  
+        return height(N.left) - height(N.right); 
+    } 
+    // tree.root = tree.insert(tree.root, 25); 
+    Node insert(Node node, int key) { 
+  
+        /* 1.  Perform the normal BST insertion */
+        if (node == null) 
+            return (new Node(key)); 
+  
+        if (key < node.key) 
+            node.left = insert(node.left, key); 
+        else if (key > node.key) 
+            node.right = insert(node.right, key); 
+        else // Duplicate keys not allowed 
+            return node; 
+  
+        /* 2. Update height of this ancestor node */
+        node.height = 1 + max(height(node.left), 
+                              height(node.right)); 
+  
+        /* 3. Get the balance factor of this ancestor 
+              node to check whether this node became 
+              unbalanced */
+        int balance = getBalance(node); 
+  
+        // If this node becomes unbalanced, then there 
+        // are 4 cases Left Left Case 
+        if (balance > 1 && key < node.left.key) 
+            return rightRotate(node); 
+  
+        // Right Right Case 
+        if (balance < -1 && key > node.right.key) 
+            return leftRotate(node); 
+  
+        // Left Right Case 
+        if (balance > 1 && key > node.left.key) { 
+            node.left = leftRotate(node.left); 
+            return rightRotate(node); 
+        } 
+  
+        // Right Left Case 
+        if (balance < -1 && key < node.right.key) { 
+            node.right = rightRotate(node.right); 
+            return leftRotate(node); 
+        } 
+  
+        /* return the (unchanged) node pointer */
+        return node; 
+    } 
+
+    Node deleteNode(Node root, int key) {  
+        // STEP 1: PERFORM STANDARD BST DELETE  
+        if (root == null)  
+            return root;  
+  
+        // If the key to be deleted is smaller than the root's key, then it lies in left subtree  
+        if (key < root.key)  {
+            root.left = deleteNode(root.left, key);
+        } else if (key > root.key)  {
+            // Key is larger than the root's key, so in the right subtree
+            root.right = deleteNode(root.right, key);
+        } else {
+            // Same as root's key, is the node to be deleted  
+
+            // node with only one child or no child  
+            if ((root.left == null) || (root.right == null)) {  
+                Node temp = null;  
+                if (temp == root.left) {
+                     temp = root.right;
+                } else {
+                    temp = root.left;
+                } // temp has the contents of the non-empty child, if it exists
+  
+                if (temp == null) { 
+                    // No child 
+                    temp = root;  
+                    root = null;  
+                } else {
+                    // One child
+                    root = temp; // copy the contents of the non-empty child
+                }    
+            } else {  
+                // node with two children: Get the inorder successor (smallest in the right subtree), leftmost node
+                Node temp = minValueNode(root.right);  
+  
+                // Copy the inorder successor's data to this node  
+                root.key = temp.key;  
+  
+                // Delete the inorder successor  
+                root.right = deleteNode(root.right, temp.key);  
+            }  
+        }  
+  
+        // If the tree had only one node then return  
+        if (root == null) {
+            return root;
+        }
+  
+        // STEP 2: UPDATE HEIGHT OF THE CURRENT NODE  
+        root.height = max(height(root.left), height(root.right)) + 1;  
+  
+        // STEP 3: GET THE BALANCE FACTOR OF THIS NODE (to check whether  
+        // this node became unbalanced)  
+        int balance = getBalance(root);  
+  
+        // If this node becomes unbalanced, then there are 4 cases  
+        if (balance > 1 && getBalance(root.left) >= 0)  
+            return rightRotate(root);  
+  
+        // Left Right Case  
+        if (balance > 1 && getBalance(root.left) < 0)  
+        {  
+            root.left = leftRotate(root.left);  
+            return rightRotate(root);  
+        }  
+   
+        if (balance < -1 && getBalance(root.right) <= 0)  
+            return leftRotate(root);  
+  
+        // Right Left Case  
+        if (balance < -1 && getBalance(root.right) > 0)  
+        {  
+            root.right = rightRotate(root.right);  
+            return leftRotate(root);  
+        }  
+  
+        return root;  
+    }
+  
+    // A utility function to print preorder traversal 
+    // of the tree. 
+    // The function also prints height of every node 
+    void preOrder(Node node) { 
+        if (node != null) { 
+            System.out.print(node.key + " "); 
+            preOrder(node.left); 
+            preOrder(node.right); 
+        } 
+    } 
+}
+```
+##### Red-Black Tree
+
+#### Splay Tree
 # Algorithms
 
 ## Traversal
@@ -1298,9 +1718,9 @@ Int pivot = lolXD.nextInt(array.length - 1);
 ### HeapSort binary heap
 Fast
 
-Build max heap to sort elements in ascending order 
+Build max heap to sort elements in ascending order .
 
-A heap is just a tree, just put the elements as you would a tree array, with kids (i*2)+1 or +2, left to right
+A heap is just a tree, just put the elements as you would a tree array, with kids (i*2)+1 or +2, left to right. In constnat space.
 
 Max heap: parent node is always >= child nodes = Build binary tree
 
