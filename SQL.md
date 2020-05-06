@@ -6,6 +6,7 @@ https://www.sqlservertutorial.net/sql-server-basics/
 ## Create Table
 ## Alter Table
 ## Drop Table
+## Index
 
 # Order of Operations
 1. `FROM` - choose and `JOIN` tables to get base data.
@@ -1869,4 +1870,42 @@ Concatenates strings. Can also use + between strings.
 
 # Good-to-Know
 ## Find Duplicates
+
+```SQL
+SELECT 
+    a, 
+    b, 
+    COUNT(*) occurrences
+FROM t1
+GROUP BY
+    a, 
+    b
+HAVING 
+    COUNT(*) > 1;
+
+```
 ## Remove Duplicates
+
+```SQL
+WITH cte AS (
+    SELECT 
+        contact_id, 
+        first_name, 
+        last_name, 
+        email, 
+        ROW_NUMBER() OVER (
+            PARTITION BY 
+                first_name, 
+                last_name, 
+                email
+            ORDER BY 
+                first_name, 
+                last_name, 
+                email
+        ) row_num
+     FROM 
+        sales.contacts
+)
+DELETE FROM cte
+WHERE row_num > 1;
+```

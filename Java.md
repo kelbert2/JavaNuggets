@@ -1380,6 +1380,13 @@ int binarySearchRecursive(int[] array, int x, int low, int high) {
 ```
 
 ## Sorting
+For small arrays N <= 20, InsertionSort is faster than QuickSort. MergeSort uses additional storage - QuickSort needs just a few variables. QuickSort doesn't work as well as MergeSort does for large datasets.
+
+QuickSort is preferred for arrays. MergeSort os preferred for LinkedLists. In general QuickSort is faster as it exhibits good cache locality. MergeSort has a consistent speed.
+
+QuickSort is unstable while MergeSort is stable - that is, in case of a tie, MergeSort will not re-order (thereby maintaining the original order or equal keys) while QuickSort will. This is evident when sorting key-value pairs that share the same key.
+
+
 Complexity
 |Algorithm|Best Time|Average Time|Worst Time|Worst Space|
 |---|---|---|---|---|
@@ -1705,14 +1712,151 @@ int partition(int[] array, int leftIndex, int rightIndex) {
             rightIndex--;
         }
     }
-    return leftIndex;
+    return leftIndex; // this is the location that pivot should end up at
 }
 ```
+
+Iterative:
+```Java
+static int partition(int array[], int low, int high) {
+    int pivot = array[high];
+    int i = low - 1;
+    
+    for (int j = low, j < high; j++) {
+        if (array[j] <= pivot) {
+            i++;
+            int temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+        }
+    }
+    // swap pivot into its proper place
+    i++;
+    int temp = array[i];
+    array[i] = array[high];
+    array[high] = temp;
+
+    return i;
+}
+
+static void quickSortIterative(int[] array, int low, int high) {
+    int stack = new int[h - low + 1];
+    int top = -1;
+    // push initial values to stack
+    stack[++top] = low;
+    stack[++top] = h;
+
+    // keep popping from stack until it is empty
+    while (top >= 0) {
+        high = stack[top--];
+        low = stack[top--];
+
+        int pivotPosition = partition(array, low, high);
+
+        //optimizaiton: first push indexes of the smaller half, to reduce stack size
+
+        // elements to the left of pivot pushed to stack
+        if (pivotPosition - 1 > low) {
+            stack[++top] = low;
+            stack[++top] = pivotPosition - 1;
+        }
+        // elements to the right side of pivot are pushed to stack
+        if (pivotPosition + 1 < high) {
+            stack[++top] = pivotPosition + 1;
+            stack[++top] = high;
+        }
+    }
+}
+````
+
 #### Random
 With a random pivot, worst case isn’t as bad
 ```Java
 Random lolXD = new Random();
 Int pivot = lolXD.nextInt(array.length - 1);
+```
+##### Median of 3 
+Best-case scenario is when the pivot is the median of the (sub)array.
+
+Look at first, last, and middle of the array. Choose the one in the middle as the pivot, as this is more likely to be closer to the median.
+
+```Java
+public static int[] quicksort(int[] array, int low, int high) {
+    if (array.length <= 1) return array;
+    
+    if (low < high) {
+        // sort low, middle, and high
+        int middle = (low + high) / 2;
+        if (array[middle] < array[low]) {
+            swap(array, low, middle);
+        }
+        if (array[high] < array[low]) {
+            swap(array, low, high);
+        }
+        if (array[high] < array[middle]) {
+            swap(array, middle, high);
+        }
+
+        // Place pivot at high to get it out of the way
+        swap(array, middle, high);
+
+        int pivotLocation = partition(array, low, high);
+        quicksort(array, low, pivotLocation - 1);
+        quicksort(array, pivotLocation + 1, high);
+    }
+}
+public static int partition(int[] array, int low, int high) {
+    int pivot = array[high];
+    int leftWall = low - 1; // will be the wall in front of which all values are <= pivot. All beyond should be > pivot.
+    for (int j = low; j < high; j++) {
+        if (array[j] <= pivot) {
+            leftWall++;
+            swap(array, j, leftWall);
+        }
+    }
+    swap(array, high, leftWall + 1); // proper place of pivot, will all below in front of and all above behind.
+    return leftWall + 1;
+
+    // int i = low, j = high - 1;
+
+    // while(i <= j) {
+    //     while(array[i] < pivot) {
+    //         i++;
+    //     }
+    //     while(array[j] > pivot) {
+    //         j--;
+    //     }
+    //     if (i <= j) { 
+    //         int temp = array[i];
+    //         array[i] = array[j];
+    //         array[j] = temp;
+    //         i++;
+    //         j--;
+    //     });
+    // }
+    // array[high] = array[i]; // restore pivot to its proper place
+    // array[i] = pivot;
+
+    // return i;
+}
+
+
+// partition(int[] array, int low, int high) {
+//     int pivot = array[high];
+//     int leftWall = low;
+
+//     for (int i = low, int j = high - 1; i <= j;) {
+//         while(array[++i].compareTo(pivot) < 0) {
+//             ;
+//         }
+//         while(pivot.compareTo(a[--j]) < 0) {
+//             ;
+//         }
+//         swap(array, i, j);
+//     }
+//     swap(array, i, high); // pivot now in proper position
+//     return i;
+// }
 ```
 
 ### HeapSort binary heap
@@ -1878,6 +2022,47 @@ Functional interfaces: only one abstract method
     }
 }
 ```
+### QuickSelect
+Find the k-th smallest element in an unsorted list using a pivot to partition the array such that every element to the left of the pivot is less than it and every element to the right is greater than it (as with QuickSort). 
+
+Then can compare the sizes of the subarrays using the pivot's proper index to figure out which part we will be searching for k in - if the pivot's index is more than k, recur over the left side, else if it is the same, we've found it! Otherwise, recur over the right.
+
+```Java
+public static int partition(int[] array, int low, int high) {
+    int pivot = array[high], pivotLocation = low;
+    for (int i = low; i <= high; i++) {
+        if (array[i] < pivot) {
+            // if less than the pivot, swap with something greater than the pivot that was previously skipped over for being >= pivot
+            int temp = array[i];
+            array[i] = array[pivotLocation];
+            array[pivotLocation] = temp;
+            pivotLocation++;
+        }
+    }
+    // Swap pivot into its final, proper location
+    int temp = array[high];
+    array[high] = array[pivotLocation];
+    array[pivotLocation] = temp;
+
+    return pivotLocation;
+}
+
+public static int kthSmallest(int[] array, int low, int high, int k) {
+    // partition
+    int partition = partition(array, low, high);
+
+    if (partition == k) {
+        // found it!
+        return array[partition];
+    } else if (partition < k) {
+        // if partition index is less than k, search the right side.
+        return kthSmallest(array, partition + 1, high, k);
+    } else {
+        return kthSmallest(array, low, partition - 1, k);
+    }
+}
+```
+
 # Comparator
 Return 
 * -1 if less than, as -1 < 0
