@@ -753,3 +753,173 @@ class Solution {
     }
 }
 ```
+## Pivot of an Array
+Find index at which the sum of numbers to the left == sum of numbers to the right.
+```Java
+class Solution {
+    public int pivotIndex(int[] nums) {
+        // List<Integer> leftSums = new ArrayList<Integer>();
+        // leftSums.add(0, 0);
+        // List<Integer> rightSums = new ArrayList<Integer>();
+        // // rightSums.add(nums.size() - 1, 0);
+        // rightSums.add(0, 0);
+        // for (int l = 1, r = nums.length - 2; l < nums.length; l++, r--) {
+        //     // want to compare left and right sums not including the value at that index
+        //     leftSums.add(l, nums[(l - 1)] + leftSums.get(l - 1));
+        //     //rightSums.add(r, arr.get(r + 1) + rightSums.get(r + 1));
+        //     rightSums.add(l, nums[(r + 1)] + rightSums.get(l - 1));
+        //     // int rightAdd = (r > 0) ? arr.get(r - 1) : 0;
+        //     // int leftAdd = (l < arr.size() - 1) ? arr.get(l + 1) : 0;
+        //     // leftSums.set(l, arr.get(l) + leftAdd);
+        //     // rightSums.set(r, arr.get(r) + rightAdd);
+        // }
+        // for (int i = 0; i < nums.length; i++) {
+        //     if (leftSums.get(i) == rightSums.get(nums.length - i - 1)) {
+        //         return i;
+        //     }
+        // }
+        // return -1;
+        
+        // Get total of the entire array, then can compare if something is half the total - some value at index i
+        int total = 0, prefixSum = 0;
+        for (int num : nums) {
+            total += num;
+        }
+        for (int i = 0; i < nums.length; i++) {
+            if (prefixSum * 2 == total - nums[i]) {
+                return i;
+            }
+            prefixSum += nums[i];  
+        }
+        return -1;
+    }
+}
+```
+## Sliding Puzzle
+On a 2x3 board, there are 5 tiles represented by the integers 1 through 5, and an empty square represented by 0.
+
+A move consists of choosing 0 and a 4-directionally adjacent number and swapping it.
+
+The state of the board is solved if and only if the board is [[1,2,3],[4,5,0]].
+
+Given a puzzle board, return the least number of moves required so that the state of the board is solved. If it is impossible for the state of the board to be solved, return -1.
+```Java
+class Solution {
+    public int slidingPuzzle(int[][] board) {
+        // smallest number of moves - BFS
+        // can only move in up to 3 directions at once (up, down, left, right on a 2x3 board), and can only swap with 0
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                sb.append(board[i][j]);
+            }
+        }
+        String boardString = sb.toString();
+        System.out.println("Start: " + boardString);
+        
+        HashSet<String> visited = new HashSet<String>();
+        Queue<String> q = new LinkedList<String>();
+        int level = 1;
+        
+        if (atEnd(boardString)) {
+            return 0;
+        }
+        
+        q.offer(boardString);
+        visited.add(boardString);
+        
+        while(!q.isEmpty()) {
+            int size = q.size();
+            for (int j = 0; j < size; j++) {
+            String[] nextStates = getNextStates(q.poll());
+            for (int i = 0; i < nextStates.length; i++) {
+                if (nextStates[i] != null) {
+                    if (atEnd(nextStates[i])) {
+                        return level;
+                    }
+                    if (!visited.contains(nextStates[i])) {
+                        // System.out.println(level + ": " + nextStates[i]);
+                        visited.add(nextStates[i]);
+                        q.offer(nextStates[i]);
+                    }
+                }
+            }
+            }
+            level++;
+        }
+        return -1;
+    }
+    public String[] getNextStates(String board){
+        char[] chars = board.toCharArray();
+        int zeroIndex = board.indexOf("0");
+        // for(int i = 0; i < chars.length; i++) {
+        //     if (chars[i] == '0') {
+        //         zeroIndex = i;
+        //         break;
+        //     }
+        // }
+        String[] ret = new String[3];
+        int i = 0;
+        if (canSwitchLeft(zeroIndex)) {
+            ret[i++] = switchLeft(board.toCharArray(), zeroIndex);
+        }
+        if (canSwitchRight(zeroIndex)) {
+            ret[i++] = switchRight(board.toCharArray(), zeroIndex);
+        }
+        if (canSwitchTop(zeroIndex)) {
+            ret[i++] = switchTop(board.toCharArray(), zeroIndex);
+        }
+        if (canSwitchBottom(zeroIndex)) {
+            ret[i++] = switchBottom(board.toCharArray(), zeroIndex);
+        }
+        return ret;
+    }
+    public boolean canSwitchLeft(int zeroIndex) {
+        return !(zeroIndex == 0 || zeroIndex == 3);
+    }
+    public boolean canSwitchRight(int zeroIndex) {
+        return !(zeroIndex == 2 || zeroIndex == 5);
+    }
+    public boolean canSwitchTop(int zeroIndex) {
+        return zeroIndex > 2;
+    }
+    public boolean canSwitchBottom(int zeroIndex) {
+        return zeroIndex < 3;
+    }
+    // current implementation modifies board
+    public String switchLeft(char[] board, int zeroIndex) {
+        char temp = board[zeroIndex - 1];
+        board[zeroIndex - 1] = '0';
+        board[zeroIndex] = temp;
+        return String.valueOf(board);
+    }
+    public String switchRight(char[] board, int zeroIndex) {
+        char temp = board[zeroIndex + 1];
+        board[zeroIndex + 1] = '0';
+        board[zeroIndex] = temp;
+        return String.valueOf(board);
+    }
+    public String switchTop(char[] board, int zeroIndex) {
+        char temp = board[zeroIndex - 3];
+        board[zeroIndex - 3] = '0';
+        board[zeroIndex] = temp;
+        return String.valueOf(board);
+    }
+    public String switchBottom(char[] board, int zeroIndex) {
+        char temp = board[zeroIndex + 3];
+        board[zeroIndex + 3] = '0';
+        board[zeroIndex] = temp;
+        return String.valueOf(board);
+    }
+    public boolean atEnd(String board) {
+        return board.equals("123450");
+        // char[] chars = board.toCharArray();
+        // for(int i = 0; i < chars.length - 1; i++) {
+        //     if (chars[i] != Character.forDigit(i + 1, 10)) {
+        //         return false;
+        //     }
+        // }
+        // return (chars[5] == '0');
+    }
+}
+```

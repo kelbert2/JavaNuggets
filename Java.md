@@ -99,7 +99,7 @@ sb.append("Greetings");
 ```
 * `append(Type data)`: data converted to a string before appended.
 * `delete(int start, int end)`: deletes the subsequence from start to end-1 (inclusive).
-* `deleateCharAt(int index)`
+* `deleteCharAt(int index)`
 * `insert(int offset, Type dta, int dataOffset?, int dataLength?)`: Index before which data is to be inserted.
 * `replace(int start, int end, String s)`
 
@@ -2440,6 +2440,28 @@ Objects are specific instances of classes, defined by classes or interfaces.
 * Local: declared within the method and only visible there (stack)
 * Instance variable: declared in the class, outside of methods and constructors (heap dynamically allocated malloc())
 * Class or static variables: only one copy, shared by all different objects in a class - once declared, not changed - constant = static final
+
+```Java
+public class ClassName extends ParentClass implements Interface, OtherInterface {
+    Type instanceVariable;
+    Type instVar = defaultValue;
+    // constructor
+    public ClassName() {
+        super();
+        this.instanceVariable = defaultValue;
+    }
+    public ClassName(Type initial, Type arguments) {
+        super(); // if extending anything
+        this.instanceVariable = initial;
+
+    }
+    public method() {
+        return value;
+    }
+}
+
+ClassName class = new ClassName();
+```
 
 ### Variable Visibility
 * `public`
