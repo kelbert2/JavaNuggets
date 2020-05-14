@@ -731,6 +731,12 @@ Useful for caching, where insertion ordre matters.
 ## Graphs
 Nodes connecting to other nodes
 
+Graphs often reprensented as arrays of numbers.
+```Java
+graph[i][j] = flowCapacity;
+```
+where i and j are two vertexes. 0 means there is no direct edge connecting them to each other.
+
 ### Trees
 Starts with a root node. Each node has zero (in the case of a leaf node) or more (branch) child nodes. No cycles.
 
@@ -2754,10 +2760,3 @@ A _java.lang.Class_ object represents this file in the JVM Heap memory. You can 
 * Boostrap class loader: Can load trusted classes,, core java API classes from the _JAVA\_HOME/jre/lib_ directory (the boostrap path). Implemented in native languages like C or C++.
 * Extension class loader: Child of boostrap class loader. Loads classes present in the extension directories _JAVA\_HOME/jre/lib/ext_ (Extension path) or any other dictory specified by the system property _java.ext.dirs_. Implemented in Java by _sun.misc.Launcher$ExtClassLoader_ class.
 * System/ Applicatoion class loader: Child of extension class loader. Loads classes from the application class path using the Environment Variable which is mapped to _java.class.path_. Implemented in Java by _sun.misc.Launcher$AppClassLoader_ class.
-
-# Graphs
-Graphs often reprensented as arrays of numbers.
-```Java
-graph[i][j] = flowCapacity;
-```
-where i and j are two vertexes. 0 means there is no direct edge connecting them to each other.
