@@ -1,19 +1,44 @@
 
 # Primitive Data Types
-## Boolean
-Stores either `true` or `false`.
-## Byte
 
-| Data Type |	Maximum Value |	Minimum Value|
-|-----------|:-----------------:|--------------:|
-|int |	2^32 = 2,147,483,647 |	-2^31 = -2,147,483,648|
-|float |	3.4028235 E38 |	1.4 E-45|
-|double |	1.7976931348623157 E308 |	4.9 E-324|
-|char |	65,535 |	0|
-|short |	32,767 |	-32,768|
-|long |	9,223,372,036,854,775,807 |	-9,223,372,036,854,775,808
+| Data Type | Bits | Maximum Value      | Minimum Value | Default Value |
+|------|---:|--------------------------:|-----------------------:|-----:|
+|int   | 32 | 2^31-1 = 2,147,483,647    | -2^31 = -2,147,483,648 | 0    |
+|float | 32 | 3.4028235 E38             |	1.4 E-45             | 0.0f |
+|double| 64 | 1.7976931348623157 E308   |	4.9 E-324            | 0.0d |
+|char  | 16 | 65,535 or '\uffff'        |	0 or '\u0000'        |      |
+|byte  | 8  | 127                       | -128                   | 0    |
+|short | 16 |	32,767                  |	-32,768              | 0    |
+|long  | 64 | 9,223,372,036,854,775,807 | -9,223,372,036,854,775,808 | 0L |
 
 1 GB is 8 billion bits.
+
+Double and short data should not be used for precise values such as currency.
+
+Literals are representations of fixed values.
+```Java
+byte a = 68;
+char a = 'A';
+
+// Prefixes
+int decimal = 100;
+int octal   = 0144;
+int hexa    = 0x64;
+
+String lit = "two\nlines";
+String escaped = "\"This is in quotes\"";
+
+// Unicode Characters
+char a = '\u0001';
+String a = "\u0001";
+```
+## Boolean
+Stores either `true` or `false`. 1 bit in size. Default value is `false`.
+
+### Logical Operators
+* && AND
+* || OR
+* ! NOT
 
 ## Strings
 End with ‘\0’
@@ -32,6 +57,14 @@ End with ‘\0’
 * Zero if both strings are equal
 * Negative if string1 Object precedes argument string2 
   * > c is shorter than cc, returns difference in lengths
+
+### Compare Strings
+* == returns 0, `.equals(str)`, `.equalsIgnoreCase(str)`
+* < 0 if this is shorter than str or the first character that doesn't match is smaller than that of str
+  * = 0 if the strings are equal
+  * &gt; 0 if this is longer than str or the first char that doesn't match is > str
+  * lower case letters are 32 greater than uppercase letters a > A
+  * later in the alphabet means greater A < Z
 
 ```Java
 int res = string1.compareTo(string2);
@@ -109,16 +142,13 @@ sb.append("Greetings");
 * `ensureCapacity(int minCapacity)`
 * `toString()`
 
-### Compare strings
-* == returns 0, `.equals(str)`, `.equalsIgnoreCase(str)`
-* < 0 if this is shorter than str or the first character that doesn't match is smaller than that of str
-  * = 0 if the strings are equal
-  * &gt; 0 if this is longer than str or the first char that doesn't match is > str
-  * lower case letters are 32 greater than uppercase letters a > A
-  * later in the alphabet means greater A < Z
-
 ## Enums
 Group of constants.
+```Java
+Enum name {
+    NAME1, NAME2, NAME3
+}
+```
 
 ```Java
 enum Suit {
@@ -139,6 +169,16 @@ Suit card = Suit.CLUBS;
             System.out.println(bathing + " index " + bathing.ordinal());
         }
 ```
+# Custom Objects
+
+### Comparisons
+Used for object reference variables to check if an object is of a particular class or interface type:
+```Java
+objReference instanceOf ClassName;
+
+boolean result = name instanceof String;
+```
+
 
 # Data Structures
 
@@ -483,7 +523,6 @@ public class MinHeap {
 ```
 
 ### Binary Minimum Heap
-
 
 * Root is a minimum and all of the levels are as full or as left as possible
 * Root at Arr[0], parent of i: Arr[i/2], left child of i: Arr[(2*i)+1], right child of i: Arr[(2*i)+2]
@@ -1191,6 +1230,8 @@ T1   y     Left Rotate(x)       x      z
 ##### Red-Black Tree
 
 #### Splay Tree
+
+
 # Algorithms
 
 ## Traversal
@@ -1937,14 +1978,6 @@ List<type> var = ArrayList<type>(capacity); // note size = 0
 
 # Java
 
-## Enums
-
-```Java
-Enum name {
-    NAME1, NAME2, NAME3
-}
-```
-
 ## Lambda functions
 Functional interfaces: only one abstract method
 ```Java
@@ -2173,7 +2206,7 @@ public static void main(String[] args) {
 ```
 
 Buffered Reader is faster than scanner:
-```
+
 # Concepts
 ### Big O Time and Space
 
@@ -2182,11 +2215,21 @@ Buffered Reader is faster than scanner:
 #### Recurrence Relations
 
 ## Bit Manipulation
-^ XOR
+* & AND
+* | OR
+* ^ XOR
+* ~ NOT (compliment)
+* << left shift
+* \>> right shift
+* \>>> zero-fill right shift
 
-~ NOT
+Can be used in assignment. Example:
+```Java
+(C <<=2) == (C = C << 2);
+```
 
 *2 to the nth power is equivalent to shifting to the left by n
+
 ### Shortcuts
 * x ^ 0s = x
 * x ^ 1s = ~x
@@ -2440,55 +2483,88 @@ Look for repeated subproblems and cache results.
 
 # Object-Oriented Programming (OOP)
 Everything is an object that can perform and have functions performs on them, have data associated with them, encourages reusability.
-Objects are specific instances of classes, defined by classes or interfaces.
+Objects are specific instances of classes, defined by classes or interfaces. They can have states (instance variables) and behaviors (methods), which classes describe, like templates or blueprints.
 
-### Classes have member variables
+### Variable Types
+```Java
+Type variable [ = value][, variable [ = value] ...] ; // all of the same Type
+```
+
 * Local: declared within the method and only visible there (stack)
 * Instance variable: declared in the class, outside of methods and constructors (heap dynamically allocated malloc())
 * Class or static variables: only one copy, shared by all different objects in a class - once declared, not changed - constant = static final
 
+Local variables are declared in methods, constructors, and blocks. They're created only when their scope is entered and will be destroyed after exit, so they're only visible within that scope. They are stored on the stack and have no default values.
+
+Instance variables are declared in classes, outside of blocks. They're created when a new instance of the object is created and will be destroyed upon its destruction. They're visible within that entire class and even outside (`objectReference.varName`), depending on their access modifier. They are stored on the heap and have default values:
+* 0 for numbers
+* false for Booleans
+* null for object references
+
+There is only one copy of each `static` variable per class, regardless of the number of instances of the class - they all have access to the same variable with the same value. For this reason, most are used as constants. They're stored in static memory and are created when either a static member of the class is referred to or when an instance of the class is created. Most are declared public. They are stored in static memory and have the above default values. You don't need an instance of the class to access the variable.
+
 ```Java
 public class ClassName extends ParentClass implements Interface, OtherInterface {
-    Type instanceVariable;
-    Type instVar = defaultValue;
-    // constructor
+    accessModifier Type instanceVariable;
+    private Type instVar = defaultValue;
+
+    static private double VAR_NAME; // private static variable
+    public static final String CONSTANT_STRING = "Constant"; 
+    // No-Argument Constructor
+    // if none defined, Java compiler will build a default which will initialize all member variables to zero
     public ClassName() {
         super();
         this.instanceVariable = defaultValue;
+
+        // no explict return type
     }
+    // Parameterized Constructor
     public ClassName(Type initial, Type arguments) {
         super(); // if extending anything
         this.instanceVariable = initial;
+
+        Type localVar = tempValue;
 
     }
     public method() {
         return value;
     }
 }
-
+// Declaration = instantiation new and initialization ClassName()
 ClassName class = new ClassName();
 ```
 
 ### Variable Visibility
-* `public`
+* `public`: whole world
 * `protected`: package, subclass
 * `private`: only class
 * No modifier: package and class
 
-Inheritance of properties: super or base, subclass or derived class
-    `extends`
+See Access Modifiers below.
 
+
+### Encapsulation
 Encapsulation hides implementation
 
 > Bind data and code together as a single unit, safe from modification.
 > use private variables, public getters and setters instead.
 
+### Inheritance
+Inheritance of properties: subclass or derived class inherits from the superclass or base class. They inherit the implementation of methods, but this can be overridden.
+    `extends`
+
+### Interfaces
+Like contracts on how ot communicate. Interfaces define methods but leave implementation up to the subclass. 
+
+Interfaces are a blueprint or a contract, telling you what it can do - assigns functions with return values but doesn’t define them: all methods are public abstract
+
+
+### Abstraction
 Abstraction: abstract class or interface and then implements
 
 > Abstract cannot be instantiated (can’t create an object of it) - abstract (undefined) or concrete methods (defined)
 
-Interfaces are a blueprint or a contract, telling you what it can do - assigns functions with return values but doesn’t define them: all methods are public abstract
-
+### Polymorphism
 Polymorphism: variable, method, and objects can take on multiple forms, define one interface or method and implement it in multiple ways
 
 Runtime is where you call a specific child of the class
@@ -2609,6 +2685,22 @@ Palindromes have even numbers of each character, except for one that can have an
 
 
 # Java
+## Source File Declaration
+Only one public class per source file, but potentially multiple non-public ones. Public class is the name of the source file.java.
+
+If the class is defined inside a package, import it first, then any other inputs, then you can start writing the class.
+
+```Java
+package packagename;
+import java.io.*;
+
+public class ClassName {
+    // if want to be runnable
+    public static void main(String args[]) {
+
+    }
+}
+```
 ### Generics
 Type-erasure: elimates parameterized types when translates source code into Java Virtual Machine byte code.
 
@@ -2698,6 +2790,8 @@ Can also apply to variable references, where vit restricts it from pointing to a
 Can be accessed before the class object is created - it can be used independently of any object of that class.
 
 Can only access static members of the class and can only be called by other static methods.
+
+### Synchronized and Volatile
 
 ## Access Modifiers
 In order of increasing accessibility.
