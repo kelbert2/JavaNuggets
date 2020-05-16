@@ -16,6 +16,8 @@
 Double and short data should not be used for precise values such as currency.
 
 Literals are representations of fixed values.
+
+Underscores can appear anywhere between digits in numerical literals, allowing you to separate groups of digits and improve readability. They don't work adjacent to decimal points, prior to, after, or between suffixes (like L or F) or prefixes (0x), and at the end or beginning (would make it an idenfier) of the number.
 ```Java
 byte a = 68;
 char a = 'A';
@@ -31,6 +33,12 @@ String escaped = "\"This is in quotes\"";
 // Unicode Characters
 char a = '\u0001';
 String a = "\u0001";
+
+// Underscores are just fine here
+long l = 908_556_5842;
+int i = 5_________2;
+int octal = 0_5_2;
+
 ```
 ## Boolean
 Stores either `true` or `false`. 1 bit in size. Default value is `false`.
@@ -40,16 +48,126 @@ Stores either `true` or `false`. 1 bit in size. Default value is `false`.
 * || OR
 * ! NOT
 
+# Wrappers
+Objects that wrap around primitives. Allows you to use special class (static) methods. Compiler handles conversion to and from primitive (unboxing and boxing).
+
+```Java
+Integer x = 5; // boxes int to an Integer object
+x =  x + 10;   // unboxes the Integer to a int
+```
+## Number
+Numerics are subclasses of abstract class Number. 
+* `num.xxxValue()`: converts value of num to xxx data type and returns it.
+* `num.compareTo(arg)`
+* `num.equals(arg)`
+* `valueOf()`: returns an Integer holding the value of the specified primitive.
+* `toString()`: returns a String object holding the value.
+* `parseInt()`: gets primitive from a String.
+* `abs(arg)`: returns absolute value of argument.
+* `ceil(arg)`: returns a double with the value of the smallest integer greater than or equal to the argument.
+* `floor(arg)`: returns a double with the value of hte largest integer <= arg.
+* `rint(arg)`: returns a double with the value of the integer closest in value of the argument.
+* `round()`: returns the closest long or int.
+* `min(a, b)`: returns the smaller of a and b.
+* `max(a, b)`: returns the larger of a and b.
+* `exp(arg)`: returns the base of the natural log, e, to the power of arg.
+* `log(arg)`: returns the natural log of the arg.
+* `.pow(a, b)`: returns a raised to the power of b.
+* `sqrt(arg)`: returns the square root of arg.
+* `sin(double a)`: returns the sine of arg.
+* `cos(double a)`
+* `tan(double a)`
+* `asin(double a)`: returns the arcsine.
+* `acos(double a)`
+* `atan(double a)`
+* `atan2(x, y)`: converts rectangular coordinates to polar (r, theta) and returns theta.
+* `toDegrees(arg)`
+* `toRadians(arg)`
+* `random()`
+
+### Character
+`Character ch = new Character('a');`
+* `isLetter()`
+* `isDigit()`
+* `isWhitespace()`
+* `isUpperCase()`
+* `isLowerCase()`
+* `toUpperCase()`
+* `toLowerCase()`
+* `toString()`
+
 ## Strings
-End with ‘\0’
-* `.length()`
+Immutable, so if you're modifying a lot of characters or extending the string, use StringBuffer or StringBuilder. Ends with ‘\0’.
+* `int str.length()`
+* `String trim()`: trimes off leading and trailing whitespace.
+* `String[] .split(“ “)`, also takes `String \regex\`
+* `String[] split(String regex, int limit)`
+* `String string1.concat(String string2)`: returns a new string with string2 added to the end of string1.
+* * Can also just use `string1 + string2` with + as an operator.
+* `String substring(int beginIndex)`
+* * `String substring(int beginIndex, int endIndex)`
+* `String toLowerCase()`: uses rules of the default locale
+* * `String toLowerCase(Locale locale)`
+* `String toUpperCase()`
+* * `String toUpperCase(Locale locale)`
+* `String replace(char oldChar, char newChar)`: returns a new string with all occurances of oldChar replaced with newChar.
+* `String replaceAll(String regex, String replacement)`: replace each substring that matches the given regex with replacement.
+* `String replaceFirst(String regex, String replacement)`: replaces only the first occurance.
+* `String.format("string " + " with variables like %f, %d, %s here", floatVar, intVar, stringVar)`
+* * formats strings for use in `System.out.println(formattedString)`
+* `int hashCode()`
+* `String toString()`: returns same value.
+* `String intern()`: Returns a canonical representation for the string object.
+
+
+Conversion
 * `Integer.parseInt(String, int radix) => int`
 * * radix being the mathematical base. 10 is decimal, 8 is octal, 16 is hexadecimal.
 * * if not provided, looks at what the string begins with. "0x" or "0X" is 16, "0" may be octal or decimal, and any other value for the beginning defualts to 10
 * `Integer.valueOf(int or String, int base if String) => Integer`
 * * Caches frequently requested values, so more space and time efficient
-* `.split(“ “)`, also takes `\regex\`
-* `.toCharArray()`
+* `String String.valueOf(primitive data type x)`
+
+Indices
+* `int indexOf(String str, int fromIndex)`
+* `int indexOf(int ch)`: returns first occurance of character.
+* `int indexOf(int ch, int fromIndex)`: returns first occurance starting search at specified index.
+* `int indexOf(String str)`: returns first occurance of specified substring.
+* `int lastIndexOf(int ch)`
+* `int lastIndexOf(int ch, int fromIndex)`
+* `int lastIndexOf(String str)`
+* `int lastIndexOf(String str, int fromIndex)`
+
+
+
+
+Comparison
+* `boolean matches(String regex)`
+* `boolean regionMatches(int toffset, String other, int ooffset, int len)`: Tests if two string regions are equal.
+* `boolean regionMatches(boolean ignoreCase, int toffset, String other, int ooffset, int len)`
+* `boolean equals(Object o)`
+* `boolean equalsIgnoreCase(String str)`
+* `int compareTo(Object o)`: if the object is a String, compares lexicographically.
+* `int compareToIgnoreCase(String str)`
+* `boolean contentEquals(StringBuffer sb)`
+* `boolean endsWith(String suffix)`
+* `boolean startsWith(String prefix)`
+* `boolean startsWith(String prefix, int offset)`: Tests if string starts with prefext at offset index.
+
+
+Bytes
+* `byte getBytes()`
+* `byte[] getBytes(String charsetName)`
+
+Chars
+* `char[] .toCharArray()`
+* `char charAt(int index)`
+* `static String copyValueOf(char[] data)`
+* `static String copyValueOf(char[] data, int offset, int count)`: uses a starting place (offset) and total desired length.
+* `void src.getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin)`: copies characters from String src string to dest character array.
+* `CharSequence subSequence(int beginIndex, int endIndex)`
+
+
 
 ### Comparison
 * Positive if string1 follows argument string2 
@@ -77,6 +195,8 @@ int resNoCase = first.compareToIgnoreCase(second);
 ```Java
 og.substring(int startIndex, int endIndex);
 ```
+
+
 ### StringBuffer
 Modifiable String - growable and writable
 
@@ -169,7 +289,164 @@ Suit card = Suit.CLUBS;
             System.out.println(bathing + " index " + bathing.ordinal());
         }
 ```
+
+## Date and Time
+Part of java.util package.
+```Java
+Date date = new Date();
+Date since1970 = new Date(long millisec); // number of ms elapsed since midnight, January 1, 1970.
+```
+* `boolean a.after(Date date)`: true if a contains a date later than Date date.
+* `boolean a.before(Date date)`
+* `Object a.clone( )`
+* `int a.compareTo(Date date)`: returns 0 if equal, negative if a is earlier than date, positive if a is later than date.
+* `boolean equals(Object date)`
+* `long getTime()`: returns ms since midnight, January 1, 1970.
+* `void setTime(long time)`: sets based on ms from midnight, January 1, 1970.
+* `int hashCode( )`
+* `String toString()`: Mon 00 00:00:00 zzz Year where zzz is the time zone.
+
+Can format with SimpleDateFormat:
+```Java
+      Date dNow = new Date( );
+      SimpleDateFormat ft = 
+      new SimpleDateFormat ("E yyyy.MM.dd 'at' hh:mm:ss a zzz");
+      System.out.println("Current Date: " + ft.format(dNow));
+      // Sun 2004.07.18 at 04:14:09 PM PDT
+
+      // G is era, like AD
+      // H is for 24-hour time
+      // S is ms
+      // E day in week, like Tuesday
+      // D Day in year, like 360
+      // F day of week in month, like 2 for the 2nd Wed in July
+      // w week in year
+      // W week in month
+      // a AM/ PM marker
+      // k Hour in day, from 1 to 24
+      // K Hour in AM/ PM, so 0-11
+      // ' escape for text
+      // " single quote
+
+      Date t = ft.parse("1818-11-11"); 
+      // Wed Nov 11 00:00:00 EST 1818
+      // best to do in a try..catch block
+
+      String str = String.format("Current Date/Time : %tc", date ); // complete date
+      System.out.printf("%1$s %2$tB %2$td, %2$tY", "Due date:", dNow); // index of argument to be formatted
+      System.out.printf("%s %tB %<te, %<tY", "Due date:", date); // < means same argument as preceding format specification
+      // Due date: February 09, 2004
+
+```
+
 # Custom Objects
+
+Can have methods, variables, and inner classes.
+```Java
+class Obj {
+    int instanceVariable;
+    int a;
+
+    // constructor
+    obj() {
+        this(1); // calls Obj(1), as seen below:
+    }
+    Obj(int a) {
+        this.a = a; // a is a local variable, this.a refers to the instance variable.
+    }
+
+    // optional modifiers returnType methodName(formal parameters list)
+    public static int methodName(int a, int b) {
+        if (a < 0) return this.a + b; // can access instance variable
+        return a + b;
+    }
+    // Method overloading, same name different parameters or types
+    public static double methodName(double a, double b) {
+        return a + b;
+    }
+    public static int methodName(int a, int b, int c) {
+        return a + b + c;
+    }
+    // vaiable number of parameters
+    public static int methodNameVariable(double... numbers) {
+        double total = 0;
+        for (int i = 0; i < numbers.length; i++) {
+            total += numbers[i]; // treat as an arguments array
+        }
+    }
+
+    // void if returns nothing
+    public static void callingFunction() {
+        int result = methodName(1, 2);
+        System.out.println(result);
+    }
+
+    // called just before an object's final destruction by a garbage collector
+    protected void finalize() {
+        // clean up. Ex: close file.
+    }
+
+
+// Classes
+   // instance method of the outer class 
+   void my_Method() {
+      int num = 23;
+
+      // method-local inner class
+      class MethodInner_Demo {
+         public void print() {
+            System.out.println("This is method inner class "+num);	   
+         }   
+      } // end of inner class
+	   
+      // Accessing the inner class
+      MethodInner_Demo inner = new MethodInner_Demo();
+      inner.print();
+
+      // Anonymous inner classes
+      AnonymousInner an_inner = new AnonymousInner() {
+            public void my_method() {
+                // quick class definition
+          }   
+      };
+      // Can pass anonymous inner classes with the new keyward into methods
+   }
+
+    public class InnerClass { // can make private
+      public void print() {
+         System.out.println("This is an inner class");
+      }
+    }
+
+    void display_Inner() {
+      Inner_Demo inner = new Inner_Demo();
+      inner.print();
+   }
+
+   public static class StaticInnerClass {
+       public void print() {
+         System.out.println("This is an inner class");
+      }
+   }
+}
+
+// Accessing inner classes outside of everything
+public class OtherClass {
+    public static void main(String args[]) {
+        // don't need an instance to access static inner classes
+        ClassName.StaticInnerClass staticInner = new ClassName.StaticInnerClass();
+        staticInner.print();
+
+        // do need an instance to access non-static inner classes
+        ClassName outer = new ClassName();
+        // get inner class
+        ClassName.InnerClass inner = outer.new InnerClass();
+        inner.print();
+    }
+}
+
+```
+Parameters passed by value are unchanged by the function. Parameters passed by reference can be modified by the function.
 
 ### Comparisons
 Used for object reference variables to check if an object is of a particular class or interface type:
@@ -179,21 +456,52 @@ objReference instanceOf ClassName;
 boolean result = name instanceof String;
 ```
 
-
 # Data Structures
 
 ## Arrays
+Fixed-size sequential collection of elements of the same type.
+
 Access, insert, delete O(1)
+
 Search, space O(n)
+
+As a class, has methods and fields:
 * `.length`
+* `boolean equals(Type[] a, Type[] a2)`: equal if same elements at the same locations.
+* `void Arrays.fill(Type[] a, Type val)`: Assigns specified val to each element in array.
+* `void Arrays.sort(Object[] a)`: sorts in ascending natural order.
+* `int index = Arrays.binarySearch(Object[] a, Object key)`: where a is sorted already. Returns `-(insertion point + 1)` if cannot find.
 
 ```Java
-Int[] array = new int[size];
+int[] array = new int[size]; // preferred way
+// Same as
+int array[] = new int[size]; // for C/ C++ programmers
 /* 2D arrays by [row][column] */
 int[][] arrayTwo = new int[][]{
     {1, 2, 3},
     {4, 5, 6},
 };
+int[][] arrayTwo = {
+    {1, 2, 3},
+    {4, 5, 6},
+};
+```
+
+
+### Iteration
+```Java
+// Summing all elements
+double total = 0;
+for (int i = 0; i < myList.length; i++) {
+    total += myList[i];
+}
+System.out.println("Total is " + total);
+
+// foreach loop or enhanced for loop - don't need an index variable
+// Print all the array elements
+for (double element: myList) {
+    System.out.println(element);
+}
 ```
 ### Sorting
 Inline function: `Arrays.sort(sortedArray);`
@@ -2151,22 +2459,98 @@ List<Object> objList = findObj(name); Collections.sort(objList, new Comparator<O
 ```
 
 # Input
+Streams are sequences of data. Using the java.io package, can support many data types.
 
+## Streams from keyboard input
+System.in - Standard input, usually uses the keyboard. 
+
+System.out - Standard output, usually a computer screen.
+
+System.err - Standard error, used to output usually to a computer screen.
+
+```Java
+      // Read until user presses 'q':
+      InputStreamReader cin = null;
+
+      try {
+         cin = new InputStreamReader(System.in);
+         System.out.println("Enter characters, 'q' to quit.");
+         char c;
+         do {
+            c = (char) cin.read();
+            System.out.print(c);
+         } while(c != 'q');
+      }finally {
+         if (cin != null) {
+            cin.close();
+         }
+      }
+```
+
+## Streams from Files
+InputStream reads data from a source.
+
+OutputStream writes data to a destination.
+
+Operates as Byte Streams.
 ```Java
 void dealingWithInputStreams() throws IOException { // uses specific input stream
         InputStream input = new FileInputStream("c:\\path\fileName.txt");
         int data = input.read(); // input.read(byte[], optional int offset, optional int length);
+
+        FileOutputStream output = null;
+        File f = new File("output.txt");
+        output = new FileOutputStream(f); // creates file if pass a string path and no file with that name is at that location
+
+        String dirname = "/tmp/user/java/bin";
+        Fild d = new File(dirname);
+        d.mkdir(); // returns true on success. Failure if path already exists or the entire path does not exist yet so can't make the directory in it
+        d.mkdirs(); // creates a directory and all parents of it too.
+
+        String[] paths = d.list(); // array of files and directories
+
         while (data != -1) {
             //op(data)
             try {
                 data = input.read();
+                output.write(data);
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
         input.close();
+        output.close();
     }
+```
+
+Character streams perform input and output for 16-bit unicode. FileReader and FileWriter read and write two bytes at a time.
+```Java
+      FileReader in = null;
+      FileWriter out = null;
+
+      try {
+         in = new FileReader("input.txt");
+         out = new FileWriter("output.txt");
+         
+         int c;
+         while ((c = in.read()) != -1) {
+            out.write(c);
+         }
+      }finally {
+         if (in != null) {
+            in.close();
+         }
+         if (out != null) {
+            out.close();
+         }
+      }
+   }
+```
+
+
+## Scanners
+ ```Java   
     void dealingWithScanners() { // uses available input stream
         Scanner scan = new Scanner(System.in); // or new Scanner(FileReader(fileName));
         String tilSpace = scan.next();
@@ -2549,9 +2933,55 @@ Encapsulation hides implementation
 > Bind data and code together as a single unit, safe from modification.
 > use private variables, public getters and setters instead.
 
-### Inheritance
-Inheritance of properties: subclass or derived class inherits from the superclass or base class. They inherit the implementation of methods, but this can be overridden.
-    `extends`
+### Inheritance Extends
+Inheritance of properties: subclass or derived class inherits from the superclass or base class. They inherit the implementation of methods, but this can be overridden. 
+
+A subclass IS-A superclass type. Subclass also IS-A superclass of its own superclass.
+
+Classes can have references to other classes, i.e. a class HAS-A reference to another class, which can help you avoid needing to inherit from multiple things at once, which is not supported in Java.
+```Java
+class Super {
+    Type variable;
+    // Super HAS-A variable, which can be a class itself
+    // cannot override a final method
+    final superMethod() {
+    }
+    // cannot be overridden, only re-declared
+    static anotherSuperMethod() {
+    }
+    // if made private, could only be overridden by subclasses in the same package
+    protected method() throws Exception, AnotherException {
+    }
+    // Can't override constructors
+    Super() {
+    }
+    Super(values) {
+    }
+}
+class Sub extends Super {
+    Type variable;
+    // implied Sub() { super(); }
+    Sub(values) {
+        super(values); // calls Super() constructor
+        super.variable; // references super's variable
+    }
+    subMethod() {
+    }
+    // Same name as super class, overrides if same argument list, return can be a subtype of the original, can be less restrictive in access, can throw narrower or fewer exceptions
+    public method() throws Exception {
+        super.method(); // if want, can access super methods rather than call this one again
+    }
+}
+Sub sub = new Sub();
+sub.superMethod();
+
+Super superRefToSub = new Sub(); // Super reference but Sub object
+// can't call any subMethods even though instantiated with the Sub constructor.
+superRefToSub.method(); // will call sub's method
+
+Super duper = new Super();
+duper = new Sub(); // can refer to subtypes of its declared type, works with declared interfaces too
+```
 
 ### Interfaces
 Like contracts on how ot communicate. Interfaces define methods but leave implementation up to the subclass. 
@@ -2560,12 +2990,33 @@ Interfaces are a blueprint or a contract, telling you what it can do - assigns f
 
 
 ### Abstraction
-Abstraction: abstract class or interface and then implements
+Abstraction: abstract class or interface and then implements. Only provides the functionality, not the implementation. User knows what it does but not how.
 
-> Abstract cannot be instantiated (can’t create an object of it) - abstract (undefined) or concrete methods (defined)
+> Abstract cannot be instantiated (can’t create an object of it), but they can be inherited. Inheriting classes can also be abstract.
+
+> Methods can be abstract (undefined) or concrete methods (defined), and the non-abstract child class must provide implementations to all abstract methods.
+
+```Java
+public abstract class Parent {
+    private Type variable;
+    public Parent() {
+        variable = value;
+    }
+    public void concreteMethod() {
+        // can be overridden
+        implementation();
+    }
+    public abstract void abstractMethod(); // no implementation
+}
+public class Child extends Parent {
+    public void abstractMethod() {
+        implementation();
+    }
+}
+```
 
 ### Polymorphism
-Polymorphism: variable, method, and objects can take on multiple forms, define one interface or method and implement it in multiple ways
+Polymorphism: variable, method, and objects can take on multiple forms, define one interface or method and implement it in multiple ways. Anything that IS-A for muliptle things. Any custom object IS-A Object.
 
 Runtime is where you call a specific child of the class
 
@@ -2691,6 +3142,10 @@ Only one public class per source file, but potentially multiple non-public ones.
 If the class is defined inside a package, import it first, then any other inputs, then you can start writing the class.
 
 ```Java
+// in command-line:
+$java ClassName arguments that will appear in args[] array
+
+// in Java file:
 package packagename;
 import java.io.*;
 
@@ -2700,6 +3155,11 @@ public class ClassName {
 
     }
 }
+```
+### System
+```Java
+System.out.println("Prints this string to console.");
+long timeInMS = System.currentTimeMillis();
 ```
 ### Generics
 Type-erasure: elimates parameterized types when translates source code into Java Virtual Machine byte code.
@@ -2757,13 +3217,16 @@ Used in Singletons to ensure that there is only one instance of an object at a t
 a ``getInstance()`` method returns the existing instance or makes one.
 
 ### Error Catching
-
+Exceptions arise during compilation (checked exceptions) or execution (unchecked or runtime exceptions) and disrupt the normal flow of the program. Handle them to prevent the program from terminating abnormally.
 ```Java
 try {
+    // protected code
     // Attempt to do something
     // As soon as tries something that raises an exception, control flow moves to the catch block.
-} catch (Exception ex) {
+} catch (ExceptionType | AnotherExceptionType e) {
     // Can do something with the exception here
+} catch (Exception e) {
+    // Catches a type of exception not caught by the first catch block.
 } finally {
     // Optional block
     // Regardless of the control flow above, the finally block will execute
@@ -2772,6 +3235,56 @@ try {
     // Finally won't execute if the VM exits or the thread executing it is killed prematurely.
 }
 
+// If a method doesn't handle a checked exception, use the throws keyword to postponse handling and throw to invoke an exception explicitly
+public void deposit(double amount) throws RemoteException, AnotherExceptionType {
+    if (amount > 0) {
+        throw new RemoteException();
+    }
+    throw new AnotherExceptionType();
+}
+
+// File readers
+public static void read() {
+      FileReader fr = null;		
+      try {
+         File file = new File("file.txt");
+         fr = new FileReader(file); char [] a = new char[50];
+         fr.read(a);   // reads the content to the array
+         for(char c : a)
+         System.out.print(c);   // prints the characters one by one
+      } catch (IOException e) {
+         e.printStackTrace();
+      }finally {
+         try {
+            fr.close();
+         } catch (IOException ex) {		
+            ex.printStackTrace();
+         }
+      }
+
+      // do the same using a try-with-resources block which will automatically close streams and connections that are passed into it
+      try(FileReader fr = new FileReader("E://file.txt")) {
+         char [] a = new char[50];
+         fr.read(a);   // reads the contentto the array
+         for(char c : a)
+         System.out.print(c);   // prints the characters one by one
+      } catch (IOException e) {
+         e.printStackTrace();
+      } // auto closes AutoCloseable resources. Closes in reverse order listed
+}
+
+// Custom Checked Exception
+class CustomException extends Exception {
+    private double amount;
+   //  throw new InsufficientFundsException(needs);
+   public InsufficientFundsException(double amount) {
+      this.amount = amount;
+   }
+   // e.getAmount() in catch (e) block
+   public double getAmount() {
+      return amount;
+   }
+}
 ```
 ## Keywords
 
@@ -2784,7 +3297,7 @@ Declares a constant variable which cannot be changed; a method which cannot be o
 
 Must be initialized at declaration.
 
-Can also apply to variable references, where vit restricts it from pointing to any other object on the heap.
+Can also apply to variable references, where it restricts it from pointing to any other object on the heap, i.e. it cannot be reassigned to another object.
 
 ### Static
 Can be accessed before the class object is created - it can be used independently of any object of that class.
@@ -2854,3 +3367,105 @@ A _java.lang.Class_ object represents this file in the JVM Heap memory. You can 
 * Boostrap class loader: Can load trusted classes,, core java API classes from the _JAVA\_HOME/jre/lib_ directory (the boostrap path). Implemented in native languages like C or C++.
 * Extension class loader: Child of boostrap class loader. Loads classes present in the extension directories _JAVA\_HOME/jre/lib/ext_ (Extension path) or any other dictory specified by the system property _java.ext.dirs_. Implemented in Java by _sun.misc.Launcher$ExtClassLoader_ class.
 * System/ Applicatoion class loader: Child of extension class loader. Loads classes from the application class path using the Environment Variable which is mapped to _java.class.path_. Implemented in Java by _sun.misc.Launcher$AppClassLoader_ class.
+
+
+# Regex
+java.util.regex allows you to pattern match with regular expressions in sets of strings.
+
+Patterns are compiled representations of a regular expression. `compile(regex)` returns a Pattern object.
+
+Matcher are engines that interpret the Pattern and perform match operations against an input string. `pattern.matcher()` returns a Matcher object.
+
+PatternSyntaxExceptions are thrown when there's a syntax error in a regex pattern.
+* `String getDescription()`
+* `int getIndex()`
+* `String getPattern()`
+* `String getMessage()`: returns a multi-line string containing the description of the syntax error and its index, the erroneous regular expression pattern, and a visual indication of the error index within the pattern.
+
+```Java
+      // String to be scanned to find the pattern.
+      String line = "This order was placed for QT3000! OK?";
+      String pattern = "(.*)(\\d+)(.*)"; // with 3 capturing groups
+
+      // Create a Pattern object
+      Pattern r = Pattern.compile(pattern);
+
+      // Create matcher object.
+      Matcher m = r.matcher(line);
+
+      if (m.find( )) {
+         System.out.println("Found value: " + m.group(0) );
+         System.out.println("Found value: " + m.group(1) );
+         System.out.println("Found value: " + m.group(2) );
+      } else {
+         System.out.println("NO MATCH");
+      }
+      // Found value: This order was placed for QT3000! OK?
+      // Found value: This order was placed for QT300
+      // Found value: 0
+```
+Index methods
+* `int matcher.start()`: returns start index of previous match.
+* * `int matcher.start(int group)`: returns start index of the subsequence captured by the given group during the previous match operation.
+* `int matcher.end()`: returns the offset after the last character matched.
+* * `int matcher.end(int group)`: returns the offset after the last character of the subsequence captured by a given group from the previous match operation.
+
+Study methods review input strings and return booleans indicating whether or not the pattern has been found.
+* `boolean matcher.matches()`: attempts to match the entire region against the pattern.
+* `boolean matcher.lookingAt()`: attempts to match input against the pattern, will be true if any part of the input matches.
+* `boolean find()`: attempts to find the next subsequence of the input sequence that matches the pattern.
+* * `boolean find(int start)`: starts searching at specified index.
+
+Replacement methods
+* `String matcher.replaceAll(String regex)`: replaces every subsequence of the input sequence that matches the pattern with the given regex replacement.
+* `String matcher.replaceFirst(String regex)`: replaces the first subsequence of the input sequence that matches the pattern with the given regex replacement.
+* `String quoteReplacement(String s)`: returns a literal replacement String for the specified String,which will work in `matcher.appendReplacement()`.
+* `Matcher appendReplacement(StringBuffer sb, String replacement)`: does not have a terminal append-and-replace step.
+* `public StringBuffer appendTail(StringBuffer sb)`: has a terminal append-and-replace step.
+
+# Embedded JavaScript
+# Safe Varargs Method Invocation
+# Memory Leaks
+# jar Files
+# Type Inference for Generic Instance Creation
+# Casting types
+# Currencies
+
+# Concurrency
+## Thread Synchronization
+## Locks
+## fork-join
+## Immutable Objects
+## CompletableFutures
+
+# Classes
+# Optional
+# Spliterator
+# ClassLoader
+# Multithreaded Custom Class Loaders
+
+# Internationalization
+## Legacy Date and Time Handling
+## Locales
+## Resource Bundles
+## Time Zones
+
+# Streams from Collections, references, and primitives
+## Intermediate and terminal operations
+## Usage of filter
+## Map
+## flatMap
+## forEach
+## Collect
+## Reduce
+## Optionals
+## Collector
+## Collectors
+## Parallelism
+
+# Lambda Comparator
+## Predicates
+## Consumers
+## Functions
+## Suppliers
+## Binary Operators
