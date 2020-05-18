@@ -1,3 +1,9 @@
+Much taken from https://www.tutorialspoint.com/java/java_quick_guide.htm
+http://tutorials.jenkov.com/java/lambda-expressions.html
+https://www.baeldung.com/java-8-lambda-expressions-tips
+https://winterbe.com/posts/2014/03/16/java-8-tutorial/
+https://www.baeldung.com/java-fork-join
+https://www.baeldung.com/java-8-collectors
 
 # Primitive Data Types
 
@@ -289,7 +295,28 @@ Suit card = Suit.CLUBS;
             System.out.println(bathing + " index " + bathing.ordinal());
         }
 ```
+## Enumerations
+Legacy interface. Obsolete for new code.
+* `boolean hasMoreElements()`
+* `Object nextElement()`
 
+```Java
+      Enumeration days;
+      Vector dayNames = new Vector();
+      
+      dayNames.add("Sunday");
+      dayNames.add("Monday");
+      dayNames.add("Tuesday");
+      dayNames.add("Wednesday");
+      dayNames.add("Thursday");
+      dayNames.add("Friday");
+      dayNames.add("Saturday");
+      days = dayNames.elements();
+      
+      while (days.hasMoreElements()) {
+         System.out.println(days.nextElement()); 
+      }
+```
 ## Date and Time
 Part of java.util package.
 ```Java
@@ -338,6 +365,100 @@ Can format with SimpleDateFormat:
       // Due date: February 09, 2004
 
 ```
+
+Clocks are aware of timezones and can be used instead of System.currentTimeMillis(). Timezones are represented by ZoneIds. LocalTime is a time without a timezone.
+```Java
+Clock clock = Clock.systemDefaultZone();
+long millis = clock.millis();
+
+Instant instant = clock.instant();
+Date legacyDate = Date.from(instant);   // legacy java.util.Date
+
+System.out.println(ZoneId.getAvailableZoneIds());
+// prints all available timezone ids
+
+ZoneId zone1 = ZoneId.of("Europe/Berlin");
+ZoneId zone2 = ZoneId.of("Brazil/East");
+System.out.println(zone1.getRules());
+System.out.println(zone2.getRules());
+
+// ZoneRules[currentStandardOffset=+01:00]
+// ZoneRules[currentStandardOffset=-03:00]
+
+LocalTime now1 = LocalTime.now(zone1);
+LocalTime now2 = LocalTime.now(zone2);
+
+System.out.println(now1.isBefore(now2));  // false
+
+long hoursBetween = ChronoUnit.HOURS.between(now1, now2);
+long minutesBetween = ChronoUnit.MINUTES.between(now1, now2);
+
+System.out.println(hoursBetween);       // -3
+System.out.println(minutesBetween);     // -239
+
+LocalTime late = LocalTime.of(23, 59, 59);
+System.out.println(late);       // 23:59:59
+
+DateTimeFormatter germanFormatter =
+    DateTimeFormatter
+        .ofLocalizedTime(FormatStyle.SHORT)
+        .withLocale(Locale.GERMAN);
+
+LocalTime leetTime = LocalTime.parse("13:37", germanFormatter);
+System.out.println(leetTime);   // 13:37
+```
+
+LocalDate is immutable. Each manipulation returns a new instance:
+```Java
+LocalDate today = LocalDate.now();
+LocalDate tomorrow = today.plus(1, ChronoUnit.DAYS);
+LocalDate yesterday = tomorrow.minusDays(2);
+
+LocalDate independenceDay = LocalDate.of(2014, Month.JULY, 4);
+DayOfWeek dayOfWeek = independenceDay.getDayOfWeek();
+System.out.println(dayOfWeek);    // FRIDAY
+
+// Can parse:
+DateTimeFormatter germanFormatter =
+    DateTimeFormatter
+        .ofLocalizedDate(FormatStyle.MEDIUM)
+        .withLocale(Locale.GERMAN);
+
+LocalDate xmas = LocalDate.parse("24.12.2014", germanFormatter);
+System.out.println(xmas);   // 2014-12-24
+```
+
+LocalDateTime is a combination and is also immutable:
+```Java
+LocalDateTime sylvester = LocalDateTime.of(2014, Month.DECEMBER, 31, 23, 59, 59);
+
+DayOfWeek dayOfWeek = sylvester.getDayOfWeek();
+System.out.println(dayOfWeek);      // WEDNESDAY
+
+Month month = sylvester.getMonth();
+System.out.println(month);          // DECEMBER
+
+long minuteOfDay = sylvester.getLong(ChronoField.MINUTE_OF_DAY);
+System.out.println(minuteOfDay);    // 1439
+
+// can convert to instant and, from there, legacy Date objects
+Instant instant = sylvester
+        .atZone(ZoneId.systemDefault())
+        .toInstant();
+
+Date legacyDate = Date.from(instant);
+System.out.println(legacyDate);     // Wed Dec 31 23:59:59 CET 2014
+
+// Custom formatting pattern
+DateTimeFormatter formatter =
+    DateTimeFormatter
+        .ofPattern("MMM dd, yyyy - HH:mm");
+
+LocalDateTime parsed = LocalDateTime.parse("Nov 03, 2014 - 07:13", formatter);
+String string = formatter.format(parsed);
+System.out.println(string);     // Nov 03, 2014 - 07:13
+```
+DateTimeFormatter is immutable and thread-safe.
 
 # Custom Objects
 
@@ -456,7 +577,187 @@ objReference instanceOf ClassName;
 boolean result = name instanceof String;
 ```
 
+### Serialization into Streams
+Objects can be represented as sequences of bytes that include information about the object's data, type, and types of data. Through deserialization, the object can be recreated.
+
+All fields must be serializable. If they are not, they mus tbe marked transient.
+
+```Java
+public class Cereal implements java.io.Serializable {
+    public String brand;
+    public Double sugar;
+    public Float servings;
+    public transient int socialSecurityNumber;
+
+    public void eat(int count) {
+        servings -= count;
+    }
+
+    public static void main(String [] args) {
+      Cereal c = new Cereal();
+      c.brand = "Chocolate Frosted Sugar Bombs";
+      c.sugar = 50000L;
+      c.SSN = 11122333;
+      c.servings = 101;
+      
+      try {
+         FileOutputStream fileOut =
+         new FileOutputStream("/tmp/cereal.ser");
+         ObjectOutputStream out = new ObjectOutputStream(fileOut);
+
+         out.writeObject(c); // Serialize
+
+         out.close();
+         fileOut.close();
+         System.out.printf("Serialized data is saved in /tmp/cereal.ser");
+      } catch (IOException i) {
+         i.printStackTrace();
+      }
+
+       Cereal e = null;
+       try {
+         FileInputStream fileIn = new FileInputStream("/tmp/cereal.ser");
+         ObjectInputStream in = new ObjectInputStream(fileIn);
+
+         e = (Cereal) in.readObject(); // Deserialize! Need to cast
+
+         in.close();
+         fileIn.close();
+      } catch (IOException i) {
+         i.printStackTrace();
+         return;
+      } catch (ClassNotFoundException c) {
+         System.out.println("Cereal class not found");
+         c.printStackTrace();
+         return;
+      }
+      
+      System.out.println("Deserialized Cereal...");
+      System.out.println("Brand: " + e.brand);
+      System.out.println("Sugar: " + e.sugar);
+      System.out.println("SSN: " + e.SSN);
+      System.out.println("Servings: " + e.servings);
+      /*
+      Deserialized Cereal...
+      Brand: Chocolate Frosted Sugar Bombs
+      Sugar: 50000L
+      SSN: 0 // transient values are not sent to the output stream.
+      Servings:101
+      */
+   }
+}
+```
+
 # Data Structures
+
+## Legacy
+### BitSet
+Like an arrayList of bits or flags that can be set and cleared individually. Can just use a set of boolean.
+
+```Java
+new BitSet();
+new BitSet(int size);
+```
+Cloneable and has methods:
+* `void set(int index)`: Sets bit at index to 1.
+* `void set(int index, boolean v)`: Sets to 1 if true, 0 if false.
+* `void set(int startIndex, int endIndex)`
+* `void set(int startIndex, int endIndex, boolean v)`
+* `boolean get(int index)`
+* `BitSet get(int startIndex, int endIndex)`
+* `void and(BitSet bitSet)`: Places result into the invoking object.
+* `void andNot(BitSet bitSet)`: For each 1 in bitSet, the corresponding bit in the invoking BitSet is cleared.
+* `void or(BitSet bitSet)`: Places result into the invoking object.
+* `void xor(BitSet bitSet)`: Places result into the invoking object.
+* `void clear()`
+* `void clear(int index)`
+* `void clear(int startIndex, int endIndex)`
+* `void flip(int index)`
+* `void flip(int startIndex, int endIndex)`
+* `boolean equals(Object bitSet)`
+* `boolean intersects(BitSet bitSet)`: True if at least one pair of corresponding bits are 1.
+* `boolean isEmpty()`: True if all bits are 0.
+* `int nextClearBit(int startIndex)`: Returns index of next zero (cleared) bit starting from startIndex.
+* `int nextSetBit(int startIndex)`: If no bits after and including startIndex are 1, returns -1.
+* `int size()`
+* `int length()`: Determined by the location of the last 1 bit.
+* `int cardinality()`: Number of 1 (set) bits.
+* `int hashCode()`
+* `String toString()`
+
+Prints as {index, index, index} of indices where the value is 1.
+
+### Vector
+Shrinks and grows automatically to accommodate new elements, which are accessible by index.
+
+Unlike arrayLists, is synchronized.
+```Java
+Vector vec = new Vector();
+Vector sized = new Vector(int size);
+Vector increment = new Vector(int size, int incr); // incr specifies number of elements to allocate each time it is resized upward
+Vector collect = new Vector(Collection c);
+```
+Some legacy methods:
+* `void setSize(int newSize)`
+* `void trimToSize()`
+* `void setElementAt(Object obj, int index)`
+* `void addElement(Object obj)`
+* `void insertElementAt(Object obj, int index)`
+* `boolean removeElement(Object obj)`: Removes first/ lowest-indexed occurence.
+* `void removeElementAt(int index)`
+* `protected void removeRange(int fromIndex, int toIndex)`: (fromIndex. toIndex] exclusive on that last one.
+* `void removeAllElements()`
+* `Object elementAt(int index)`
+* `int lastIndexOf(Object elem)`
+* `int lastIndexOf(Object elem, int index)`: Searches backwards from specified index.
+* `Object firstElement()`
+* `Object lastElement()`
+* `int capacity()`
+* `void copyInto(Object[] anArray)`
+* `Enumeration elements()`
+* `String toString()`
+
+### Dictionary
+Abstract class that maps keys to values. Obsolete as Maps are preferred.
+
+Legacy methods in addition to many Collection ones:
+* `Enumeration keys( )`
+* `Enumeration elements()`
+### Hashtable
+Organizes data based on some user-defined key structure. Concrete implementation of Dictionary, now implements the Map interface, so acts as a collection.
+
+Unlike HashMap, is synchronized.
+```Java
+new Hashtable();
+new Hashtable(int size);
+new Hashtable(int size, float fillRatio); // fillRatio between 0.0 and 1.0, the point at which the table will resize upward.
+new Hashtable(Map<Type extends K, Type extends V> map);
+```
+
+Some legacy functions, in addition to all Map ones:
+* `boolean contains(Object value)`
+* `void rehash()`: Increases size of the hash table and rehashes all keys.
+* `Enumeration keys()`
+* `Enumeration elements()`
+* `String toString()`
+
+#### Properties
+Maintains list of values with String keys and values.
+
+```Java
+// Empty property lists:
+new Properties(); // no default values
+new Properties(Properties propDefault); // same default values
+```
+* `Object setProperty(String key, String value)`: Returns previous value associated with the key or null if nothing existed before.
+* `String getProperty(String key)`: null if not in the list or the default property list.
+* `String getProperty(String key, String defaultProperty)`: Returns value associated with key, returns defaultProperty if not found in the list or the default property list.
+* `void list(PrintStream streamOut)`
+* `void list(PrintWriter streamOut)`
+* `void load(InputStream streamIn) throws IOException`
+* `Enumeration propertyNames()`
+* `void store(OutputStream streamOut, String description)`
+
 
 ## Arrays
 Fixed-size sequential collection of elements of the same type.
@@ -486,7 +787,6 @@ int[][] arrayTwo = {
     {4, 5, 6},
 };
 ```
-
 
 ### Iteration
 ```Java
@@ -528,22 +828,72 @@ overallMax is still 0 if max to point is <0
     Otherwise, set it to the max to that point
 
 ## Collections
-* `.size()`
-* `.isEmpty()`
-* `.contains(element)`
-* `.add(element)`
-* `.addAll(Collection)`: Union of two collections
-* `.remove(index or element)`
-* `.removeAll(Collection)`
-* `.clear()`
-* `.retainAll(Collection)`: Intersection between two collections
-* `.equals(Object o);`
-* `.toArray()`
+Standard implementations for legacy structures.
+* `int .size()`
+* `boolean .isEmpty()`
+* `boolean .contains(Object o)`
+* `boolean .containsAll(Collection c)`
+* `boolean .add(element)`
+* `boolean .addAll(Collection c)`: Union of two collections.
+* `boolean .remove(index or element)`
+* `boolean .removeAll(Collection c)`
+* `boolean .retainAll(Collection c)`: Intersection between two collections. Returns true if elements were removed, i.e. the invoking collection was changed.
+* `void .clear()`
+* `boolean .equals(Object o);`
+* `Object[] .toArray()`
+* `Object[] .toArray(Object[] array)`: Returns an array containing only the collection elements with the same type as that of array.
+* `int .hashCode()`
+* `Iterator .iterator()`
 
 ```Java
 Collection<Type> c;
 List<Type> list = new ArrayList<Type>(collection);
 ```
+#### Algorithms
+Static methods.
+* `static void fill(List list, Object obj)`: Assigns obj to each element of the list.
+* `static void copy(List list1, List list2)`
+* `static boolean replaceAll(List list, Object old, Object new)`: Returns true if at least one replacement occurred.
+* `static void swap(List list, int idx1, int idx2)`: Exchange or switch elements at indices.
+* `static int indexOfSubList(List list, List subList)`: Returns index first occurence or -1 if not found.
+* `static int lastIndexOfSubList(List list, List subList)`
+* `static Object max(Collection c)`: Returns max based on natural ordering. Collection need not be sorted.
+* `static Object max(Collection c, Comparator comp)`: Returns max according to comp.
+* `static Object min(Collection c)`
+* `static Object min(Collection c, Comparator comp)`
+* `static List nCopies(int num, Object obj)`: Returns num copies of obj contained in an immutable list for num >= 0.
+* `static ArrayList list(Enumeration enum)`
+* `static Enumeration enumeration(Collection c)`
+* `static Set singleton(Object obj)`: Returns obj as an immutable set. Easy way to convert a single object into a set.
+* `static List singletonList(Object obj)`: Returns obj as an immutable list. Easy way to convert a single object into a list.
+* `static Map singletonMap(Object k, Object v)`: Returns the key, value pair k, v as an immutable map. Easy way to convert a single key, value pair into a map.
+* `static Collection unmodifiableCollection(Collection c)`
+* `static Set unmodifiableSet(Set s)`
+* `static SortedSet unmodifiableSortedSet(SortedSet ss)`
+* `static List unmodifiableList(List list)`
+* `static Map unmodifiableMap(Map m)`
+* `static SortedMap unmodifiableSortedMap(SortedMap sm)`
+* `static Collection synchronizedCollection(Collection c)`: Returns a thread-safe collection backed by c.
+* `static Set synchronizedSet(Set s)`
+* `static SortedSet synchronizedSortedSet(SortedSet ss)`
+* `static List synchronizedList(List list)`
+* `static Map synchronizedMap(Map m)`
+* `static SortedMap synchronizedSortedMap(SortedMap sm)`
+
+
+Ordering
+* `static void sort(List list)`: Sorts by natural ordering.
+* `static void sort(List list, Comparator comp)`: Sorts by comparator.
+* `static void reverse(List list)`: Reverses in place.
+* `static Comparator reverseOrder()`: Returns a reverse comparator.
+* `static void rotate(List list, int n)`: Rotates list by n places to the right. To go left, use negative n.
+* `static void shuffle(List list)`: Randomizes elements in list.
+* `static void shuffle(List list, Random r)`: Uses r as source of random numbers.
+
+Search
+* `static int binarySearch(List list, Object value)`: List must be sorted. Returns -1 if not found, else position in list.
+* `static int binarySearch(List list, Object value, Comparator c)`: Searches for value in list ordered according to comparator c.
+
 #### Iteration
 ```Java
 Collection<Type> collection = new HashSet<Type>();
@@ -570,24 +920,34 @@ for (Type t : collection) {
 ```
 
 ### Lists
-Best for random access and ordering, indexed
-When reach end, doubles in size
-* `.get(index)`
-* `.add(index, value)` - adds to the end or inserts into position and pushes everything ahead of it one position.
-* `.set(index, value)` - replaces value at index - value MUST exist.
-* `.indexOf(value)`
-* `.toArray()`
-* `.clear()`
+Best for random access and ordering, indexed (zero-based)
+
+When reach end, doubles in size. Can contain duplicates.
+* `Object .get(int index)`
+* `void .add(int index, Object value)` - adds to the end or inserts into position and pushes everything ahead of it one position.
+* `boolean .addAll(int index, Collection c)`: Shift up any pre-existing elements at or beyond the index of insertion; no elements are overwritten. Returns true if invoking list changes.
+* `Object remove(int index)`: Compacts the resulting list by decrementing subsequent element indices. Returns the deleted element.
+* `.set(int index, Object value)`: Replaces value at index - value MUST exist.
+* `int .indexOf(Object value)`: If nothing there, returns -1.
 * `.sort(Comparator<Type> c)`
+* `ListIterator .listIterator()`
+* `ListIterator .listIterator(int index)`: begins at the specified index.
+* `List subList(int start, int end)`: From start to end - 1.
+* `Object clone()`: Shallow copy of the LinkedList
 
 #### Vectors/ ArrayLists
 Dynamically resizable array - when reaching limit, doubles in size. In Java, the resizing factor is 2.
 Amortized time to insert.
+* `void ensureCapacity(int minCapacity)`
+* `void trimToSize()`: Trims capacity to list's current size().
+* `int lastIndexOf(Object o)`
+* `protected void removeRange(int fromIndex, int toIndex)`: removes all elements with indices between (fromIndex, toIndex] (excluding at toIndex).
 
 ```Java
+List<Integer> specifiedCapacity = new ArrayList<Integer>(3); // sets initial capacity
 List<Integer> honeydew = new ArrayList<Integer>();
     // can initialize with a collection or do .addAll()
-List<String> fruits = new ArrayList<String>(Arrays.asList("cantelope","strawberry", "raspberry"));
+List<String> fruits = new ArrayList<String>(Arrays.asList("cantelope","strawberry", "raspberry")); // new ArrayList<Type>(Collection c)
 
 for (String sweet : fruits) {
     System.out.println(sweet);
@@ -613,6 +973,26 @@ vec.add("value");
 System.out.println(vec.get(0));
 ```
 #### Linked Lists
+* `Object getFirst()`
+* `Object getLast()`
+* `int indexOf(Object o)`: First occurence of o. -1 if does not contain.
+* `int lastIndexOf(Object o)`
+* `void addFirst(Object o)`
+* `void addLast(Object o)`
+* `void add(int index, Object element)`: IndexOutOfBoundsException if index < 0 or index > size().
+* `boolean add(Object o)`: Appends to end.
+* `boolean addAll(Collection c)`: Append to end in order that the collection's iterator returns them.
+* `boolean addAll(int index, Collection c)`: Adds starting at the specified index.
+* `Object remove(int index)`
+* `boolean remove(Object o)`
+* `Object removeFirst()`
+* `Object removeLast()`
+
+```Java
+LinkedList<Type> list = new LinkedList<Type>(Collection c); // or no collection c
+```
+
+#### Custom Linked List
 Sequence of Nodes, each with data and pointers to other nodes
 Constant time to add/remove from the beginning
 
@@ -651,17 +1031,18 @@ Each node points to the next.
 Each node has pointers to the next and the previous.
 
 ## Stack (LIFO)
-Push to the top of the stack and pop off the top.
-LinkedList where add to and remove from one side.
+Push to the top of the stack and pop off the top. 
+LinkedList where add to and remove from one side. Subclass of Vector.
 
 ```Java
 Stack<Integer> cup = new Stack<Integer>();
 ```
 
-* `.empty()`
-* `.push(element);`
-* `.pop()`
-* `.peek()`
+* `boolean .empty()`
+* `Object .push(element);`
+* `Object .pop()`: Removes and returns top element of the stack.
+* `Object .peek()`: Returns element at the top, but doesn't remove.
+* `int search(Object element)`: Returns offset from top of the stack, else if not found, returns -1.
 
 ### Persistence/ Immutability
 If an item is added or deleted, maintain the previous version and return a new one with the modifications
@@ -961,6 +1342,11 @@ Does not allow duplicate values - maintains a unique list.
 * `.contains()`
 ```Java
 Set<String> hashbrowns = new HashSet<String>();
+TreeSet sortedSet = new TreeSet<String>(hashbrowns); // Collection c
+// int capacity
+// int capacity, float fillRatio or loadCapacity
+
+
 ```
 
 #### Iteration
@@ -970,13 +1356,44 @@ while(iter.hasNext()) {
     System.out.println(iter.next());
 }
 ```
+### LinkedHashSet
+Linked list of entries in insertion order. Hash code is used as index.
 
 ### TreeSet
-Maintains order by sorting with Comparator or comparable
+Maintains order by sorting with Comparator or comparable.
+* `Comparator .comparator()`: null if natural ordering is used.
+* `Object .first()`
+* `Object .last()`
+* `SortedSet subSet(Object start, Object end)`: returns elements from start to end - 1.
+* `SortedSet .headSet(Object end)`: returns elements less than end that are in the invoking set.
+* `SortedSet .tailSet(Object start)`: returns elements greater than or equal to the start that are in the invoking set.
+```Java
+new TreeSet();
+new TreeSet(Collection c);
+new TreeSet(Comparator comp);
+new TreeSet(SortedSet ss);
+```
 
 ## Maps
 Unique keys, values
+
 At each index, there is a bucket, often a linkedList or tree, of {key, value} pairs.
+* `Object .get(Object k)`: Returns associated value.
+* `Object .put(Object k, Object v)`: Overwrites any previous value associated with the key k. Returns null if key did not already exist, else returns the previous value linked to the key.
+* `void .putAll(Map m)`
+* `Object remove(Object k)`: Removes entry with key k.
+* `boolean .containsKey(Object k)`
+* `boolean .containsValue(Object v)`
+* `Set .entrySet()`
+* `Set .keySet()`
+* `Collection values()`: As there can be duplicate values but not duplicated keys.
+
+Entries: {unique key, value} pairs.
+* `boolean .equals(Object obj)`
+* `Object .getKey()`
+* `Object .getValue()`
+* `Object .setValue(Object v)`: Sets the vlaue for entry to v. If this is not the correct type, throw ClassCastException. If map doesn't permit null keys and v is null, NullPointerException. If map cannot be changed, UnsupportedOperationException.
+* `int .hashCode()`
 
 ```Java 
 int index = hashFunction(key) % array.length;
@@ -1012,13 +1429,17 @@ Keys are objects, so need to use Integer or String to use int and string as keys
 * `.remove(key, Optional value)`
 >    Will remove only if mapped to that value
 * `.replace(key, value)`
-* `.containsKey(key)`
-* `.containsValue()`
-* `.keySet()`
-* `.values()`
+* `boolean .containsKey(key)`
+* `boolean .containsValue(value)`
+* `Set .entrySet()`
+* `Set .keySet()`
+* `Collection .values()`
 
 ```Java
 Map<String, Integer> breakfast = new HashMap<String, Integer>();
+Map<String, Integer> meals = new HashMap<String, Integer>(breakfast);
+Map<String, Integer> specifiedCapacity = new HashMap<String, Integer>(5); // intitializes capacity to a certain amount.
+Map<String, Integer> breakfast = new HashMap<String, Integer>(int capcity, float fillRatio); // when the fill ratio is met, will double in size
 ```
 ##### Thread-Safe HashMap
 ```Java
@@ -1056,15 +1477,43 @@ while (iter.hasNext()) {
     System.out.println(mapElement.getKey() + " : " + modifiedValue); 
 } 
 ```
+### WeakHashMap
+Stores only weak references to its keys, so if a key is no longer referenced outside of the WeakHashMap, its key-value pair can be garbage collected.
+
+### LinkedHashMap
+Linked list of entries in order of insertion.
+* `new LinkedHashMap(Map m)`
+* `new LinkedHashMap(int capacity)`
+* `new LinkedHashMap(int capacity, float fillRatio)`
+* `LinkedHashMap(int capacity, float fillRatio, boolean Order)`: If order is true, store by order of last access, else insertion order (default).
+* `protected boolean removeEldestEntry(Map.Entry eldest)`
+
+### IdentityHashMap
+Uses reference equality when comparing elements
 
 ### TreeMap
-O(log N) lookup and insertion.
+O(log N) lookup and insertion. Sorted, rapid retrieval.
 
 Naturally ordered keys that implement the ``Comparable`` interface.
 
 Uses a red-black tree so can get, put, and remove in O(log(n)) time so can re-sort.
 
 Will also allow you to output the next x pairs after a given key.
+
+Maintains order by sorting with Comparator or comparable.
+* `Comparator .comparator()`: null if natural ordering is used.
+* `Object .firstKey()`
+* `Object .lastKey()`
+* `SortedMap subMap(Object start, Object end)`: returns elements with keys greater than or equal to start and less than end.
+* `SortedMap .headMap(Object end)`: returns elements less than end that are in the invoking set.
+* `SortedMap .tailMap(Object start)`: returns elements greater than or equal to the start that are in the invoking set.
+
+```Java
+TreeMap<String, Integer> aspen = new TreeMap<String, Integer>(Comparator comp);
+TreeMap<String, Integer> beech = new TreeMap<String, Integer>(Map m);
+TreeMap<String, Integer> chestnut = new TreeMap<String, Integer>(SortedMap sm); // intializes with same sorted order as sm
+
+```
 
 ### LinkedHashMap
 O(1) lookup and insertion.
@@ -1074,6 +1523,8 @@ Keys ordere by insertion order.
 Uses doubly-linked buckets.
 
 Useful for caching, where insertion ordre matters.
+
+### IdentityHashmap
 
 ## Graphs
 Nodes connecting to other nodes
@@ -2409,6 +2860,23 @@ public static int kthSmallest(int[] array, int low, int high, int k) {
     }
 }
 ```
+# Iterator
+Cycle through elements in a collection, obtaining or removing elements. 
+
+Each collection class has a `c.iterator()` method that returns an iterator to the start of the collection.
+* `boolean iter.hasNext()`: true if there are more elements.
+* `Object iter.next() throws NoSuchElementException`: so best to check if .hasNext() first.
+* `void iter.remove()`: Removes current element. Need to precede by a call to next() else throws IllegalStateException.
+
+ListIterator allows for bidirectional traversal and the modification of elements.
+* `void liter.set(Object obj)`: Assigns obj to the current element (the last returned by a call to liter.next() or liter.previous()).
+* `void liter.add(Object ob)`: Inserts obj into the list in front of the element that will be returned by the next call to `liter.next()`.
+* `boolean liter.hasPrevious()`
+* `Object liter.previous()`
+* `int liter.nextIndex()`: If no next element, returns size of the list.
+* `int liter.previousIndex()`: if no previous element, returns -1.
+
+
 
 # Comparator
 Return 
@@ -2426,6 +2894,10 @@ class SortByCustom implements Comparable<Type> {
         // if a is equal to b, 0 - 0 = 0
         // if a is before b, 0 - 1 = -1
     }
+    // optional, only if want to override:
+    public boolean equals(Object obj) {
+        // returns true if obj and this are both comparator objects that use the same ordering
+    }
 }
 Collections.sort(ArrayList<Type> ar, new SortByCustom());
 // Now ar is sorted.
@@ -2434,9 +2906,14 @@ Collections.sort(ArrayList<Type> ar, new SortByCustom());
 Or more involved: 
 
 ```Java
-Class implements Comparable<className>{
-    Public int compare(className o1, className o2){
+Class implements Comparable<className>, Comparator<classname>{
+    private Type variable;
+    public int compare(className o1, className o2){
         // comparison function
+        return o1.variable - o2.variable;
+    }
+    public int compareTo(className a) {
+        return (this.variable).compareTo(a.variable);
     }
 }
 List<String> definedOrder = // define your custom order
@@ -2455,7 +2932,14 @@ Comparator<Car> comparator = new Comparator<Car>(){
     }
 };
 Comparator<Car> carComparator = Comparator.comparing( c -> definedOrder.indexOf(c.getColor()));
-List<Object> objList = findObj(name); Collections.sort(objList, new Comparator<Object>() { @Override public int compare(Object a1, Object a2) { return a1.getType().compareToIgnoreCase(a2.getType()); } });
+
+List<Object> objList = findObj(name); Collections.sort(objList, 
+new Comparator<Object>() { 
+    @Override 
+    public int compare(Object a1, Object a2) { 
+        return a1.getType().compareToIgnoreCase(a2.getType()); 
+    } 
+});
 ```
 
 # Input
@@ -2488,6 +2972,14 @@ System.err - Standard error, used to output usually to a computer screen.
 ```
 
 ## Streams from Files
+
+Java NIO Class Files to generate Stream<String> of a Text file, where each line becomes an element:
+```Java
+Path path = Paths.get("C:\\file.txt");
+Stream<String> streamOfStrings = Files.lines(path);
+Stream<String> streamWithCharset = Files.lines(path, Charset.forName("UTF-8"));
+```
+
 InputStream reads data from a source.
 
 OutputStream writes data to a destination.
@@ -2928,10 +3420,27 @@ See Access Modifiers below.
 
 
 ### Encapsulation
-Encapsulation hides implementation
+Encapsulation hides implementation.
 
-> Bind data and code together as a single unit, safe from modification.
-> use private variables, public getters and setters instead.
+Bind data and code together as a single unit, safe from modification.
+
+> Use private variables, public getters and setters instead to modify and view the variables, if you want to allow such things. This is also called data hiding.
+
+```Java
+public class Encap {
+    private String name;
+    // Getter
+    public String getName() {
+        return name;
+    }
+    // Setter
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+```
+
+If want something to be read- or write-only, just don't include the setter or getter.
 
 ### Inheritance Extends
 Inheritance of properties: subclass or derived class inherits from the superclass or base class. They inherit the implementation of methods, but this can be overridden. 
@@ -2983,11 +3492,59 @@ Super duper = new Super();
 duper = new Sub(); // can refer to subtypes of its declared type, works with declared interfaces too
 ```
 
-### Interfaces
-Like contracts on how ot communicate. Interfaces define methods but leave implementation up to the subclass. 
+### Interfaces are Implemented
+Like contracts on how tp communicate or behave. Interfaces define methods but leave implementation up to the subclass. They're collections of abstract methods, default methods, static methods, constants, and nested types.
 
-Interfaces are a blueprint or a contract, telling you what it can do - assigns functions with return values but doesn’t define them: all methods are public abstract
+Interfaces are a blueprint or a contract, telling you what it can _do_ - assigns functions with return values but doesn’t define them: all methods are public abstract.
 
+Interfaces cannot be instantiated. There are no constructors or instance fields - only static final ones. Multiple interfaces can be implemented for one class. Implementing classes can be abstract themselves.
+
+```Java
+public interface InterfaceName {
+    static final Type variable = value;
+    public void method(); // implicitly abstract and public
+}
+public interface ChildInterface extends InterfaceName {
+    public void childMethod();
+}
+public interface AnotherInterface {
+    public void anotherMethod();
+}
+
+public class Implementor implements ChildName, AnotherInterface {
+    public void method() { // same return type or subtype
+        implementation();
+    }
+    public void childMethod() {
+        implementation();
+    }
+    public void anotherMethod() {
+        implementation();
+    }
+}
+```
+Interfaces with no methods are tagging interfaces. They are used to create common parents for groups with similar uses. Classes that implement a tagging interface now have an associated datatype - that interface type.
+
+Interfaces can have non-abstract method implementations by using the default keyword.
+```Java
+interface Formula {
+    double calculate(int a);
+
+    default double sqrt(int a) {
+        return Math.sqrt(a);
+    }
+}
+
+Formula formula = new Formula() { // impelementation of the interface as an anonymous object
+    @Override
+    public double calculate(int a) {
+        return sqrt(a * 100);
+    }
+};
+
+formula.calculate(100);     // 100.0
+formula.sqrt(16);           // 4.0
+```
 
 ### Abstraction
 Abstraction: abstract class or interface and then implements. Only provides the functionality, not the implementation. User knows what it does but not how.
@@ -3009,10 +3566,17 @@ public abstract class Parent {
     public abstract void abstractMethod(); // no implementation
 }
 public class Child extends Parent {
+    // can do if want:
+    public void concreteMethod() {
+        override();
+    }
     public void abstractMethod() {
         implementation();
     }
 }
+
+Child c = new Child();
+Parent p = new Child(); // uses Child's version of concreteMethod but can't see any methods unique to child and not in parent
 ```
 
 ### Polymorphism
@@ -3161,13 +3725,106 @@ public class ClassName {
 System.out.println("Prints this string to console.");
 long timeInMS = System.currentTimeMillis();
 ```
+### Casting
+
 ### Generics
-Type-erasure: elimates parameterized types when translates source code into Java Virtual Machine byte code.
+Type-erasure: elimates parameterized types when translates source code into Java Virtual Machine byte code. Can specify sets of related methods or types.
 
 Syntactic sugar: Object<Type> is just Object where its instances are cast to (Type).
 
-Cannot use primitives like int or string - must use Integer or String.
+Cannot use primitives like int or string - must use Integer or String. Can use mutliple if separate them with commas.
 
+```Java
+Live Demo
+
+public class GenericMethodTest {
+   // generic method printArray
+   public static < E > void printArray( E[] inputArray ) {
+      // Display array elements
+      for(E element : inputArray) {
+         System.out.printf("%s ", element);
+      }
+      System.out.println();
+   }
+
+   public static void main(String args[]) {
+      // Create arrays of Integer, Double and Character
+      Integer[] intArray = { 1, 2, 3, 4, 5 };
+      Double[] doubleArray = { 1.1, 2.2, 3.3, 4.4 };
+      Character[] charArray = { 'H', 'E', 'L', 'L', 'O' };
+
+      System.out.println("Array integerArray contains:");
+      printArray(intArray);   // pass an Integer array
+
+      System.out.println("\nArray doubleArray contains:");
+      printArray(doubleArray);   // pass a Double array
+
+      System.out.println("\nArray characterArray contains:");
+      printArray(charArray);   // pass a Character array
+   }
+}
+```
+Bounded type parameters restrict the number of types that can be passed. Specify that the type extends some class or interface to ensure this.
+```Java
+public class MaximumTest {
+   // determines the largest of three Comparable objects
+   
+   public static <T extends Comparable<T>> T maximum(T x, T y, T z) {
+      T max = x;   // assume x is initially the largest
+      
+      if(y.compareTo(max) > 0) {
+         max = y;   // y is the largest so far
+      }
+      
+      if(z.compareTo(max) > 0) {
+         max = z;   // z is the largest now                 
+      }
+      return max;   // returns the largest object   
+   }
+   
+   public static void main(String args[]) {
+      System.out.printf("Max of %d, %d and %d is %d\n\n", 
+         3, 4, 5, maximum( 3, 4, 5 ));
+
+      System.out.printf("Max of %.1f,%.1f and %.1f is %.1f\n\n",
+         6.6, 8.8, 7.7, maximum( 6.6, 8.8, 7.7 ));
+
+      System.out.printf("Max of %s, %s and %s is %s\n","pear",
+         "apple", "orange", maximum("pear", "apple", "orange"));
+   }
+}
+```
+Classes can also be generic.
+
+```Java
+public class Box<T, B> {
+   private T t;
+   private B b;
+
+   public void add(T t, B b) {
+      this.t = t;
+      this.b = b;
+   }
+
+   public T get() {
+      return t;
+   }
+   public B get() {
+       return b;
+   }
+
+   public static void main(String[] args) {
+      Box<Integer> integerBox = new Box<Integer, Double>();
+      Box<String> stringBox = new Box<String, String>();
+    
+      integerBox.add(new Integer(10), new Double(20.0));
+      stringBox.add(new String("Hello World"), new String("It's me again."));
+
+      System.out.printf("Integer Value :%d\n\n", integerBox.get());
+      System.out.printf("String Value :%s\n", stringBox.get());
+   }
+}
+```
 ### Lambda Expressions
 A step towards functional programming.
 
@@ -3319,7 +3976,29 @@ Best practice: Declare variables private by default and supply getters and sette
 ### Default = (nonexplicit) Package-Private
 Package-level
 
-Accessibily by anything in the directory to which the class belongs.
+Accessibile by anything in the directory to which the class belongs.
+
+#### Packages
+Packages are groups of related types (classes, enums, interfaces, and annotations). Packages are used to prevent naming conflicts (common namespace), control access (access protection), and make searching through a project easier.
+
+java.lang bundles fundamental classes, and java.io is a package for bundling input and output functions.
+
+To use another class in the same package, you don't need to specify the package name. If you need to access something in a different package, you must use the prefix `differentPackage.thingTryingToAccess` or you can import it at the top of the file: `import differentPackage.*` (imports all exportable things in differentPackage) or `import differentPackage.thingTryingToAccess`.
+
+Each soure file can have one package statement. If none is provided, the current default one is used.
+```Java
+// Compile a file into a .class file in the same destination folder (can be .):
+javac -d DestinationFolder fileName.java
+
+// in fileName:
+package pkge;
+
+class ClassName {
+    ...
+}
+```
+Many companies use reversed internet domain name for package names. A path to a file might look like:
+`...\com\apple\computers\Dell.java` for `Dell.java` in `package com.apple.computers`. When `javac -d . Dell.java` is called, this compiles to `.\com\apple\computers\Dell.class` with the same path and different file name for any other classes within `Dell.java`.
 
 ### Protected
 Subclass-level
@@ -3423,49 +4102,1851 @@ Replacement methods
 * `Matcher appendReplacement(StringBuffer sb, String replacement)`: does not have a terminal append-and-replace step.
 * `public StringBuffer appendTail(StringBuffer sb)`: has a terminal append-and-replace step.
 
+# Javadoc
+/** documentation */ comments help to preare automatically-generated documentation. part of JDK, makes HTML documentation. You can use HTML tags in the description. There are other @tags javadoc recognizes.
+
+```Java
+// Command line to process
+javadoc AddNum.java
+
+   /**
+   * This method is used to add two integers. This is
+   * a the simplest form of a class method, just to
+   * show the usage of various javadoc Tags.
+   * @param numA This is the first paramter to addNum method
+   * @param numB  This is the second parameter to addNum method
+   * @return int This returns sum of numA and numB.
+   */
+   public int addNum(int numA, int numB) {
+      return numA + numB;
+   }
+```
 # Embedded JavaScript
+Applets are Java programs that run in Web browsers, embedded in HTML pages. Need a JVM to view.
+* `init`: Called after <param> tags have been processed.
+* `start`: called automatically after the browser calls init. Also called whenever the user returns to the page with the applet having gone off to other pages.
+* `paint`: Invoked immediately after start() and anytime the applet needs to repaint intself in the browser. Can also get parameters here.
+* `stop`: Automatically called when the user moves off the page.
+* `destroy : Called when the browser shuts down notmally.
+
+```Java
+import java.awt.event.MouseListener;
+import java.awt.event.MouseEvent;
+import java.applet.Applet;
+import java.awt.Graphics;
+
+// Must be a public class to load code.
+public class CheckerApplet extends Applet implements MouseListener{ // must extend the Applet class so the browser can obtain information about the applet
+   int squareSize = 50;   // initialized to default size
+
+   public void init() {
+        addMouseListener(this);
+        String squareSizeParam = getParameter ("squareSize");
+        parseSquareSize (squareSizeParam);
+   
+        String colorParam = getParameter ("color");
+        Color fg = parseColor (colorParam);
+   
+        setBackground (Color.black);
+        setForeground (fg);
+   }
+   private void parseSquareSize (String param) {
+        if (param == null) return;
+        try {
+            squareSize = Integer.parseInt (param);
+        } catch (Exception e) {
+            // Let default value remain
+        }
+   }
+   public void paint(Graphics g) {
+      // Draw a Rectangle around the applet's display area.
+      g.drawRect(0, 0, 
+      getWidth() - 1,
+      getHeight() - 1);
+
+      // display the string inside the rectangle.
+      g.drawString(strBuffer.toString(), 10, 20);
+   }
+   private Color parseColor (String param) {}
+   public void mouseEntered(MouseEvent event) {
+   }
+   public void mouseExited(MouseEvent event) {
+   }
+   public void mousePressed(MouseEvent event) {
+   }
+   public void mouseReleased(MouseEvent event) {
+   }
+   public void mouseClicked(MouseEvent event) {
+      parseColor("mouse clicked! ");
+   }
+   // no main method
+}
+
+```
+```HTML
+   <title>Checkerboard Applet</title>
+   <hr>
+   <applet code = "CheckerApplet.class" width = "480" height = "320">
+      <param name = "color" value = "blue">
+      <param name = "squaresize" value = "30"> 
+      <!-- Parameter names are not case-sensitive. -->
+      If your browser was Java-enabled, a Checkerboard would appear here.
+   </applet>
+   <hr>
+</html>
+```
+As containers, Applets inherit event-handling methods. With Graphics, you can display images. Applets can also play audio clips.
+
+
+Sandbox security
+
 # Safe Varargs Method Invocation
 # Memory Leaks
 # jar Files
+Java Archive file.
 # Type Inference for Generic Instance Creation
 # Casting types
 # Currencies
 
-# Concurrency
+# Concurrency and Multithreading
+Two or more threads can run concurrently, each handling a different task at the same time.
+
+Threads go from new Thread() New -> start() Runnable -> run() Running -> (optional) sleep(), wait() Waiting -> end of execution Dead or Terminated.
+
+Thread priorities from 1 to 10, default 5, influence the order in which threads are scheduled.
+
+Threads
+* `void start()`: Starts the thread in a separate path of execution and invokes the run() method on the Thread object.
+* `void run()`
+* `public final void setName(String name)`
+* `public final void setPriority(int priority)`: Between 1 and 10, default 5.
+* `public final void setDaemon(boolean on)`: True denotes as a daemon thread.
+* `public final boolean isAlive()`: True if thread is alive - has been started and not completed.
+
+Interaction
+* `public final void join(long millisec)`: Current thread invokes on a second thread, causing current thread to block until the second terminates or the number of millisec passes.
+* `public void interrupt()`: Interrupts this thread, causing it to continue execution if it was blocked for any reason.
+
+Static methods, performed on the currently running thread.
+* `public static Thread currentThread()`: Reference to the thread that invoked it.
+* `public static void yield()`: Yield to other threads of the same priority that are waiting to be scheduled.
+* `public static void sleep(long millisec)`: Block for at least millisec time.
+* `public static boolean holdsLock(Object x)`
+* `public static void dumpStack()`: Print stack trace.
+
+Deprecated static methods to control behaviors
+* `public void stop()`: Completely stops a thread.
+* `public void suspend()`: Pauses execution.
+* `public void resume()`: Resumes a suspended thread.
+
+```Java
+// Implement Runnable
+class RunnableDemo implements Runnable { // has a run() method.
+   private Thread t;
+   private String threadName;
+   
+   RunnableDemo( String name) {
+      threadName = name;
+      System.out.println("Creating " +  threadName );
+   }
+   
+   public void run() {
+      System.out.println("Running " +  threadName );
+      try {
+         for(int i = 4; i > 0; i--) {
+            System.out.println("Thread: " + threadName + ", " + i);
+            // Let the thread sleep for a while.
+            Thread.sleep(50);
+         }
+      } catch (InterruptedException e) {
+         System.out.println("Thread " +  threadName + " interrupted.");
+      }
+      System.out.println("Thread " +  threadName + " exiting.");
+   }
+   
+   public void start () {
+      System.out.println("Starting " +  threadName );
+      if (t == null) {
+         t = new Thread (this, threadName);
+         t.start ();
+      }
+   }
+}
+
+// Or Extend the Thread Class
+class ThreadDemo extends Thread {
+   private Thread t;
+   private String threadName;
+   
+   ThreadDemo( String name) {
+      threadName = name;
+      System.out.println("Creating " +  threadName );
+   }
+   
+   public void run() { // Override the run method
+      System.out.println("Running " +  threadName );
+      try {
+         for(int i = 4; i > 0; i--) {
+            System.out.println("Thread: " + threadName + ", " + i);
+            // Let the thread sleep for a while.
+            Thread.sleep(50);
+         }
+      } catch (InterruptedException e) {
+         System.out.println("Thread " +  threadName + " interrupted.");
+      }
+      System.out.println("Thread " +  threadName + " exiting.");
+   }
+   
+   public void start () {
+      System.out.println("Starting " +  threadName );
+      if (t == null) {
+         t = new Thread (this, threadName);
+         t.start ();
+      }
+   }
+}
+
+public class TestThread {
+   public static void main(String args[]) {
+      Runnable hello = new DisplayMessage("Hello");
+      Thread thread1 = new Thread(hello);
+      thread1.setDaemon(true);
+      thread1.setName("hello");
+      System.out.println("Starting hello thread...");
+      thread1.start();
+
+      Runnable bye = new DisplayMessage("Goodbye");
+      Thread thread2 = new Thread(bye);
+      thread2.setPriority(Thread.MIN_PRIORITY); // 1
+      thread2.setDaemon(true);
+      System.out.println("Starting goodbye thread...");
+      thread2.start();
+
+      RunnableDemo R1 = new RunnableDemo( "Thread-1");
+      R1.start();
+      
+      ThreadDemo T2 = new ThreadDemo( "Thread-2");
+      T2.start();
+   }   
+}
+```
+Because Runnable is an interface that defines a single method run(), can use lambda expressions to define it:
+```Java
+Runnable task = () -> {
+    String threadName = Thread.currentThread().getName();
+    System.out.println("Hello " + threadName);
+};
+
+task.run(); // current thread is main
+
+Thread thread = new Thread(task);
+thread.start(); // no guarentee when runnable is invoked - could be after Done!
+System.out.println("Done!");
+```
+
 ## Thread Synchronization
+Don't want to override data or get stale data, so need to synchronize threads and their access to certain resouces. Each object in Java is associated with a monitor which a thread can lock or unlock, with only one thread at a time able to hold a lock on that monitor.
+
+You can create synchronized blocks in your code to surround shared resources. `synchronized(objectIdentifier)` where objectIdentifier is a reference to an object whose lock associates with the monitor the synchronzied statement needs in order to be accessed.
+
+```Java
+class PrintDemo {
+   public void printCount() {
+      try {
+         for(int i = 5; i > 0; i--) {
+            System.out.println("Counter   ---   "  + i );
+         }
+      } catch (Exception e) {
+         System.out.println("Thread  interrupted.");
+      }
+   }
+}
+
+class ThreadDemo extends Thread {
+   private Thread t;
+   private String threadName;
+   PrintDemo PD;
+
+   ThreadDemo( String name,  PrintDemo pd) {
+      threadName = name;
+      PD = pd;
+   }
+   
+   public void run() {
+      synchronized(PD) { // object reference is the lock
+         PD.printCount();
+      }
+      System.out.println("Thread " +  threadName + " exiting.");
+   }
+
+   public void start () {
+      System.out.println("Starting " +  threadName );
+      if (t == null) {
+         t = new Thread (this, threadName);
+         t.start ();
+      }
+   }
+}
+
+public class TestThread {
+
+   public static void main(String args[]) {
+      PrintDemo PD = new PrintDemo();
+
+      ThreadDemo T1 = new ThreadDemo( "Thread - 1 ", PD );
+      ThreadDemo T2 = new ThreadDemo( "Thread - 2 ", PD );
+
+      T1.start();
+      T2.start();
+
+      // wait for threads to end
+      try {
+         T1.join();
+         T2.join();
+      } catch ( Exception e) {
+         System.out.println("Interrupted");
+      }
+   }
+}
+/*
+Starting Thread - 1
+Starting Thread - 2
+Counter   ---   5
+Counter   ---   4
+Counter   ---   3
+Counter   ---   2
+Counter   ---   1
+Thread Thread - 1  exiting.
+Counter   ---   5
+Counter   ---   4
+Counter   ---   3
+Counter   ---   2
+Counter   ---   1
+Thread Thread - 2  exiting.
+*/
+```
+## Interthread Communication
+Nesting synchronized blocks can cause deadlocks, where a thread is waiting on a resource another thread is holding, while the other thread is waiting on a resource the first is holding.
+
+* `public void wait()`: Causes the current thread to wait until another thread invokes the notify().
+* `public void notify()`: Wakes up a single thread that is waiting on this object's monitor.
+* `public void notifyAll()`: Wakes up all the threads that called wait( ) on the same object. Uncertain which thread will then get the lock.
+
+```Java
+class Chat {
+   boolean flag = false;
+
+   public synchronized void Question(String msg) {
+      if (flag) {
+         try {
+            wait();
+         } catch (InterruptedException e) {
+            e.printStackTrace();
+         }
+      }
+      System.out.println(msg);
+      flag = true;
+      notify();
+   }
+
+   public synchronized void Answer(String msg) {
+      if (!flag) {
+         try {
+            wait();
+         } catch (InterruptedException e) {
+            e.printStackTrace();
+         }
+      }
+
+      System.out.println(msg);
+      flag = false;
+      notify();
+   } // releases lock
+}
+
+class T1 implements Runnable {
+   Chat m;
+   String[] s1 = { "Hi", "How are you ?", "I am also doing fine!" };
+
+   public T1(Chat m1) {
+      this.m = m1;
+      new Thread(this, "Question").start();
+   }
+
+   public void run() {
+      for (int i = 0; i < s1.length; i++) {
+         m.Question(s1[i]);
+      }
+   }
+}
+
+class T2 implements Runnable {
+   Chat m;
+   String[] s2 = { "Hi", "I am good, what about you?", "Great!" };
+
+   public T2(Chat m2) {
+      this.m = m2;
+      new Thread(this, "Answer").start();
+   }
+
+   public void run() {
+      for (int i = 0; i < s2.length; i++) {
+         m.Answer(s2[i]);
+      }
+   }
+}
+public class TestThread {
+   public static void main(String[] args) {
+      Chat m = new Chat();
+      new T1(m);
+      new T2(m);
+   }
+}
+/*
+Hi
+Hi
+How are you ?
+I am good, what about you?
+I am also doing fine!
+Great!
+*/
+```
 ## Locks
+For a synchronized block of code that would otherwise result in a race condition and lost writes:
+```Java
+int count = 0;
+synchronized void incrementSync() {
+    count++;
+}
+// Same as
+void incrementSync() {
+    synchronized (this) { // monitor lock is on this context
+        count = count + 1;
+    }
+}
+
+ExecutorService executor = Executors.newFixedThreadPool(2);
+
+IntStream.range(0, 10000)
+    .forEach(i -> executor.submit(this::incrementSync));
+
+stop(executor);
+
+System.out.println(count);  // 10000
+```
+This uses implicit locks. There are multiple explicit lock implementations:
+
+### ReentrantLock
+Mutual exclusion lock.
+* `lock()`
+* `unlock()`
+* `isLocked()`
+* `isHeldByCurrentThread()`
+* `boolean tryLock()`: Returns true if lock is acquired. Tries without pausing the current thread.
+```Java
+ReentrantLock lock = new ReentrantLock();
+int count = 0;
+
+void increment() {
+    lock.lock(); // acquire lock
+    try {
+        count++;
+    } finally {
+        lock.unlock(); // ensure unlocking in case of exceptions
+    }
+}
+```
+
+### ReadWriteLock
+Pair of locks for read and write access, as it's usually safe to read mutable variables concurrently so long as no one is writing to it. Multiple threads can hold the read-lock so long as no one is holding the write-lock.
+```Java
+ExecutorService executor = Executors.newFixedThreadPool(2);
+Map<String, String> map = new HashMap<>();
+ReadWriteLock lock = new ReentrantReadWriteLock();
+
+executor.submit(() -> { // Lambda Runnable
+    lock.writeLock().lock();
+    try {
+        sleep(1);
+        map.put("foo", "bar");
+    } finally {
+        lock.writeLock().unlock();
+    }
+});
+
+Runnable readTask = () -> {
+    lock.readLock().lock();
+    try {
+        System.out.println(map.get("foo"));
+        sleep(1);
+    } finally {
+        lock.readLock().unlock();
+    }
+};
+
+executor.submit(readTask);
+executor.submit(readTask);
+
+stop(executor);
+```
+
+### StampledLock
+Supports read and write locks as above does, but also returns a stamp represented by a long value that can be used to either release a lock or check if it is still valid. Supports optimistic locking.
+```Java
+ExecutorService executor = Executors.newFixedThreadPool(2);
+Map<String, String> map = new HashMap<>();
+StampedLock lock = new StampedLock();
+
+executor.submit(() -> {
+    long stamp = lock.writeLock();
+    try {
+        sleep(1);
+        map.put("foo", "bar");
+    } finally {
+        lock.unlockWrite(stamp);
+    }
+});
+
+Runnable readTask = () -> {
+    long stamp = lock.readLock();
+    try {
+        System.out.println(map.get("foo"));
+        sleep(1);
+    } finally {
+        lock.unlockRead(stamp);
+    }
+};
+
+executor.submit(readTask);
+executor.submit(readTask);
+
+// Optimistic Lock
+executor.submit(() -> {
+    long stamp = lock.tryOptimisticRead(); // always returns a stamp without blocking the current thread, whether or not the lock is actually available. 0 if a write lock is active
+    // Write locks don't have to wait for the optimistic read lock to be released
+    try {
+        System.out.println("Optimistic Lock Valid: " + lock.validate(stamp));
+        sleep(1);
+        System.out.println("Optimistic Lock Valid: " + lock.validate(stamp));
+        sleep(2);
+        System.out.println("Optimistic Lock Valid: " + lock.validate(stamp));
+    } finally {
+        lock.unlock(stamp);
+    }
+});
+/*
+Optimistic Lock Valid: true
+Write Lock acquired
+Optimistic Lock Valid: false
+Write done
+Optimistic Lock Valid: false // still invalid even though write lock has been released
+*/
+
+stop(executor);
+```
+
+Can convert a read lock to a write lock without unlocking and locking again:
+```Java
+ExecutorService executor = Executors.newFixedThreadPool(2);
+StampedLock lock = new StampedLock();
+
+executor.submit(() -> {
+    long stamp = lock.readLock();
+    try {
+        if (count == 0) {
+            stamp = lock.tryConvertToWriteLock(stamp); // doesn't block but may return a 0 stamp if no write lock is currently available, so call writeLock() to block until it is available
+            if (stamp == 0L) {
+                System.out.println("Could not convert to write lock");
+                stamp = lock.writeLock();
+            }
+            count = 23;
+        }
+        System.out.println(count);
+    } finally {
+        lock.unlock(stamp);
+    }
+});
+
+stop(executor);
+```
+
+### Semaphores
+Semaphores can maintain whole sets of permits compared to the pretty exclusive access of locks.
+```Java
+ExecutorService executor = Executors.newFixedThreadPool(10);
+
+Semaphore semaphore = new Semaphore(5); // maximum of 5 have access to the longRunningTask at a time
+
+Runnable longRunningTask = () -> {
+    boolean permit = false;
+    try {
+        permit = semaphore.tryAcquire(1, TimeUnit.SECONDS);
+        if (permit) {
+            System.out.println("Semaphore acquired");
+            sleep(5);
+        } else {
+            System.out.println("Could not acquire semaphore");
+        }
+    } catch (InterruptedException e) {
+        throw new IllegalStateException(e);
+    } finally {
+        if (permit) {
+            semaphore.release(); // release even if there were exceptions
+        }
+    }
+}
+
+IntStream.range(0, 10)
+    .forEach(i -> executor.submit(longRunningTask));
+
+stop(executor);
+```
+
+### AtomicInteger
+Atomic operations can be safely performed in parallel on multiple threads without the use of the synchronized keyword or locks. Prefer atomic classes over locks in case you just have to change a single mutable variable concurrently (in a thread-safe way).
+
+There are also AtomicBoolean, AtomicLong, and AtomicReference.
+```Java
+AtomicInteger atomicInt = new AtomicInteger(0); // replacement for Integer
+ExecutorService executor = Executors.newFixedThreadPool(2);
+
+IntStream.range(0, 1000)
+    .forEach(i -> executor.submit(atomicInt::incrementAndGet)); // atomic operatoin
+
+IntStream.range(0, 1000)
+    .forEach(i -> {
+        Runnable task = () ->
+            atomicInt.updateAndGet(n -> n + 2); // arbitrary arithmetic operations
+        executor.submit(task);
+    });
+
+// Sum all values 0 to 1000
+IntStream.range(0, 1000)
+    .forEach(i -> {
+        Runnable task = () ->
+            atomicInt.accumulateAndGet(i, (n, m) -> n + m); // accepts IntBinaryOperator
+        executor.submit(task);
+    });
+
+stop(executor);
+
+System.out.println(atomicInt.get());    // => 1000
+```
+
+LongAdder is an alternative to AtomicLong that can be used to consecutively add values to a number. Has methods `add()` and `increment()` that are thread-safe. `sum()` or `sumThenReset()` retrieves the actual result. 
+
+Preferable over atomic numbers when updates from multiple threads are more common than reads. This is often the case when capturing statistical data, e.g. you want to count the number of requests served on a web server. The drawback of LongAdder is higher memory consumption because a set of variables is held in-memory as such a set is used internally to reduce contention over threads.
+
+LongAccumulator is more generalized and built around a lambda expression of type LongBinaryOperator.
+```Java
+LongBinaryOperator op = (x, y) -> 2 * x + y;
+LongAccumulator accumulator = new LongAccumulator(op, 1L);
+
+ExecutorService executor = Executors.newFixedThreadPool(2);
+
+IntStream.range(0, 10)
+    .forEach(i -> executor.submit(() -> accumulator.accumulate(i))); // passes current value and i as parameters to the lambda expression op
+
+stop(executor);
+
+System.out.println(accumulator.getThenReset());     // => 2539
+```
+
+### ConcurrentMap
+Extends the map interface. `forEach()` accepts a BiConsumer lambda with key and value passed as parameters.
+
+```Java
+ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
+map.put("foo", "bar");
+map.put("han", "solo");
+map.put("r2", "d2");
+map.put("c3", "p0");
+
+map.forEach((key, value) -> System.out.printf("%s = %s\n", key, value));
+
+String value = map.putIfAbsent("c3", "p1");
+System.out.println(value);    // p0
+
+String value = map.getOrDefault("hi", "there"); // returns default value there if no entry exists for this key hi
+System.out.println(value);    // there
+
+map.replaceAll((key, value) -> "r2".equals(key) ? "d3" : value); // accepts a BiFunction
+System.out.println(map.get("r2"));    // d3
+
+map.compute("foo", (key, value) -> value + value);
+System.out.println(map.get("foo"));   // barbar
+// also computeIfAbsent() and computeIfPresent()
+
+map.merge("foo", "boo", (oldVal, newVal) -> newVal + " was " + oldVal);
+System.out.println(map.get("foo"));   // boo was foo
+```
 ## fork-join
 ## Immutable Objects
 ## CompletableFutures
+## ExecuterService
+Can run asynchronous tasks; manage a pool of threads which will be reused for revenant tasks. Needs to be stopped explictly or will keep listening for new tasks. You can shutdown immediately or wait for currently running tasks to finish.
+
+```Java
+ExecutorService executor = Executors.newSingleThreadExecutor();
+executor.submit(() -> {
+    String threadName = Thread.currentThread().getName();
+    System.out.println("Hello " + threadName);
+});
+// => Hello pool-1-thread-1
+
+try {
+    System.out.println("attempt to shutdown executor");
+    executor.shutdown();
+    executor.awaitTermination(5, TimeUnit.SECONDS);
+}
+catch (InterruptedException e) {
+    System.err.println("tasks interrupted");
+}
+finally {
+    if (!executor.isTerminated()) {
+        System.err.println("cancel non-finished tasks");
+    }
+    executor.shutdownNow();
+    System.out.println("shutdown finished");
+}
+
+```
+### ThreadPoolExecutor
+
+The ThreadPoolExecutor can fine-tune thread pools of a fixed number of core threads that are kept inside all the time (corePoolSize) and some excessive threads (up to maximumPoolSize) which may bve spawned and then terminated as needed - if all core threads are busy and the internal queue is full, the pool will grow. These excessive threads are allowed to be idle for as long as the keepAliveTime allows. Only non-core threads can be removed, unless allowCoreThreadTimeOut(true).
+
+```Java
+ThreadPoolExecutor executor = 
+  (ThreadPoolExecutor) Executors.newFixedThreadPool(2); // corePoolSize = maximumPoolSize = 2, keepAliveTime = 0
+executor.submit(() -> {
+    Thread.sleep(1000);
+    return null;
+});
+executor.submit(() -> {
+    Thread.sleep(1000);
+    return null;
+});
+executor.submit(() -> {
+    Thread.sleep(1000);
+    return null;
+});
+ 
+assertEquals(2, executor.getPoolSize());
+assertEquals(1, executor.getQueue().size());
+
+Executors.newCachedThreadPool(); // corePoolSize = 0; maximumPoolSize = Integer.MAX_VALUE; keepAliveTime = 60 sec. Cached pool can grow without bounds. Good for lots of short-living tasks.
+// Queue is 0 because uses a SynchronousQueue where pairs of insert and remove operations occur simultaneously
+
+AtomicInteger counter = new AtomicInteger();
+ 
+ExecutorService executor = Executors.newSingleThreadExecutor();
+// corePoolSize = maximumPoolSize = 1; keepAliveTime = 0; immutable
+executor.submit(() -> {
+    counter.set(1);
+});
+executor.submit(() -> {
+    counter.compareAndSet(1, 2);
+});
+
+```
+
+### Futures
+Callable<Type> are tasks just like Runnables, only they return a value. Executors submitting a Callable Task return a Future<Type> object that will retrieve the actual result once it exists.
+```Java
+Callable<Integer> task = () -> {
+    try {
+        TimeUnit.SECONDS.sleep(1);
+        return 123;
+    }
+    catch (InterruptedException e) {
+        throw new IllegalStateException("task interrupted", e);
+    }
+};
+ExecutorService executor = Executors.newFixedThreadPool(1);
+Future<Integer> future = executor.submit(task);
+
+System.out.println("future done? " + future.isDone());
+
+Integer result = future.get(3, TimeUnit.SECONDS); // block and wait for Callable to complete or for timeout to occur
+
+System.out.println("future done? " + future.isDone());
+System.out.print("result: " + result);
+/*
+future done? false
+future done? true
+result: 123
+*/
+executor.shutdownNow();
+```
+You can batch submit multiple callables and return a list of futures.
+```Java
+ExecutorService executor = Executors.newWorkStealingPool();
+
+List<Callable<String>> callables = Arrays.asList(
+        () -> "task1",
+        () -> "task2",
+        () -> "task3");
+
+executor.invokeAll(callables)
+    .stream()
+    .map(future -> {
+        try {
+            return future.get();
+        }
+        catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    })
+    .forEach(System.out::println);
+```
+
+To return only the fastest result of a list of callables, use `invokeAny()`.
+
+### Scheduling
+Tasks can be scheduled to run periodically or once after a certain amount of time has passed.
+```Java
+ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+
+Runnable task = () -> System.out.println("Scheduling: " + System.nanoTime());
+ScheduledFuture<?> future = executor.schedule(task, 3, TimeUnit.SECONDS);
+
+TimeUnit.MILLISECONDS.sleep(1337);
+
+long remainingDelay = future.getDelay(TimeUnit.MILLISECONDS);
+System.out.printf("Remaining Delay: %sms", remainingDelay);
+```
+For periodicity, use `scheduleAtFixedRate()` or `scheduleWithFixedDelay()`. The former does not take into account the actual duration of the task (execution time), the latter applies the wait time between the end of a task and the start of the next.
+```Java
+ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+
+Runnable task = () -> System.out.println("Scheduling: " + System.nanoTime());
+
+int initialDelay = 0;
+int period = 1;
+executor.scheduleAtFixedRate(task, initialDelay, period, TimeUnit.SECONDS);
+```
+
+ScheduledThreadPoolExecutor allows task execution after a specific delay (schedule() method), execution after an initial delay and then repeatedly with a certain period (scheduleAtFixedRate() method) where the period is the time between the starting times of tasks (so execution rate is fixed), or repeated execution with a specific delay measured between the end of one task and the start of the next (scheduleWithFixedDelay) so the execution rate may vary based on the time it takes to execute a given task.
+
+```Java
+CountDownLatch lock = new CountDownLatch(3);
+ 
+ScheduledExecutorService executor = Executors.newScheduledThreadPool(5);
+// corePoolSize = 5; maximumPoolSize is unbounded; keepAliveTime = 0
+ScheduledFuture<?> future = executor.scheduleAtFixedRate(() -> {
+    System.out.println("Hello World");
+    lock.countDown();
+}, 500, 100, TimeUnit.MILLISECONDS);
+ // Execute after 500 ms then repeat every 100 ms
+
+lock.await(1000, TimeUnit.MILLISECONDS);
+// cancel after firest three times
+future.cancel(true);
+```
+
+### ForkJoinPool
+Spawns multiple tasks in recurisve algorithms without requiring the creation of a new thread for each task or subtask. Speds up processing of large tasks. Best to use one thread pool per application or system to minimize the number of total threads. Use the default common thread pool if no specific tuning is needed. Use a threshold to split ForkJoinTask into subtasks and avoid blocking.
+
+ThreadPoolExecutor will run out of threads quickly, so fork tasks to spawn subtasks and join together their results.
+
+Forks a task into smaller independent subtasks until they're simple enough to be executed asynchronousnly, then joins them all back into a single result, or (if the subtasks return void), waits until every subtask is executed.
+
+Each thread in the ForkJoinPool has its own double-ended queue (deque, pronounced deck) which stores tasks. Free threads operate under a work-stealing algorithm, where they try to steal work from tails vof deques of busy threads or the global entry queue if their own deque is empty (which they pull the head from). This minimizes the possibility that threads will compete for tasks and the number vof times a thread will have to go looking for work - it first goes to the biggest available chunks of work first.
+
+```Java
+ForkJoinPool commonPool = ForkJoinPool.commonPool();
+public static ForkJoinPool forkJoinPool = new ForkJoinPool(2); // parallelism level of 2, uses 2 processor cores
+
+// Traverse tree of nodes and calculate sum of leaf values in parallel:
+static class TreeNode {
+    int value;
+ 
+    Set<TreeNode> children;
+ 
+    TreeNode(int value, TreeNode... children) {
+        this.value = value;
+        this.children = Sets.newHashSet(children);
+    }
+}
+
+// Each task will recieve its own node and add its value to the sum of its children.
+public static class CountingTask extends RecursiveTask<Integer> {
+    private final TreeNode node;
+ 
+    public CountingTask(TreeNode node) {
+        this.node = node;
+    }
+ 
+    @Override
+    protected Integer compute() {
+        return node.value + node.children.stream() // stream the children set
+          .map(childNode -> new CountingTask(childNode).fork()) // map over stream, creating new tasks for each element and execute by forking
+          .collect(Collectors.summingInt(ForkJoinTask::join)); // collect results by joining each forked task and sum results using summingInt collector
+    }
+}
+
+TreeNode tree = new TreeNode(5,
+  new TreeNode(3), new TreeNode(2,
+    new TreeNode(2), new TreeNode(8)));
+ 
+ForkJoinPool forkJoinPool = ForkJoinPool.commonPool();
+int sum = forkJoinPool.invoke(new CountingTask(tree));
+
+```
+ForkJoinTasks are executed inside ForkJoinPools. RecursiveActions are used for void tasks and RecursiveTask<V> return values and compute() their logic.
+
+```Java
+public class CustomRecursiveAction extends RecursiveAction {
+ 
+    private String workload = "";
+    private static final int THRESHOLD = 4;
+ 
+    private static Logger logger = 
+      Logger.getAnonymousLogger();
+ 
+    public CustomRecursiveAction(String workload) {
+        this.workload = workload;
+    }
+ 
+    @Override
+    protected void compute() {
+        if (workload.length() > THRESHOLD) { // splits up task 
+            ForkJoinTask.invokeAll(createSubtasks());
+        } else {
+           processing(workload);
+        }
+    }
+ 
+    private List<CustomRecursiveAction> createSubtasks() {
+        List<CustomRecursiveAction> subtasks = new ArrayList<>();
+ 
+        String partOne = workload.substring(0, workload.length() / 2);
+        String partTwo = workload.substring(workload.length() / 2, workload.length());
+ 
+        subtasks.add(new CustomRecursiveAction(partOne));
+        subtasks.add(new CustomRecursiveAction(partTwo));
+ 
+        return subtasks; // list of CustomRecursiveTasks to pass to ForkJoinPool
+    }
+ 
+    private void processing(String work) {
+        String result = work.toUpperCase();
+        logger.info("This result - (" + result + ") - was processed by "
+          + Thread.currentThread().getName());
+    }
+}
+```
+
+For custom recursive tasks that return results:
+```Java
+public class CustomRecursiveTask extends RecursiveTask<Integer> {
+    private int[] arr;
+ 
+    private static final int THRESHOLD = 20;
+ 
+    public CustomRecursiveTask(int[] arr) {
+        this.arr = arr;
+    }
+ 
+    @Override 
+    protected Integer compute() {
+        if (arr.length > THRESHOLD) {
+            return ForkJoinTask.invokeAll(createSubtasks())
+              .stream() // stream out of a list of Futures
+              .mapToInt(ForkJoinTask::join)
+              .sum();
+        } else {
+            return processing(arr);
+        }
+    }
+    
+    // divide tasks until each piece is smaller than the threshold
+    private Collection<CustomRecursiveTask> createSubtasks() {
+        List<CustomRecursiveTask> dividedTasks = new ArrayList<>();
+        dividedTasks.add(new CustomRecursiveTask(
+          Arrays.copyOfRange(arr, 0, arr.length / 2)));
+        dividedTasks.add(new CustomRecursiveTask(
+          Arrays.copyOfRange(arr, arr.length / 2, arr.length)));
+        return dividedTasks;
+    }
+ 
+    private Integer processing(int[] arr) {
+        return Arrays.stream(arr)
+          .filter(a -> a > 10 && a < 27)
+          .map(a -> a * 10)
+          .sum();
+    }
+}
+```
+
+Submitting tasks to the thread pool:
+```Java
+forkJoinPool.execute(customRecursiveTask);
+int result = customRecursiveTask.join();
+
+	
+int result = forkJoinPool.invoke(customRecursiveTask); // forks the task, waits for the result without the need for manual joining
+```
+
+invokeAll() submits a sequence of ForkJoinTasks to the ForkJoinPool that takes tasks or a collection of tasks as parameters and returns a collection of Future objects in the order they were produced. 
+
+Can be done separately:
+```Java
+customRecursiveTaskFirst.fork(); // submit task to pool, but doesn't trigger execution
+result = customRecursiveTaskLast.join(); // triggers execution, returns either null or the result of execution.
+```
 
 # Classes
-# Optional
+# Optionals
+Containers for values which may be null or non-null. Used to prevent NullPointerExceptions.
+
+```Java
+Optional<String> optional = Optional.of("bam");
+
+optional.isPresent();           // true
+optional.get();                 // "bam"
+optional.orElse("fallback");    // "bam"
+
+optional.ifPresent((s) -> System.out.println(s.charAt(0)));     // "b"
+```
+
 # Spliterator
 # ClassLoader
 # Multithreaded Custom Class Loaders
 
 # Internationalization
+i18n - Built-in support for different languages, number formats, and date and time adjustments (localization or L10n).
 ## Legacy Date and Time Handling
 ## Locales
 ## Resource Bundles
 ## Time Zones
 
 # Streams from Collections, references, and primitives
-## Intermediate and terminal operations
-## Usage of filter
-## Map
-## flatMap
-## forEach
-## Collect
-## Reduce
+Streams are monads, which represent computations defined as sequences of steps. They are sequences of elements on which one or more operations can be performed. 
+
+Streams are created on sources, like Collections. `Collection.stream()` or `Collection.parallelStream()`. Maps don't support streams but do have their own set of interesting methods.
+
+```Java
+Stream.of("a1", "a2", "a3")
+    .findFirst()
+    .ifPresent(System.out::println);  // a1
+
+// Same as
+
+Arrays.asList("a1", "a2", "a3")
+    .stream()
+    .findFirst()
+    .ifPresent(System.out::println);  // a1
+
+// Maps
+map.forEach((id, val) -> System.out.println(val));
+map.putIfAbsent(i, "val" + i);
+map.computeIfPresent(3, (num, val) -> val + num);
+map.computeIfAbsent(3, num -> "bam");
+map.remove(3, "val33");
+map.getOrDefault(42, "not found");  // not found
+map.merge(9, "concat", (value, newValue) -> value.concat(newValue));
+map.get(9);             // val9concat
+```
+
+Streams also work on Primitives, which also support terminal aggregate functions like `sum()` and `average()`.
+
+```Java
+// Primitives
+IntStream.range(1, 4)
+    .forEach(System.out::println); // use IntFunction instead of Function and IntPredicate instead of Predicate
+// also LongStream, DoubleStream
+Arrays.stream(new int[] {1, 2, 3})
+    .map(n -> 2 * n + 1)
+    .average()
+    .ifPresent(System.out::println);  // 5.0
+// Can also sum()
+
+Stream.of("a1", "a2", "a3") // from an array
+    .map(s -> s.substring(1))
+    .mapToInt(Integer::parseInt) // convert to primtive stream
+    .max()
+    .ifPresent(System.out::println);  // 3
+// also mapToLong() and mapToDouble()
+
+// Convert from primtive stream to object stream:
+IntStream.range(1, 4) // startInclusive, endExclusive, incrementing by 1
+    .mapToObj(i -> "a" + i)
+    .forEach(System.out::println);
+
+LongStream longStream = LongStream.rangeClosed(1, 3); // startInclusive, endInclusive
+
+Random random = new Random();
+DoubleStream doubleStream = random.doubles(3);
+
+// Char string represented by an IntStream
+IntStream streamOfChars = "abc".chars();
+Stream<String> streamOfString =
+  Pattern.compile(", ").splitAsStream("a, b, c"); // substrings from Regex
+
+// Build a stream by adding items
+Stream<String> streamBuilder =
+  Stream.<String>builder().add("a").add("b").add("c").build();
+
+// Build a stream from iteration. First element, function applied to first and then the subsequent ones:
+Stream<Integer> streamIterated = Stream.iterate(40, n -> n + 2).limit(20);
+
+// Generate a stream from a Supplier<T>. need to specify desired size else will work until reaches a memory limit (otherwise infinite in size):
+Stream<String> streamGenerated =
+  Stream.generate(() -> "element").limit(10);
+```
+
+Streams can be sequential or parallel. With sequential streams, operations are performed on a single thread while parallel streams are performed concurrently on multiple threads.
+```Java
+long count = values.stream().sorted().count();
+long count = values.parallelStream().sorted().count(); // Much faster
+```
+
+To avoid null streams with no elements, can create an empty stream: 
+```Java
+public Stream<String> streamOf(List<String> list) {
+    return list == null || list.isEmpty() ? Stream.empty() : list.stream();
+}
+```
+
+## Intermediate and Terminal Stream Operations
+Terminal operations return a result of a certain type. Intermediate operations return the stream itself so you can chain multiple method calls.
+
+Operations on streams don't change the source. Executing a terminal operation makes a stream inaccessible (IllegalStateException runtime exception) - they can't be reused.
+
+```Java
+stringCollection
+    .stream()
+    .filter((s) -> s.startsWith("a")) // intermediate
+    .forEach(System.out::println); // terminal
+```
+
+Intermediate operations are lazy, so they will only be executed when a terminal operation is present that deems them necessary. 
+
+The pipeline executes vertically:
+```Java
+Stream.of("d2", "a2", "b1", "b3", "c")
+    .map(s -> {
+        System.out.println("map: " + s);
+        return s.toUpperCase();
+    })
+    .anyMatch(s -> {
+        System.out.println("anyMatch: " + s);
+        return s.startsWith("A");
+    });
+
+// map:      d2
+// anyMatch: D2
+// map:      a2
+// anyMatch: A2
+```
+Only continues on with an element through the pipeline if it passes a step. Intermediate operations which reduce the size of the stream  (skip, filter, distinct) should be placed before operations that are applied to each element.
+
+Once a terminal operation is called, the stream is closed.
+```Java
+Stream<String> stream =
+    Stream.of("d2", "a2", "b1", "b3", "c")
+        .filter(s -> s.startsWith("a"));
+
+stream.anyMatch(s -> true);    // ok
+stream.noneMatch(s -> true);   // exception
+
+// This works:
+Supplier<Stream<String>> streamSupplier =
+    () -> Stream.of("d2", "a2", "b1", "b3", "c")
+            .filter(s -> s.startsWith("a"));
+
+streamSupplier.get().anyMatch(s -> true);   // ok
+streamSupplier.get().noneMatch(s -> true);  // ok
+```
+
+### Filter
+Accepts a predicate to filter all elements of the stream. Intermediate operation, so can chain.
+
+```Java
+Stream<String> stream = list.stream().filter(element -> element.contains("d"));
+```
+
+### Distinct
+Intermediate operaiton that creates a new Stream<T> of unique elements.
+### Skip
+Itermediate operation that skips over a few elements.
+### Sorted
+Intermediate operation sorted in natural order unless passed a Comparator. Only creates a sorted view of the stream - it doesn't manipulate the order of the backed collection, which remains untouched and unchanged.
+```Java
+stringCollection
+    .stream()
+    .sorted()
+    .filter((s) -> s.startsWith("a"))
+    .forEach(System.out::println);
+```
+### Map
+Intermediate operation that converts each element into another via the given function. Can transform objects to other types.
+
+```Java
+stringCollection
+    .stream()
+    .map(String::toUpperCase)
+    .sorted((a, b) -> b.compareTo(a))
+    .forEach(System.out::println);
+```
+
+### flatMap
+Intermediate operaiton that converts one object into multiple others (in the form of a stream that are all placed into the return stream) or none at all.
+
+```Java
+class Foo {
+    String name;
+    List<Bar> bars = new ArrayList<>();
+
+    Foo(String name) {
+        this.name = name;
+    }
+}
+
+class Bar {
+    String name;
+
+    Bar(String name) {
+        this.name = name;
+    }
+}
+
+List<Foo> foos = new ArrayList<>();
+
+// create foos by transforming an int stream
+IntStream
+    .range(1, 4)
+    .forEach(i -> foos.add(new Foo("Foo" + i)));
+
+// create bars
+foos.forEach(f ->
+    IntStream
+        .range(1, 4)
+        .forEach(i -> f.bars.add(new Bar("Bar" + i + " <- " + f.name))));
+
+// Resolve bar objects of each foo
+foos.stream()
+    .flatMap(f -> f.bars.stream())
+    .forEach(b -> System.out.println(b.name));
+
+// Bar1 <- Foo1
+// Bar2 <- Foo1
+// Bar3 <- Foo1
+// Bar1 <- Foo2
+// Bar2 <- Foo2
+// Bar3 <- Foo2
+// Bar1 <- Foo3
+// Bar2 <- Foo3
+// Bar3 <- Foo3
+
+// Same as
+
+IntStream.range(1, 4)
+    .mapToObj(i -> new Foo("Foo" + i))
+    .peek(f -> IntStream.range(1, 4)
+        .mapToObj(i -> new Bar("Bar" + i + " <- " f.name))
+        .forEach(f.bars::add))
+    .flatMap(f -> f.bars.stream())
+    .forEach(b -> System.out.println(b.name));
+```
+
+To avoid null checks, can take Optional classes that return Optional objects of another type.
+```Java
+Outer outer = new Outer();
+if (outer != null && outer.nested != null && outer.nested.inner != null) {
+    System.out.println(outer.nested.inner.foo);
+}
+
+// Same as
+
+Optional.of(new Outer())
+    .flatMap(o -> Optional.ofNullable(o.nested))
+    .flatMap(n -> Optional.ofNullable(n.inner))
+    .flatMap(i -> Optional.ofNullable(i.foo))
+    .ifPresent(System.out::println);
+// Each flatMap returns an Optional wrapping or null if the object is absent
+```
+### Count
+Terminal operation that returns the stream's size.
+### forEach
+Terminal operation that returns void, so cannot be used as a non-ending link in a chain.
+### Match
+Terminal operation that checks whether a predicate matches the stream. Returns a boolean result.
+```Java
+boolean anyStartsWithA =
+    stringCollection
+        .stream()
+        .anyMatch((s) -> s.startsWith("a"));
+
+System.out.println(anyStartsWithA);      // true
+
+boolean isValid = list.stream().anyMatch(element -> element.contains("h")); // true
+boolean isValidOne = list.stream().allMatch(element -> element.contains("h")); // false
+boolean isValidTwo = list.stream().noneMatch(element -> element.contains("h")); // false
+```
+### Count
+Terminal operation returning the number of elements in the stream as a long.
+```Java
+long startsWithB =
+    stringCollection
+        .stream()
+        .filter((s) -> s.startsWith("b"))
+        .count();
+
+System.out.println(startsWithB);    // 3
+```
+### Collect
+Terminal operation that transforms the elements of the stream into a different kind of result, like a List, Set, or Map. Accepts a Collector which consists of four operations: supplier, accumulator, combiner, and finisher. 
+
+To Set or List:
+```Java
+List<Person> filtered =
+    persons
+        .stream()
+        .filter(p -> p.name.startsWith("P"))
+        .collect(Collectors.toList());
+        // also Collectors.toList
+
+System.out.println(filtered);    // [Peter, Pamela]
+```
+To Map, where mapped keys must be unique (else IllegalStateException), so merge can be useful to ensure uniqueness:
+```Java
+Map<Integer, String> map = persons
+    .stream()
+    .collect(Collectors.toMap(
+        p -> p.age,
+        p -> p.name,
+        (name1, name2) -> name1 + ";" + name2)); 
+
+System.out.println(map);
+// {18=Max, 23=Peter;Pamela, 12=David}
+```
+
+Grouping:
+```Java
+Map<Integer, List<Person>> personsByAge = persons
+    .stream()
+    .collect(Collectors.groupingBy(p -> p.age));
+
+personsByAge
+    .forEach((age, p) -> System.out.format("age %s: %s\n", age, p));
+
+// age 18: [Max]
+// age 23: [Peter, Pamela]
+// age 12: [David]
+
+Map<Integer, List<Product>> collectorMapOfLists = productList.stream()
+  .collect(Collectors.groupingBy(Product::getPrice));
+
+Map<Boolean, List<Product>> mapPartioned = productList.stream()
+  .collect(Collectors.partitioningBy(element -> element.getPrice() > 15))
+```
+
+Aggregations of elements:
+```Java
+Double averageAge = persons
+    .stream()
+    .collect(Collectors.averagingInt(p -> p.age));
+
+System.out.println(averageAge);     // 19.0
+```
+Statistical summaries (min, max, average, sum, and count):
+```Java
+IntSummaryStatistics ageSummary =
+    persons
+        .stream()
+        .collect(Collectors.summarizingInt(p -> p.age));
+
+System.out.println(ageSummary);
+// IntSummaryStatistics{count=4, sum=76, min=12, average=19.000000, max=23}
+```
+Join into a string with deliminator, prefix, and suffix:
+```Java
+String phrase = persons
+    .stream()
+    .filter(p -> p.age >= 18)
+    .map(p -> p.name)
+    .collect(Collectors.joining(" and ", "In Germany ", " are of legal age."));
+
+System.out.println(phrase);
+// In Germany Max and Peter and Pamela are of legal age.
+```
+### Collector Interface
+Terminal processes that perform multiple fold operations (repackaging elements to some data structures while applying additional lobic).
+* `.collect(Collectors.toList())`, also toMap(), toSet(). 
+* `.toCollection(LinkedList::new)` allows more specific implementations, like HashSets and LinkedLists by passing such an instance.
+* `.toMap()` doesn't evaluate if values are duplicates - will just throw an IllegalStateException
+```Java
+// Strings as keys and lengths as values
+Map<String, Integer> result = givenList.stream()
+  .collect(toMap(Function.identity(), String::length));
+  // keyMapper and valueMapper
+// Function.identity() accepts and returns the same value
+// If have a collision, picks any of the two colliding values:
+Map<String, Integer> result = givenList.stream()
+  .collect(toMap(Function.identity(), String::length, (item, identicalItem) -> item)); // handles collisions with duplicates keys
+```
+
+* `.collect(collectingAndThen(toList(), ImmutableList::copyOf))` performs another action straight after collecting ends, such as collecting into a list and converting it into an immutable one.
+* `joining()` or `joining(" separator ")` or `joining(deliminator, prefix, suffix)` joins Stream<String> elements together.
+* `counting()` returns a Long.
+* Statistical summaries in Double, Int, and Long:
+```Java
+DoubleSummaryStatistics result = givenList.stream()
+  .collect(summarizingDouble(String::length));
+
+assertThat(result.getAverage()).isEqualTo(2);
+assertThat(result.getCount()).isEqualTo(4);
+assertThat(result.getMax()).isEqualTo(3);
+assertThat(result.getMin()).isEqualTo(1);
+assertThat(result.getSum()).isEqualTo(8);
+```
+* `averagingDouble/Long/Int()` returns a Double, Long, or Integer.
+* `summingDouble/Long/Int()`
+```Java
+Double result = givenList.stream()
+  .collect(summingDouble(String::length));
+```
+* `minBy(Comparator.naturalOrder())` or `maxBy(Comparator comp)` returns an object wrappe in Optional, as there may be empty values.
+* `groupingBy(some property, store results in Collector object)`: Groups objects by some property and stores groups as values in a Map instance.
+```Java
+Map<Integer, Set<String>> result = givenList.stream()
+  .collect(groupingBy(String::length, toSet()));
+```
+* `partitioningBy(Predicate)`: returns a Map with boolean values as keys and collections as values based on how they return from a Predicate.
+```Java
+Map<Boolean, List<String>> result = givenList.stream()
+  .collect(partitioningBy(s -> s.length() > 2))
+// {false=["a", "bb", "dd"], true=["ccc"]}
+```
+* `teeing()`: Duplicates input - combines the results of two different collectors operating on the same stream.
+```Java
+// Find min and max from a given stream:
+List<Integer> numbers = Arrays.asList(42, 4, 2, 24);
+
+numbers.stream().collect(teeing(
+  minBy(Integer::compareTo), // The first collector
+  maxBy(Integer::compareTo), // The second collector
+  (min, max) -> // Receives the result from those collectors and combines them
+));
+// Same as
+Optional<Integer> min = numbers.stream().collect(minBy(Integer::compareTo));
+Optional<Integer> max = numbers.stream().collect(maxBy(Integer::compareTo));
+// do something useful with min and max
+```
+
+#### Custom Collectors
+Collector<Type of objects available for collection, type of mutable Accumulator object, type of final Result>:
+```Java
+private class ImmutableSetCollector<T>
+  implements Collector<T, ImmutableSet.Builder<T>, ImmutableSet<T>> {...}
+
+// Collector.of
+Collector<Product, ?, LinkedList<Product>> toLinkedList =
+  Collector.of(LinkedList::new, LinkedList::add, 
+    (first, second) -> { 
+       first.addAll(second); 
+       return first; 
+    });
+ 
+LinkedList<Product> linkedListOfPersons =
+  productList.stream().collect(toLinkedList);
+```
+Mutable accumulators are collections or some other class. ImmutableSet.Builder implements:
+* `Supplier<ImmutableSet.Builder<T>> supplier()`: generates an empty accumulator instance.
+* `BiConsumer<ImmutableSet.Builder<T>, T> accumulator()`: adds a new element.
+* `BinaryOperator<ImmutableSet.Builder<T>> combiner()`: merges two accumulators together.
+* `Function<ImmutableSet.Builder<T>, ImmutableSet<T>> finisher()`: Converts an accumulator to the final result type.
+* `Set<Characteristics> characteristics()`: Provides Stream with additional information to use for internal operations.
+
+```Java
+public class ImmutableSetCollector<T>
+  implements Collector<T, ImmutableSet.Builder<T>, ImmutableSet<T>> {
+ 
+@Override
+public Supplier<ImmutableSet.Builder<T>> supplier() {
+    return ImmutableSet::builder;
+}
+ 
+@Override
+public BiConsumer<ImmutableSet.Builder<T>, T> accumulator() {
+    return ImmutableSet.Builder::add;
+}
+ 
+@Override
+public BinaryOperator<ImmutableSet.Builder<T>> combiner() {
+    return (left, right) -> left.addAll(right.build());
+}
+ 
+@Override
+public Function<ImmutableSet.Builder<T>, ImmutableSet<T>> finisher() {
+    return ImmutableSet.Builder::build;
+}
+ 
+@Override
+public Set<Characteristics> characteristics() {
+    return Sets.immutableEnumSet(Characteristics.UNORDERED);
+}
+ 
+public static <T> ImmutableSetCollector<T> toImmutableSet() {
+    return new ImmutableSetCollector<>();
+}
+}
+
+List<String> givenList = Arrays.asList("a", "bb", "ccc", "dddd");
+ 
+ImmutableSet<String> result = givenList.stream()
+  .collect(toImmutableSet());
+```
+
+
+Using Collector.of():
+```Java
+Collector<Person, StringJoiner, String> personNameCollector =
+    Collector.of(
+        () -> new StringJoiner(" | "),          // supplier
+        (j, p) -> j.add(p.name.toUpperCase()),  // accumulator
+        (j1, j2) -> j1.merge(j2),               // combiner
+        StringJoiner::toString);                // finisher
+
+String names = persons
+    .stream()
+    .collect(personNameCollector);
+
+System.out.println(names);  // MAX | PETER | PAMELA | DAVID
+```
+Four operations: supplier (initial actions), accumulator, combiner (for parallel streams), and finisher (like a finally statement). 
+
+### Reduce
+Terminal operation that reduces all elements to a single result using the given function. Returns an Optional holding the reduced value. Accepts a starting value and a BinaryOperator accumulator function, which accepts two operands of the same type.
+```Java
+Optional<String> reduced =
+    stringCollection
+        .stream()
+        .sorted()
+        .reduce((s1, s2) -> s1 + "#" + s2);
+
+reduced.ifPresent(System.out::println);
+// "aaa1#aaa2#bbb1#bbb2#bbb3#ccc#ddd1#ddd2"
+
+// Get eldest
+persons
+    .stream()
+    .reduce((p1, p2) -> p1.age > p2.age ? p1 : p2)
+    .ifPresent(System.out::println);    // Pamela
+// Get accumulated person
+Person result =
+    persons
+        .stream()
+        .reduce(new Person("", 0), (p1, p2) -> {
+            p1.age += p2.age;
+            p1.name += p2.name;
+            return p1;
+        });
+
+System.out.format("name=%s; age=%s", result.name, result.age);
+// name=MaxPeterPamelaDavid; age=76
+
+Integer ageSum = persons
+    .stream()
+    .reduce(0, (sum, p) -> sum += p.age, (sum1, sum2) -> sum1 + sum2);
+    // identity value (initial value), BiFunction accumulator, BinaryOperator combiner, which is used with parallel streams
+System.out.println(ageSum);  // 76
+
+List<Integer> integers = Arrays.asList(1, 1, 1);
+Integer reduced = integers.stream().reduce(23, (a, b) -> a + b); // 23 + 1 + 1 + 1;
+```
+
 ## Optionals
 ## Collector
 ## Collectors
 ## Parallelism
+Parallel streams use a common ForkJoinPool method to use a custom Thread Pool:
+```Java
+@Test
+public void giveRangeOfLongs_whenSummedInParallel_shouldBeEqualToExpectedTotal() 
+  throws InterruptedException, ExecutionException {
+     
+    long firstNum = 1;
+    long lastNum = 1_000_000;
+ 
+    List<Long> aList = LongStream.rangeClosed(firstNum, lastNum).boxed()
+      .collect(Collectors.toList());
+ 
+    ForkJoinPool customThreadPool = new ForkJoinPool(4); // generally the number of cores of your CPU
+    long actualTotal = customThreadPool.submit(
+      () -> aList.parallelStream().reduce(0L, Long::sum)).get();
+  
+    assertEquals((lastNum + firstNum) * lastNum / 2, actualTotal);
+}
+```
 
-# Lambda Comparator
+# Lambda 
+Useful for functional programming. Pass around an expression as if it was an object and execute it on demand. Useful for simple event listeners and callbacks.
+
+Functional interfaces provide target types for lambda expressions and method references.
+
+Lambdas are particularly useful in parallel computing. They can't change the value of an object from the enclosing scope, but can do something like `array[0]++` as the reference `array` is not changing.
+
+```Java
+StateOwner stateOwner = new StateOwner();
+
+stateOwner.addStateListener(new StateChangeListener() {
+
+    public void onStateChange(State oldState, State newState) {
+        // do something with the old and new state.
+    }
+});
+
+// Same as
+
+stateOwner.addStateListener(
+    (oldState, newState) -> System.out.println("State changed")
+); // lambda!
+```
+When used as a parameter, must implement the same interface as that parameter. To match to single method interfaces, or functional interfaces, needs to have the same parameters and return type.
+
+```Java
+// Can add because one method of the interface is unimplemented:
+public interface MyInterface {
+
+    public String printIt(String text); // unimplemented
+
+    default public void printUtf8To(String text, OutputStream outputStream){
+        try {
+            outputStream.write(text.getBytes("UTF-8"));
+        } catch (IOException e) {
+            throw new RuntimeException("Error writing String as UTF-8 to OutputStream", e);
+        }
+    }
+
+    static void printItToSystemOut(String text){
+        System.out.println(text);
+    }
+}
+MyInterface myInterface = (String text) -> { // type of the parameter is unnecessary here as can be inferred from method declaration above
+    System.out.print(text);
+    return "Hi!";
+}; // implementation, stateless
+// use {curly brackets} for multiple lines
+
+// Using anonymouse interface implementation:
+MyInterface myInterface = new MyInterface() {
+    private int eventCount = 0; // can have own state/ member variables
+    public void printIt(String text) {
+        System.out.print(text);
+        return "Hi!";
+    }
+};
+```
+## Functional Interfaces
+
+```Java
+@FunctionalInterface // helpful annotation
+public interface Foo {
+    String method(String string); // abstract method
+    default void defaultMethod() {} // implemented method
+}
+
+public String add(String string, Foo foo) {
+    return foo.method(string);
+}
+
+Foo foo = parameter -> parameter + " from lambda";
+String result = useFoo.add("Message ", foo);
+
+// Really just
+public String add(String string, Function<String, String> fn) {
+    return fn.apply(string);
+}
+
+Function<String, String> fn = 
+  parameter -> parameter + " from lambda";
+String result = useFoo.add("Message ", fn);
+
+
+Returning values can be done implicitly.
+```Java
+Function<String, String> toLowerCase = (String input) -> input.toLowerCase(); // returns input.toLowerCase()
+
+// Method reference
+MyPrinter myPrinter = s -> System.out.println(s);
+// Same as
+MyPrinter myPrinter = System.out::println; // where println is the method referenced (after ::)
+```
+
+To create a lamba expression that references another class's static method:
+```Java
+public interface Finder {
+    public int find(String s1, String s2); // method to implement
+}
+public class MyClass{
+    public static int doFind(String s1, String s2){ // method to reference
+        return s1.lastIndexOf(s2);
+    }
+}
+
+Finder finder = MyClass::doFind;
+// since have same parameters and return types
+```
+
+Each lambda corresponds to a given type, specified by a functional interface which has one abstract method declaration. Interfaces decorated with @FunctionalInterface can only have one abstract method.
+
+
+### Method References
+The compiler will attempt to match the referenced method against the first parameter type and use the second parameter as a parameter to the referenced method:
+```Java
+Finder finder = (s1, s2) -> s1.indexOf(s2);
+// Same as
+Finder finder = String::indexOf;
+```
+
+You can also reference constructors using ::new:
+```Java
+public interface Factory {
+    public String create(char[] val);
+}
+
+Factory factory = chars -> new String(chars);
+// Same as
+Factory factory = String::new;
+```
+
+## Comparator
+Easy to reverse comparators with `comparator.reversed().compare(p1, p2);`.
+```Java
+// Comparing
+// Anonymous inner class
+Comparator<Developer> byName = new Comparator<Developer>() {
+	@Override
+	public int compare(Developer o1, Developer o2) {
+		return o1.getName().compareTo(o2.getName());
+	}
+};
+// Same as
+Comparator<Developer> byName =
+	(Developer o1, Developer o2) -> o1.getName().compareTo(o2.getName();
+
+developerList.sort(byName.reversed()); // sort by reversing the comparator
+
+developerList.sort(
+    (o1, o2) -> o1.getName().compareTo(o2.getName(); // infers type
+)
+
+// to some static method in Developer that takes some Developer a, Developer B and returns an int
+developerList.sort(Developer::compareByNameThenAge);
+
+// String together multiple comparators
+developerList.sort(
+      Comparator.comparing(Developer::getName).thenComparing(Developer::getAge)
+    );
+
+// Sorting
+// Anonymous inner class
+Collections.sort(listDevs, new Comparator<Developer>() {
+	@Override
+	public int compare(Developer o1, Developer o2) {
+		return o1.getAge() - o2.getAge();
+	}
+});
+//Same as
+listDevs.sort(new Comparator<Developer>() {
+	@Override
+	public int compare(Developer o1, Developer o2) {
+		return o2.getAge() - o1.getAge();
+	}
+});
+```
+
+The inside of lambdas acan also see instance variables, which are allowed to change. Lambdas cannot have their own instance variables, so this always points to the enclosing object. They can also access static variables.
+```Java
+public interface MyComparator {
+    private String name = "MyComparator";
+    public void attach(MyEventProducer eventProducer) {
+         eventProducer.listen(e -> {
+            System.out.println(this.name);
+        }); 
+    }
+    public boolean compare(int a1, int a2);
+}
+int outside = 0;
+// can reference local variables that are effectively final - don't change value after being assigned.
+MyComparator myComparator = (a1, a2) -> a1 > a2 && a1 > outside;
+
+boolean result = myComparator.compare(2, 5);
+```
 ## Predicates
-## Consumers
+Boolean-valued functions of one argument.
+
+```Java
+Predicate<String> predicate = (s) -> s.length() > 0;
+
+predicate.test("foo");              // true
+predicate.negate().test("foo");     // false
+
+Predicate<Boolean> nonNull = Objects::nonNull;
+Predicate<Boolean> isNull = Objects::isNull;
+
+Predicate<String> isEmpty = String::isEmpty;
+Predicate<String> isNotEmpty = isEmpty.negate();
+```
+
 ## Functions
+Functions accept one argument and produce a result.
+```Java
+Function<String, Integer> toInteger = Integer::valueOf;
+Function<String, String> backToString = toInteger.andThen(String::valueOf);
+
+backToString.apply("123");     // "123"
+```
+
+## Consumers
+Takes in one argument and doesn't return any value. Operates via side-effects.
+
+```Java
+Consumer<Person> greeter = (p) -> System.out.println("Hello, " + p.firstName);
+greeter.accept(new Person("Luke", "Skywalker"));
+
+Consumer<List<Integer> > modify = list -> { 
+    for (int i = 0; i < list.size(); i++) {
+        list.set(i, 2 * list.get(i));
+    } 
+}; 
+modify.accept(list);
+
+// Consumer to display a list of integers 
+Consumer<List<Integer> > dispList = list -> 
+list.stream().forEach(a -> System.out.print(a + " ")); 
+
+// using addThen() 
+modify.andThen(dispList).accept(list); 
+     
+```
+
+andThen will execute another Consumer after the first one.
 ## Suppliers
+Produce a result of a given generic type - supplier of results. Doesn't take any argument but produces one of type T.
+```Java
+Supplier<Person> personSupplier = Person::new;
+personSupplier.get();   // new Person
+
+        // This function returns a random value. 
+        Supplier<Double> randomValue = () -> Math.random(); 
+  
+        // Print the random value using get() 
+        System.out.println(randomValue.get()); 
+```
 ## Binary Operators
+Used as a target. Takes an object of type T and returns a value of the same type.
+```Java
+ BinaryOperator<Person> getMax = BinaryOperator.maxBy((Person p1, Person p2) -> p1.age-p2.age);
+ // static <T> BinaryOperator<T> maxBy(Comparator<? super T> comparator)
+ // also have minBy()
+
+ Person maxPerson = getMax.apply(person1, person2);
+
+ BinaryOperator<Integer> adder = (n1, n2) -> n1 + n2;
+
+ System.out.println(adder.apply(3, 4));
+```
