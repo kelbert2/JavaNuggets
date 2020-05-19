@@ -4,6 +4,7 @@ https://www.baeldung.com/java-8-lambda-expressions-tips
 https://winterbe.com/posts/2014/03/16/java-8-tutorial/
 https://www.baeldung.com/java-fork-join
 https://www.baeldung.com/java-8-collectors
+https://www.baeldung.com/java-optional
 
 # Primitive Data Types
 
@@ -16,14 +17,16 @@ https://www.baeldung.com/java-8-collectors
 |byte  | 8  | 127                       | -128                   | 0    |
 |short | 16 |	32,767                  |	-32,768              | 0    |
 |long  | 64 | 9,223,372,036,854,775,807 | -9,223,372,036,854,775,808 | 0L |
+boolean
 
 1 GB is 8 billion bits.
 
 Double and short data should not be used for precise values such as currency.
 
-Literals are representations of fixed values.
+Literals are representations of fixed values. Binary literals are prefixed with 0b or 0B.
 
 Underscores can appear anywhere between digits in numerical literals, allowing you to separate groups of digits and improve readability. They don't work adjacent to decimal points, prior to, after, or between suffixes (like L or F) or prefixes (0x), and at the end or beginning (would make it an idenfier) of the number.
+
 ```Java
 byte a = 68;
 char a = 'A';
@@ -55,7 +58,7 @@ Stores either `true` or `false`. 1 bit in size. Default value is `false`.
 * ! NOT
 
 # Wrappers
-Objects that wrap around primitives. Allows you to use special class (static) methods. Compiler handles conversion to and from primitive (unboxing and boxing).
+Objects that wrap around primitives. Allows you to use special class (static) methods. Compiler handles conversion to and from primitive (unboxing and boxing). Wrappers are Serializable and Comparable. They are immutable and can be stored by collections.
 
 ```Java
 Integer x = 5; // boxes int to an Integer object
@@ -160,6 +163,7 @@ Comparison
 * `boolean startsWith(String prefix)`
 * `boolean startsWith(String prefix, int offset)`: Tests if string starts with prefext at offset index.
 
+== checks references, not content,
 
 Bytes
 * `byte getBytes()`
@@ -204,7 +208,7 @@ og.substring(int startIndex, int endIndex);
 
 
 ### StringBuffer
-Modifiable String - growable and writable
+Modifiable String - growable and writable. Synchronized and thread-safe, unlike StringBuilder.
 
 Functions
 * `.insert(int index, String str or char ch)`: Pushes self in to start at the specified index
@@ -261,6 +265,7 @@ sb.append("Greetings");
 * `deleteCharAt(int index)`
 * `insert(int offset, Type dta, int dataOffset?, int dataLength?)`: Index before which data is to be inserted.
 * `replace(int start, int end, String s)`
+* `indexof(String str)` returns te index of hte first occurance of the passed substring, else -1.
 
 * `setCharAt(int index, char c)`
 * `reverse()`
@@ -280,7 +285,7 @@ Enum name {
 enum Suit {
         SPADES, HEARTS, DIAMONDS, CLUBS;
 }
-Suit card = Suit.CLUBS;
+        Suit card = Suit.CLUBS;
         String hearty = "HEARTS";
         SuitClass otherCard = new SuitClass(Suit.valueOf(hearty));
         switch (otherCard.mySuit) {
@@ -294,6 +299,25 @@ Suit card = Suit.CLUBS;
         for (Suit bathing : arr) {
             System.out.println(bathing + " index " + bathing.ordinal());
         }
+```
+Enum.values() allows you to iterate over constants.
+For Enums defined as NAME("some string"), enum.name() is NAME and enum.toString() or just enum is "some string".
+```Java
+enum MixedColor {
+    PURPLE("red", "blue"), GREEN ("yellow", "blue"), ORANGE("red", "yellow");
+    public String color1;
+    public String color2;
+    private Color(String c, String r) {
+        color1 = c;
+        color2 = r;
+    }
+    public String getColors() {
+        return color1 + ", " + color2;
+    }
+}
+MixedColor.ORANGE; // ORANGE
+MixedColor.PURPLE.color1; // red
+MixedColor.GREEN.getColors(); // yellow, blue
 ```
 ## Enumerations
 Legacy interface. Obsolete for new code.
@@ -576,6 +600,7 @@ objReference instanceOf ClassName;
 
 boolean result = name instanceof String;
 ```
+if name is null, instanceof is false.
 
 ### Serialization into Streams
 Objects can be represented as sequences of bytes that include information about the object's data, type, and types of data. Through deserialization, the object can be recreated.
@@ -2980,9 +3005,9 @@ Stream<String> streamOfStrings = Files.lines(path);
 Stream<String> streamWithCharset = Files.lines(path, Charset.forName("UTF-8"));
 ```
 
-InputStream reads data from a source.
+InputStream reads data from a source. FileInputStreams can take files, FileDescriptor objects, or string names from which to read.
 
-OutputStream writes data to a destination.
+OutputStream writes data to a destination. FileOutputStreams read from files.
 
 Operates as Byte Streams.
 ```Java
@@ -3016,7 +3041,7 @@ void dealingWithInputStreams() throws IOException { // uses specific input strea
     }
 ```
 
-Character streams perform input and output for 16-bit unicode. FileReader and FileWriter read and write two bytes at a time.
+Character streams perform input and output for 16-bit unicode. FileReader and FileWriter read and write two bytes at a time and read as characters. They can take Files, FileDescriptors, or String filenames.
 ```Java
       FileReader in = null;
       FileWriter out = null;
@@ -3031,7 +3056,8 @@ Character streams perform input and output for 16-bit unicode. FileReader and Fi
          }
       }finally {
          if (in != null) {
-            in.close();
+            in.flush(); // writes the content of the buffer to the destination and makes the buffer empty for further data to store but it does not close the stream permanently. Otherwise, some data might be buffered.
+            in.close(); // flushes and closes the stream permanently
          }
          if (out != null) {
             out.close();
@@ -3039,7 +3065,7 @@ Character streams perform input and output for 16-bit unicode. FileReader and Fi
       }
    }
 ```
-
+RandomAccessFiles behave like large arrays of bites. Accepts a File or String filename, and a String mode. Can read and write to as you please - replacing existing parts if desired. The mode is "r" (read) or "w" (write) or "rw" (combination, either "d" synchronous writing to disk or "s" updates meta data synchronously as well).
 
 ## Scanners
  ```Java   
@@ -3080,8 +3106,16 @@ public static void main(String[] args) {
     scanner.close();
 }
 ```
+#### BufferedReader
 
-Buffered Reader is faster than scanner:
+Buffered Reader is faster than scanner. Scanner is slwoer because it parses the data while reading it.
+
+Best to wrap a BufferedReader around any Reader whose read() operations may be costly, such as FileReaders and InputStreamReaders. Without buffering, each invocation of read() or readLine() could cause bytes to be read from the file, converted into characters, and then returned, which can be very inefficient. BUfferedReader minimizes the number of I/O operations by reading chunks of characters each time and storing them in an internal buffer. While the buffer has data, the reader only needs to read from the buffer rather than directly from the underlying stream.
+
+Takes a Reader or any input stream in its constructor.
+
+Unlike Scanners, BufferedReaders are thread-safe. Scanners can parse primitive types and strings using regex. Scanners have a fixed buffer size, while BufferedReader's default size is larger. Scanner hides IOExceptions while BufferedReaders force us to handle them. 
+https://www.baeldung.com/java-buffered-reader
 
 # Concepts
 ### Big O Time and Space
@@ -3418,7 +3452,13 @@ ClassName class = new ClassName();
 
 See Access Modifiers below.
 
+### Context
+`this()` refers to the current object's constructor. `super()` refers to the super class or base class's constructor. Any call to `this()` implicitly calls `super()`. Static contexts don't have an instance, so they don't have a `this` context.
 
+Must call `super()` in first line of the derived class constructor or compiler will automatically invoke it. You can pass parameters or even call `super.method()` for a specific method as defined in the super class.
+
+### Coupling
+How much direct knowledge an element has of another.
 ### Encapsulation
 Encapsulation hides implementation.
 
@@ -3545,7 +3585,9 @@ Formula formula = new Formula() { // impelementation of the interface as an anon
 formula.calculate(100);     // 100.0
 formula.sqrt(16);           // 4.0
 ```
+Abstract classes can implement interfaces. They can have static fields and static methods as well as field sthat are not static and final.
 
+Default methods in interfaces cannot reference state. All fields in an interface are automatically public, static, and final and all declared or defined (default) methods are public.
 ### Abstraction
 Abstraction: abstract class or interface and then implements. Only provides the functionality, not the implementation. User knows what it does but not how.
 
@@ -3584,7 +3626,9 @@ Polymorphism: variable, method, and objects can take on multiple forms, define o
 
 Runtime is where you call a specific child of the class
 
-Method overloading: class can have multiple methods with the same name but different arguments (compile time polymorphism)
+Method overloading: class can have multiple methods with the same name but different arguments (compile time polymorphism).
+
+You can even overload the main method, but only `public static void main(String[] args)` or `(String... args)` will be used when launched by the JVM.
 
 ### Functional Programming
 
@@ -3725,7 +3769,29 @@ public class ClassName {
 System.out.println("Prints this string to console.");
 long timeInMS = System.currentTimeMillis();
 ```
-### Casting
+### Casting types
+Widening casting is automatic - converts a smaller type to a larger one. You can pass an int value to a double variable.
+byte -> short -> char -> int -> long -> float -> double
+
+Narrow casting must be manual.
+```Java
+double myDouble = 9.78;
+int myInt = (int) myDouble; // Manual casting: double to int, 9
+```
+
+Need to be careful if using a more general type:
+```Java
+public static void main(String []args){
+        HashMap<String, Integer> map = new HashMap<String, Integer>();
+        String key = "Key1", val = "123";
+        putInMap(map, key, val); // doesn't throw an error
+        Integer test = map.get(key); // ClassCastException error
+     }
+     private static void putInMap(HashMap map, Object key, Object value) {
+         map.put(key, value);
+     }
+}
+```
 
 ### Generics
 Type-erasure: elimates parameterized types when translates source code into Java Virtual Machine byte code. Can specify sets of related methods or types.
@@ -3733,6 +3799,8 @@ Type-erasure: elimates parameterized types when translates source code into Java
 Syntactic sugar: Object<Type> is just Object where its instances are cast to (Type).
 
 Cannot use primitives like int or string - must use Integer or String. Can use mutliple if separate them with commas.
+
+Generics are not polymorphic - ArrayList<Integer> is not a subtype of ArrayList<Long> so it cannot be cast as such.
 
 ```Java
 Live Demo
@@ -3832,7 +3900,7 @@ A step towards functional programming.
 (param, eters) -> // do something
 ```
 
-Match with functions that take the same inputs and hav ethe same type of outputs.
+Match with functions that take the same inputs and have the same type of outputs.
 
 ### Reflection
 A way to examine or modify the behavior of methods, classes, and interfaces at runtime.
@@ -3864,14 +3932,101 @@ Used to observe or manipulate the runtime behavior of applications.
 
 Useful for debugging as it offers direct access to methods, constructors, and fields.
 
-Can call methods by name when you don't know the method in advance - like if user inputs a pclass name, parameters for the constructor, and a method name, we can use this information to create an object and call a method.
+Can call methods by name when you don't know the method in advance - like if user inputs a class name, parameters for the constructor, and a method name, we can use this information to create an object and call a method.
 
-### Private Constructors
+```Java
+public double publicSum(int a, double b) {
+    return a + b;
+}
+
+// For any public method, including static or instance, defined in the class or any of its superclasses:
+Method sumInstanceMethod
+  = Operations.class.getMethod("publicSum", int.class, double.class); // Get some method object by method name and types of arguments
+
+// For any method, public, protected, default access, some private but not-inherited ones:
+Method andPrivateMethod
+  = Operations.class.getDeclaredMethod("privateAnd", boolean.class, boolean.class);
+
+// Invoke on some instance and set of arguments. If static, can pass null as the instance. 
+Operations operationsInstance = new Operations();
+Double result = (Double) sumInstanceMethod.invoke(operationsInstance, 1, 3);
+ 
+assertThat(result, equalTo(4.0));
+
+// For methods with variable number of arguments, like main(String args[]), treat as if packed into an array:
+Class[] argTypes = new Class[] { String[].class };
+Method main = c.getDeclaredMethod("main", argTypes);
+String[] mainArgs = Arrays.copyOfRange(args, 1, args.length);
+main.invoke(null, (Object)mainArgs);
+
+```
+Calling a private method outside of its defining method or a protected method outside of a subclass or its class's package throws an IllegalAccessException. `methodInstance.setAccessible(true)` suppresses these access control checks and won't throw an exception on invokation.
+
+Getting classes through reflection:
+```Java
+// If have an instance of the class:
+Class c = "foo".getClass(); // String
+
+// If have type, including a primitive type, but no instance:
+Class c = boolean.class; // boolean
+Class c = int[][][].class; // int[][][]
+
+// If have a primitive type:
+Class c = Double.TYPE; // same as double.class
+Class c = Void.TYPE; // same as void.class
+
+// If have the fully-qualified name of a non-primitive type:
+Class c = Class.forName("package.ClassName");
+Class cDoubleArray = Class.forName("[D"); // same as double[].class
+Class cStringArray = Class.forName("[[Ljava.lang.String;"); // same as String[][].class
+
+// If have a subclass:
+Class c = javax.swing.JButton.class.getSuperclass(); // javax.swing.AbstractButton
+
+Class<?>[] c = Character.class.getClasses(); // all public classes, interfaces, and enums that are members or inherited members. // Character.subset, Character.UnicodeBlock
+
+Class<?>[] c = Character.class.getDeclaredClasses(); // all of the class's interfaces, enums, and member classes // public member classes Character.Subset and Character.UnicodeBlock and one private class Character.CharacterCache
+
+Class c = System.class.getField("out").getDeclaringClass(); // Class where members were declared. // System
+Class c = Thread.State.class().getEnclosingClass(); // Class immediately enclosing the class. // Thread
+
+// Anonymous classes don't have a declaring class but do have enclosing classes
+public class MyClass {
+    static Object o = new Object() { 
+        public void m() {} 
+    };
+    static Class<c> = o.getClass().getEnclosingClass(); // MyClass
+}
+
+```
+### Private Constructors and Singletons
 Only the class, inner classes, and child classes can access this purely internal constructor.
 
 Used in Singletons to ensure that there is only one instance of an object at a time.
 
-a ``getInstance()`` method returns the existing instance or makes one.
+A `getInstance()` method returns the existing instance or makes one.
+
+```Java
+class Singleton { 
+    // static variable single_instance of type Singleton 
+    private static Singleton single_instance = null; 
+  
+    // variable of type String 
+    public String s; 
+  
+    // private constructor restricted to this class itself 
+    private Singleton() { 
+        s = "Hello I am a string part of Singleton class"; 
+    } 
+  
+    // static method to create instance of Singleton class 
+    public static Singleton getInstance() { // static so doesn't require an instance to initially run
+        if (single_instance == null) 
+            single_instance = new Singleton(); 
+        return single_instance; 
+    } 
+} 
+```
 
 ### Error Catching
 Exceptions arise during compilation (checked exceptions) or execution (unchecked or runtime exceptions) and disrupt the normal flow of the program. Handle them to prevent the program from terminating abnormally.
@@ -3943,6 +4098,48 @@ class CustomException extends Exception {
    }
 }
 ```
+
+Order for nested try..catch blocks:
+```Java
+public class HelloWorld{
+     public static void main(String []args){
+         String message = "";
+        try {
+            message = getMessage();
+            System.out.println(message); // ABCDE, returns without throwing an exception
+        } catch (Exception e) {
+            message += "F"; // string needs to be defined outside of the blocks, else error
+            System.out.println(message);
+        } finally {
+            System.out.println(message); // ABCDE
+        }
+     }
+     public static String getMessage() throws Exception {
+         String message = "A";
+         try {
+             throw new Exception(); // jump to catch block
+         } catch (Exception e) {
+             try {
+                 try {
+                     throw new Exception();
+                 } catch (Exception ex) {
+                     message += "B";
+                 } // continue execution
+                 throw new Exception();
+             } catch (Exception x) {
+                 message += "C";
+             } finally {
+                 message += "D"; // regardless of how it jumped around the try..catch blocks above, will get to finally.
+             }
+         } finally {
+             message += "E";
+         }
+         return message; // if gets here, all exceptions were handled and none are thrown.
+     }
+}
+```
+Transfer to the parent to handle exceptions until find a block that will handle your specific exception type.
+
 ## Keywords
 
 ### Abstract
@@ -3955,6 +4152,8 @@ Declares a constant variable which cannot be changed; a method which cannot be o
 Must be initialized at declaration.
 
 Can also apply to variable references, where it restricts it from pointing to any other object on the heap, i.e. it cannot be reassigned to another object.
+
+Final means immutable, which means these are resources that can be safely shared among multiple threads and are side-effect-free.
 
 ### Static
 Can be accessed before the class object is created - it can be used independently of any object of that class.
@@ -4043,10 +4242,64 @@ A _java.lang.Class_ object represents this file in the JVM Heap memory. You can 
 * (Optional) Resolution: Replace symbolic references with direct ones by searching into the Method Area to locate the referenced entitiy.
 
 3. Initialization: Assign values to all static variables. Execute from top to bottom and parent to child. Done using three loaders:
-* Boostrap class loader: Can load trusted classes,, core java API classes from the _JAVA\_HOME/jre/lib_ directory (the boostrap path). Implemented in native languages like C or C++.
+* Boostrap or primoridal class loader: Can load trusted classes,, core java API classes from the _JAVA\_HOME/jre/lib_ directory (the boostrap path). Implemented in native languages like C or C++.
 * Extension class loader: Child of boostrap class loader. Loads classes present in the extension directories _JAVA\_HOME/jre/lib/ext_ (Extension path) or any other dictory specified by the system property _java.ext.dirs_. Implemented in Java by _sun.misc.Launcher$ExtClassLoader_ class.
 * System/ Applicatoion class loader: Child of extension class loader. Loads classes from the application class path using the Environment Variable which is mapped to _java.class.path_. Implemented in Java by _sun.misc.Launcher$AppClassLoader_ class.
 
+# ClassLoader
+Dynamically loads classes into the JVM's memory, when required at runtime.
+
+ClassLoaders are classes themselves, so the bootstrap or the primordial class loader serves as teh parent and is written in native code.
+
+When the JVM requests a class, the class loader tries to locate it and load it into runtime based on a fully qualified name. If the class isn't already loaded, it delegates the request to the parent class loader. If it still can't find the class, the child calss java.net.URLClassLoader.findClass() method to look for classes in the file system itself, else throws java.lang.NoClassDefFoundError or java.lang.ClassNotFoundException.
+# Multithreaded Custom Class Loaders
+When we need to load classes out of the local hard drive or a network, we need help modifying existing bytecode (weaving agents), we are creating classes dynamically, or we are implementing a class versioning mechanism while loading different bytecodes for classes with same names and packages. Browsers use to load executable content from websites (applets from remote servers instead of the local file system. Even if these applets have the same name, they are considered as different components if loaded by different class loaders).
+
+```Java
+public class CustomClassLoader extends ClassLoader {
+ 
+    public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException;
+    // fully qualified class name
+    // resolve is false if only need to determine if class exists or not
+
+    // final, so can't override
+    protected final Class<?> defineClass(
+  String name, byte[] b, int off, int len) throws ClassFormatError;
+    // Converts an array of bytes into an instance of a class
+
+    @Override // in custom implementations.v loadClass invokes if parent class couldn't find
+    public Class findClass(String name) throws ClassNotFoundException {
+        byte[] b = loadClassFromFile(name);
+        return defineClass(name, b, 0, b.length);
+    }
+ 
+    private byte[] loadClassFromFile(String fileName)  {
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(
+                fileName.replace('.', File.separatorChar) + ".class");
+        byte[] buffer;
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        int nextValue = 0;
+        try {
+            while ( (nextValue = inputStream.read()) != -1 ) {
+                byteStream.write(nextValue);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        buffer = byteStream.toByteArray();
+        return buffer;
+    }
+}
+```
+
+Modified to avoid deadlock. Must override loadClass() to use a different delegation model. may use an internal locking scheme based on the requested class name so not requesting a lock on a class loader that is delegating to the class loader that is trying to delegate to it.
+
+In static initializer, `registerAsParallelCapable()` and make sure all class loader classes that your custom one extends from invoke this as well.
+
+If overriding loadClass in addition to findClass, ensure that the protected defineClass() method is called only once for each class loader + class name pair.
+
+## Test Harness
+Collection of stubs, drivers, and other supported tools needed to execute tests automatically and generate reports.
 
 # Regex
 java.util.regex allows you to pattern match with regular expressions in sets of strings.
@@ -4200,13 +4453,6 @@ As containers, Applets inherit event-handling methods. With Graphics, you can di
 
 Sandbox security
 
-# Safe Varargs Method Invocation
-# Memory Leaks
-# jar Files
-Java Archive file.
-# Type Inference for Generic Instance Creation
-# Casting types
-# Currencies
 
 # Concurrency and Multithreading
 Two or more threads can run concurrently, each handling a different task at the same time.
@@ -4343,6 +4589,9 @@ Thread thread = new Thread(task);
 thread.start(); // no guarentee when runnable is invoked - could be after Done!
 System.out.println("Done!");
 ```
+
+The ThreadLocal class wraps a variable that only one thread can read and write to. You can have two threads with references to the same ThreadLocal variable, but each thread will only see its own ThreadLocal variable, as set with `threadLocalInstance.set("value")`. Also has get, remove, and optional generic typing.
+http://tutorials.jenkov.com/java-concurrency/threadlocal.html
 
 ## Thread Synchronization
 Don't want to override data or get stale data, so need to synchronize threads and their access to certain resouces. Each object in Java is associated with a monitor which a thread can lock or unlock, with only one thread at a time able to hold a lock on that monitor.
@@ -4755,6 +5004,8 @@ System.out.println(accumulator.getThenReset());     // => 2539
 ### ConcurrentMap
 Extends the map interface. `forEach()` accepts a BiConsumer lambda with key and value passed as parameters.
 
+a parallelismThreshold is the minimum collection size for which the operation should be executed in paralel.
+
 ```Java
 ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
 map.put("foo", "bar");
@@ -4780,38 +5031,79 @@ System.out.println(map.get("foo"));   // barbar
 map.merge("foo", "boo", (oldVal, newVal) -> newVal + " was " + oldVal);
 System.out.println(map.get("foo"));   // boo was foo
 ```
-## fork-join
-## Immutable Objects
-## CompletableFutures
-## ExecuterService
-Can run asynchronous tasks; manage a pool of threads which will be reused for revenant tasks. Needs to be stopped explictly or will keep listening for new tasks. You can shutdown immediately or wait for currently running tasks to finish.
+## Fork/Join Framework
+Divide - fork - recursively break task into smaller independent subtasks until they can be executed asynchronously.
+
+Conquer - join - recursively join results into a single result, or, if they return void, wait until the subtasks are executed.
+
+Uses a pool of threads called the ForkJoinPool which manages threads of type ForkJoinWorkerThread.
+
+ForkJoinPool is an implementation of ExecutorService. It doesn't create a separate thread for every single subtask, but instead has each thread store tasks in a double-ended queue, which it selects a task off the head of. When its deque is empty, it takes a task from the tail of a busy thread's deque or from the global entry queue, where the biggest pieces of work are likely to be located. This way, threads are unlikely to compete for tasks and the number of times a thread goes looking for work is reduced, as threads work on the biggest available chunks of work first.
+
+Default thread pool is the commonPool().
+```Java
+ForkJoinPool commonPool = ForkJoinPool.commonPool();
+public static ForkJoinPool forkJoinPool = new ForkJoinPool(2); // parallelism level of 2; uses 2 processor cores
+ForkJoinPool forkJoinPool = PoolUtil.forkJoinPool;
+```
+
+To define a task, extend RecursiveAction if it returns void of RecursiveTask<V> if it returns a value of type V. Define the task's logic in the compute() method.
+
+Create an object to represent the total amount of work, choose a threshold, define a method to divide the work, and define a method to do it.
 
 ```Java
-ExecutorService executor = Executors.newSingleThreadExecutor();
-executor.submit(() -> {
-    String threadName = Thread.currentThread().getName();
-    System.out.println("Hello " + threadName);
-});
-// => Hello pool-1-thread-1
-
-try {
-    System.out.println("attempt to shutdown executor");
-    executor.shutdown();
-    executor.awaitTermination(5, TimeUnit.SECONDS);
-}
-catch (InterruptedException e) {
-    System.err.println("tasks interrupted");
-}
-finally {
-    if (!executor.isTerminated()) {
-        System.err.println("cancel non-finished tasks");
+public class CustomRecursiveTask extends RecursiveTask<Integer> {
+    private int[] arr; // work
+ 
+    private static final int THRESHOLD = 20;
+ 
+    public CustomRecursiveTask(int[] arr) {
+        this.arr = arr;
     }
-    executor.shutdownNow();
-    System.out.println("shutdown finished");
+ 
+    @Override
+    protected Integer compute() { // return a list of Future
+        if (arr.length > THRESHOLD) {
+            return ForkJoinTask.invokeAll(createSubtasks()) // submit tasks to common pool
+              .stream()
+              .mapToInt(ForkJoinTask::join) // return IntStream
+              .sum();
+        } else {
+            return processing(arr);
+        }
+    }
+ 
+    private Collection<CustomRecursiveTask> createSubtasks() { // divide the task into smaller pieces of work until pass the threshold
+        List<CustomRecursiveTask> dividedTasks = new ArrayList<>();
+        dividedTasks.add(new CustomRecursiveTask(
+          Arrays.copyOfRange(arr, 0, arr.length / 2)));
+        dividedTasks.add(new CustomRecursiveTask(
+          Arrays.copyOfRange(arr, arr.length / 2, arr.length)));
+        return dividedTasks;
+    }
+ 
+    private Integer processing(int[] arr) {
+        return Arrays.stream(arr)
+          .filter(a -> a > 10 && a < 27)
+          .map(a -> a * 10)
+          .sum();
+    }
 }
+```
+
+To submit tasks to the thread pool:
+```Java
+forkJoinPool.execute(customRecursiveTask);
+int result = customRecursiveTask.join();
+
+int result = forkJoinPool.invoke(customRecursiveTask); // Fork the task and wait for the result, don't need to manually join.
 
 ```
+
+Executors use pre-configured thread pool instances.
+
 ### ThreadPoolExecutor
+Extensible thread bpool implementation.
 
 The ThreadPoolExecutor can fine-tune thread pools of a fixed number of core threads that are kept inside all the time (corePoolSize) and some excessive threads (up to maximumPoolSize) which may bve spawned and then terminated as needed - if all core threads are busy and the internal queue is full, the pool will grow. These excessive threads are allowed to be idle for as long as the keepAliveTime allows. Only non-core threads can be removed, unless allowCoreThreadTimeOut(true).
 
@@ -4851,6 +5143,8 @@ executor.submit(() -> {
 ```
 
 ### Futures
+Futures are results of asynchronous computations. 
+
 Callable<Type> are tasks just like Runnables, only they return a value. Executors submitting a Callable Task return a Future<Type> object that will retrieve the actual result once it exists.
 ```Java
 Callable<Integer> task = () -> {
@@ -4901,6 +5195,121 @@ executor.invokeAll(callables)
 ```
 
 To return only the fastest result of a list of callables, use `invokeAny()`.
+
+#### CompletableFuture
+To compose, combine ,execute asynchronous computation steps and handle possible errors through the implementation of the CompletionStage interface. 
+
+Getting a future blocks the current thread until the result is completed.
+
+```Java
+// If you already know the result and won't need to block to get:
+Future<String> completableFuture = 
+  CompletableFuture.completedFuture("Hello");
+
+// Cancel execution:
+completableFuture.cancel(false);
+completableFuture.get(); // CancellationException
+```
+
+Static methods runAsync and supplyAsync create CompletableFutures out of Runnables (no return value) and Suppliers (no arguments, returns a parameterized type). They run a corresponding step of execution in another thread.
+```Java
+CompletableFuture<String> future
+  = CompletableFuture.supplyAsync(() -> "Hello");
+ 
+// ...
+ 
+assertEquals("Hello", future.get());
+```
+
+thenApply accepts a function and uses it to process a result and returns a Future.
+```Java
+// Function
+CompletableFuture<String> completableFuture
+  = CompletableFuture.supplyAsync(() -> "Hello");
+ 
+CompletableFuture<String> future = completableFuture
+  .thenApply(s -> s + " World"); // if used a consumer like s -> System.out.println("Computation returned: " + s), future would be void.
+ 
+assertEquals("Hello World", future.get());
+
+// Runnable
+CompletableFuture<String> completableFuture 
+  = CompletableFuture.supplyAsync(() -> "Hello");
+ 
+CompletableFuture<Void> future = completableFuture
+  .thenRun(() -> System.out.println("Computation finished."));
+ 
+future.get();
+```
+
+You can combine CompletableFutures and chain computation steps (mondaic design pattern).
+
+```Java
+CompletableFuture<String> completableFuture 
+  = CompletableFuture.supplyAsync(() -> "Hello")
+    .thenCompose(s -> CompletableFuture.supplyAsync(() -> s + " World"));
+ 
+assertEquals("Hello World", completableFuture.get());
+
+// Future and Function:
+CompletableFuture<String> completableFuture 
+  = CompletableFuture.supplyAsync(() -> "Hello")
+    .thenCombine(CompletableFuture.supplyAsync(
+      () -> " World"), (s1, s2) -> s1 + s2));
+ 
+assertEquals("Hello World", completableFuture.get());
+
+// Two Futures, no passing any resulting value:
+CompletableFuture future = CompletableFuture.supplyAsync(() -> "Hello")
+  .thenAcceptBoth(CompletableFuture.supplyAsync(() -> " World"),
+    (s1, s2) -> System.out.println(s1 + s2));
+```
+thenCompose returns an object of the same type, just as a flatMap does - futures aren't nested in futures. Uses the previous stage as an argument. 
+
+thenApply works with the result of a previous call and returns combined of all calls. Will return nested futures, like map.
+```Java
+CompletableFuture<Integer> finalResult = compute().thenApply(s-> s + 1);
+```
+
+Executing in parallel:
+```Java
+CompletableFuture<Void> combinedFuture 
+  = CompletableFuture.allOf(future1, future2, future3); // returns a void, so need to manually get results from futures
+combinedFuture.get(); // blocks until all have executed
+ 
+assertTrue(future1.isDone());
+assertTrue(future2.isDone());
+assertTrue(future3.isDone());
+
+// Join results of futures
+String combined = Stream.of(future1, future2, future3)
+  .map(CompletableFuture::join)
+  .collect(Collectors.joining(" "));
+ 
+assertEquals("Hello Beautiful World", combined);
+```
+
+Catching Errors using a special handle method, with two parameters: the result of a computation (if it finished successfully) and the exception thrown (if some computation step did not complete normally).
+
+```Java
+CompletableFuture<String> completableFuture  
+  =  CompletableFuture.supplyAsync(() -> {
+      if (name == null) {
+          throw new RuntimeException("Computation error!");
+      }
+      return "Hello, " + name;
+  })}).handle((s, t) -> s != null ? s : "Hello, Stranger!");
+
+// Throw exception upon completion
+completableFuture.completeExceptionally(
+  new RuntimeException("Calculation failed!"));
+ 
+// ...
+ 
+completableFuture.get(); // ExecutionException
+```
+
+https://www.baeldung.com/java-completablefuture
 
 ### Scheduling
 Tasks can be scheduled to run periodically or once after a certain amount of time has passed.
@@ -5098,28 +5507,271 @@ result = customRecursiveTaskLast.join(); // triggers execution, returns either n
 
 # Classes
 # Optionals
-Containers for values which may be null or non-null. Used to prevent NullPointerExceptions.
+Containers for values which may be null or non-null. Used to prevent NullPointerExceptions. Meant to be return types, not parameters.
 
 ```Java
-Optional<String> optional = Optional.of("bam");
+Optional<String> empty = Optional.empty();
+assertFalse(empty.isPresent());
 
-optional.isPresent();           // true
+Optional<String> opt = Optional.ofNullable(null); // No exception thrown, just an empty Optional object
+Optional<String> optional = Optional.of("bam"); // NullPointerException if null
+
+optional.isPresent();           // true if not null
+optional.isEmpty();             // false if not null
 optional.get();                 // "bam"
 optional.orElse("fallback");    // "bam"
 
 optional.ifPresent((s) -> System.out.println(s.charAt(0)));     // "b"
+
+String name = Optional.ofNullable(nullName).orElse("john"); // if present, return wrapped value (nullName) else argument ("john"). Creates the default object regardless, so if pass a function, the function will be called.
+String name = Optional.ofNullable(nullName).orElseGet(() -> "john"); // takes a supplier functional interface and returns the result of the invocation. Will not call the function if not needed.
+String name = Optional.ofNullable(nullName).orElseThrow(
+      IllegalArgumentException::new);
+
+Optional<String> opt = Optional.ofNullable(null);
+String name = opt.get(); // NoSuchElementException
 ```
 
+Reject wrapped values based on a pre-defined rule.
+
+Filters take a predicate and return an optional argument. If the wrapped value passes the predicate, returns the optional as-is, else returns an empty optional.
+```Java
+Integer year = 2016;
+Optional<Integer> yearOptional = Optional.of(year);
+boolean is2016 = yearOptional.filter(y -> y == 2016).isPresent();
+assertTrue(is2016);
+
+
+    boolean isInRange = false;
+    if (modem != null && modem.getPrice() != null
+      && (modem.getPrice() >= 10
+        && modem.getPrice() <= 15)) {
+ 
+        isInRange = true;
+    }
+    return isInRange;
+
+// Same as
+
+    return Optional.ofNullable(modem2)
+       .map(Modem::getPrice) // original value is not modified
+       .filter(p -> p >= 10)
+       .filter(p -> p <= 15)
+       .isPresent();
+```
+Map transforms an Optional value through some action.
+
+FlatMap unwraps values before transforming them.
+```Java
+    Optional<Person> personOptional = Optional.of(person);
+ 
+    Optional<Optional<String>> nameOptionalWrapper = personOptional.map(Person::getName); // returns an Optional<String>
+    Optional<String> nameOptional  = nameOptionalWrapper.orElseThrow(IllegalArgumentException::new);
+    String name1 = nameOptional.orElse("");
+    assertEquals("john", name1);
+ 
+ // Same as
+
+    String name = personOptional
+      .flatMap(Person::getName) // unwraps Optional<String>
+      .orElse("");
+    assertEquals("john", name);
+```
+
+Get the first non-empty Optional using Streams:
+```Java
+    Optional<String> found = Stream.of(getEmpty(), getHello(), getBye())
+      .filter(Optional::isPresent)
+      .map(Optional::get)
+      .findFirst();
+// executes all get methods regardless of where the first non-empty one appears
+// To lazily evaluate instead:
+    Optional<String> found =
+      Stream.<Supplier<Optional<String>>>of(this::getEmpty, this::getHello, this::getBye)
+        .map(Supplier::get)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .findFirst();
+
+// If want lazy evaluation for methods that take arguments:
+    Optional<String> found = Stream.<Supplier<Optional<String>>>of(
+      () -> createOptional("empty"),
+      () -> createOptional("hello")
+    )
+      .map(Supplier::get)
+      .filter(Optional::isPresent)
+      .map(Optional::get)
+      .findFirst()
+      .orElseGet(() -> "default");
+```
 # Spliterator
-# ClassLoader
-# Multithreaded Custom Class Loaders
+ Traverses and partitions sequences. Base utility for Streams.
+
+ tryAdvance takes a Consumer that consumes one by one and returns false if no elements to be traversed. If remaining element  exists, perform given action and return true, else false. Combines hasNext() and next() of iterators.
+ ```Java
+ int current = 0;
+    while (spliterator.tryAdvance(a -> a.setName(article.getName()
+      .concat("- published by Baeldung")))) {
+        current++;
+    }
+```
+forEachRemaining(Consumer<T> action) for each remaining element in the current thread, until all processed or exception is thrown.
+
+trySplit processes in parallel, returns a new spliterator to iterate over the other portion of the sequence.
+
+estimateSize(): number of elements left to iterate or Long.MAX_VALUE if infinite, unknown, or too expensie to compute
+
+getExactSizeIfKnown(): estimateSize() if spliterator is SIZED, else -1.
+
+comparator if SORTED. null if natural order, IllegalStateException if not SORTED.
+
+characteristics()
+* SIZED – if it's capable of returning an exact number of elements with the estimateSize() method
+* SORTED – if it's iterating through a sorted source
+* SUBSIZED – if we split the instance using a trySplit() method and obtain Spliterators that are SIZED as well
+* CONCURRENT – if source can be safely modified concurrently
+* DISTINCT – if for each pair of encountered elements x, y, !x.equals(y)
+* IMMUTABLE – if elements held by source can't be structurally modified
+* NONNULL – if source holds nulls or not
+* ORDERED – if iterating over an ordered sequence
+
+Custom spliterator
+
+https://www.baeldung.com/java-spliterator 
 
 # Internationalization
 i18n - Built-in support for different languages, number formats, and date and time adjustments (localization or L10n).
 ## Legacy Date and Time Handling
+Dates store in UTC, locale-independent. Date and Calendar were not thread-safe.
 ## Locales
-## Resource Bundles
+Identifiers of language + region combinations.
+
+Locales are usually represented by language, country, and variant abbreviation separated by an underscore:
+
+    de (German)
+    it_CH (Italian, Switzerland)
+    en_US_UNIX (United State, UNIX platform)
+
+Script and Extensions
+    Language can be an ISO 639 alpha-2 or alpha-3 code or registered language subtag.
+    Region (Country) is ISO 3166 alpha-2 country code or UN numeric-3 area code.
+    Variant is a case-sensitive value or set of values specifying a variation of a Locale.
+    Script must be a valid ISO 15924 alpha-4 code.
+    Extensions is a map which consists of single character keys and String values.
+
+Locale.Builder:
+```Java
+Locale locale = new Locale.Builder()
+  .setLanguage("fr")
+  .setRegion("CA")
+  .setVariant("POSIX") // no restrictions on values
+  .setScript("Latn")
+  .build();
+
+// New Locale
+
+    new Locale(String language);
+    new Locale(String language, String country);
+    new Locale(String language, String country, String variant);
+
+// By Language
+Locale uk = Locale.forLanguageTag("en-UK");
+
+// Available
+Locale[] numberFormatLocales = NumberFormat.getAvailableLocales();
+Locale[] dateFormatLocales = DateFormat.getAvailableLocales();
+Locale[] locales = Locale.getAvailableLocales();
+
+// Defaults
+Locale defaultLocale = Locale.getDefault();
+Locale.setDefault(Locale.CANADA_FRENCH);
+```
+
+Locale class alaos has several static constants, like `Locale.JAPAN` and `Locale.JAPANESE`. Must be installed within the Java Runtime.
+
+# Currencies
+Value has an alphabetic code, a numeric code, and a minor unit.
+
+https://docs.oracle.com/javase/8/docs/api/java/util/Currency.html
+https://www.baeldung.com/java-money-and-currency
+
+## ResourceBundles
+Represent containers of resources for particular locales for loading loacle-specific data.
+
+ localized messages/descriptions which can be externalized to the separate files
+
+https://www.baeldung.com/java-resourcebundle
 ## Time Zones
+Calendar objects (such as GregorianCalendar) arev ms from midnight GMT, January 1, 1970 and can do arithmetic on various fields like year, month, and week.
+
+TimeZone encapsulates a time offset from GMT and possible daylight savings. TimeZone.getTimeZone() gvets an instance for a time zone ID. TimeZone.getDefault() returns the platform time zone.
+
+https://www.baeldung.com/java-8-date-time-intro
+
+LocalDate is immutable but does not store a time-zone or offset.
+
+ChronoUnit is an enum with units of varying lengths and and Forever.
+
+Can calculate the number of complete time units between two YearMonth objects with until() and a TemporalUnit
+
+## Formatting
+DateFormat, NumberFormat, and MessageFormat
+
+DateFormat parses and formats locale-independent. SimpleDateFormat is locale-sensitive and can use custom patterns. DateFormatSymbols encapsulates date-time formatting data like names of months and time of day.
+* `DateFormat.getDateTimeInstance(DateFormat.FUll, DateFormat.FULL, Locale.ITALY)`
+* `getDateInstance`
+* `getTimeInstance`
+
+
+DateTimeFormatter:
+```Java
+Locale.setDefault(Locale.US);
+LocalDateTime localDateTime = LocalDateTime.of(2018, 1, 1, 10, 15, 50, 500);
+String pattern = "dd-MMMM-yyyy HH:mm:ss.SSS";
+ 
+DateTimeFormatter defaultTimeFormatter = DateTimeFormatter.ofPattern(pattern);
+DateTimeFormatter deTimeFormatter = DateTimeFormatter.ofPattern(pattern, Locale.GERMANY);
+ 
+assertEquals(
+  "01-January-2018 10:15:50.000", 
+  defaultTimeFormatter.format(localDateTime));
+assertEquals(
+  "01-Januar-2018 10:15:50.000", 
+  deTimeFormatter.format(localDateTime));
+
+
+ZoneId losAngelesTimeZone = TimeZone.getTimeZone("America/Los_Angeles").toZoneId();
+ 
+DateTimeFormatter localizedTimeFormatter = DateTimeFormatter
+  .ofLocalizedDateTime(FormatStyle.FULL);
+String formattedLocalizedTime = localizedTimeFormatter.format(
+  ZonedDateTime.of(localDateTime, losAngelesTimeZone));
+ 
+assertEquals("Monday, January 1, 2018 10:15:50 AM PST", formattedLocalizedTime);
+```
+https://www.baeldung.com/java-8-localization
+
+NumberFormat is locale-specific - decimal points, thousands-sepraators, currency, percentage. Numbers are stored locale-independent. DecimalFormat formats decimals to a certain precision or currency. DecimalFormatSymbols stores symbols like the decimal separator, grouping separator. ChoiceFormat allows you to attach a format to a range of numbers.
+
+    NumberFormat.getInstance(Locale locale)
+    NumberFormat.getCurrencyInstance(Locale locale)
+
+```Java
+Locale usLocale = Locale.US;
+double number = 102300.456d;
+NumberFormat usNumberFormat = NumberFormat.getInstance(usLocale);
+ 
+assertEquals(usNumberFormat.format(number), "102,300.456");
+
+BigDecimal number = new BigDecimal(102_300.456d);
+ 
+NumberFormat usNumberFormat = NumberFormat.getCurrencyInstance(usLocale); 
+assertEquals(usNumberFormat.format(number), "$102,300.46");
+```
+
+MessageFormat produces conceatenated messages in a language-neutral way according to a pattern. ParsePosition keeps track of position during parsing. FieldPosition identifies fields in a formatted output. 
+
+The Collator class performs locale-speciic string comparison to build searching and alphabetical sorting routines for natural language text. 
 
 # Streams from Collections, references, and primitives
 Streams are monads, which represent computations defined as sequences of steps. They are sequences of elements on which one or more operations can be performed. 
@@ -5200,6 +5852,14 @@ Streams can be sequential or parallel. With sequential streams, operations are p
 ```Java
 long count = values.stream().sorted().count();
 long count = values.parallelStream().sorted().count(); // Much faster
+
+// Parallel streams for things other than Collections or arrays:
+IntStream intStreamParallel = IntStream.range(1, 150).parallel();
+boolean isParallel = intStreamParallel.isParallel();
+
+// Convert back to sequential:
+IntStream intStreamSequential = intStreamParallel.sequential();
+boolean isParallel = intStreamSequential.isParallel();
 ```
 
 To avoid null streams with no elements, can create an empty stream: 
@@ -5367,6 +6027,7 @@ Optional.of(new Outer())
     .ifPresent(System.out::println);
 // Each flatMap returns an Optional wrapping or null if the object is absent
 ```
+
 ### Count
 Terminal operation that returns the stream's size.
 ### forEach
@@ -5424,6 +6085,7 @@ System.out.println(map);
 ```
 
 Grouping:
+Separates results in [ , ] array.
 ```Java
 Map<Integer, List<Person>> personsByAge = persons
     .stream()
@@ -5618,6 +6280,16 @@ System.out.println(names);  // MAX | PETER | PAMELA | DAVID
 ```
 Four operations: supplier (initial actions), accumulator, combiner (for parallel streams), and finisher (like a finally statement). 
 
+### Min and Max
+Terminal operations that take comparators. Special case of reduction.
+```Java
+Optional<Integer> min = list.stream().min(Integer::compareTo); // returns an optional because the stream could be empty.
+
+// Dealing with Optionals:
+Integer smallest = minimal.orElse(absent); // default value
+Integer smallest = minimal.isPresent() ? minimal.get() : absent;
+```
+
 ### Reduce
 Terminal operation that reduces all elements to a single result using the given function. Returns an Optional holding the reduced value. Accepts a starting value and a BinaryOperator accumulator function, which accepts two operands of the same type.
 ```Java
@@ -5658,9 +6330,6 @@ List<Integer> integers = Arrays.asList(1, 1, 1);
 Integer reduced = integers.stream().reduce(23, (a, b) -> a + b); // 23 + 1 + 1 + 1;
 ```
 
-## Optionals
-## Collector
-## Collectors
 ## Parallelism
 Parallel streams use a common ForkJoinPool method to use a custom Thread Pool:
 ```Java
@@ -5740,6 +6409,7 @@ MyInterface myInterface = new MyInterface() {
     }
 };
 ```
+
 ## Functional Interfaces
 
 ```Java
@@ -5921,10 +6591,13 @@ list.stream().forEach(a -> System.out.print(a + " "));
 
 // using addThen() 
 modify.andThen(dispList).accept(list); 
+
+first.andThen(second).andThen(third).accept(input);
      
 ```
 
 andThen will execute another Consumer after the first one.
+
 ## Suppliers
 Produce a result of a given generic type - supplier of results. Doesn't take any argument but produces one of type T.
 ```Java
@@ -5950,3 +6623,76 @@ Used as a target. Takes an object of type T and returns a value of the same type
 
  System.out.println(adder.apply(3, 4));
 ```
+
+# @SafeVarargs Method Invocation
+Assertion that body of the annotated method doesn't perform potentially unsafe operations on varargs parameter (variable length parameter). Suppresses unchecked warnings about a non-reifiable variable arity (vararg) type and suppresses unchecked warnings about parameterized array creation at call sites.
+
+You're not supposed to return a parameterized varargs array, which will be type Object[] regardless of `method(T... elements)` T.
+
+# Memory Leaks
+When objects are no longer bein used by the application but the Garbage Collector can't remove them from working memory, as they are still being referenced.
+
+OutOfMemoryError.
+
+Referencing a big object with a static field - will never be collected even after calculations are done.
+
+str.intern() returns in canonical form, placing it into the PermGen space of the JVM memory pool where it can't be collected. PermGen is replaced by Metaspace in Java 8 which won't lead to OutOfMemoryErrors with intern on strings.
+
+Leaving instantiated streams unconsumed or unclosed. low-level resource leak as well of file descriptors, open connecions, etc. Close streams, use terminal operations, or try-with-resources to automatically close without an explicit finally block.
+
+Connections to databases and servers must be closed.
+
+Adding objects with no hashCode() or equals() implementations to a HashSet won't allow it to ignore duplicates or remove them once added.
+
+## Heap Information
+```Java
+// Get current size of heap in bytes
+long heapSize = Runtime.getRuntime().totalMemory(); 
+
+// Get maximum size of heap in bytes. The heap cannot grow beyond this size.// Any attempt will result in an OutOfMemoryException.
+long heapMaxSize = Runtime.getRuntime().maxMemory();
+
+ // Get amount of free memory within the heap in bytes. This size will increase // after garbage collection and decrease as new objects are created.
+long heapFreeSize = Runtime.getRuntime().freeMemory();
+```
+
+Garbage collection:
+https://codeahoy.com/2017/08/06/basics-of-java-garbage-collection/
+https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/sizing.html
+https://plumbr.io/blog/garbage-collection/understanding-garbage-collection-logs
+
+# JAR Files
+Java Archive file. Aggregates many Java class files and associated metadata and resources (text, images, etc.) into one file for distribution. JAR files are archive files that include a Java-specific manifest file.
+
+Packaged with ZIP.
+
+ lossless data compression, archiving, decompression, and archive unpacking
+ https://docs.oracle.com/javase/tutorial/deployment/jar/basicsindex.html
+
+ Generally name the file with the name of the public class with a main method that will be run (where execution will start). Will compile as man .class files as there are classes in the file and can individually test all those with their own main() stubs.
+
+ Entry points to JAR files can be set in the manifest or overridden in the command line. The entry point is the class whose main method will be executed when the JAR file is run.
+ https://docs.oracle.com/javase/tutorial/deployment/jar/appman.htmlv
+
+# Type Inference for Generic Instance Creation
+Within the <diamond> we put types, but these can be inferred and the diamond of type parameters left empty.
+```Java
+List<Integer> list = new List<>();
+```
+
+Can infer from a generic type constructor:
+```Java
+class GenericClass<X> {  
+    <T> GenericClass(T t) {  
+        System.out.println(t);  
+    }  
+} 
+
+GenericClass<String>gc2 = new GenericClass<>("Hello");  
+```
+Using a <?> is a wildcard. Can also have <? extends ParentClassName> to limit the number of acceptable types that can be passed. 
+
+# Operator Precedence
+c = (b2 = b1 == false) where b1 is compared to false and the result of that comparison is passed to b2, the assignment of which returns the value of b2 to set c.
+
+a++==a++ for a = 0 intially is the same as 0==1, with a = 2 by the end. The expression on each side is first evaluated, then they are compared.
