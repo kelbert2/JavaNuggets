@@ -57,6 +57,36 @@ Stores either `true` or `false`. 1 bit in size. Default value is `false`.
 * || OR
 * ! NOT
 
+# Operators
+Precendence, then associativity (right to left or left to right). There is no explicit ordering, but here's what works:
+
+| Level 	| Operator 	| Description 	| Associativity |
+|----------:|-----------|:--------------|:--------------|
+| 16 	| []   .   () 	| access array element, access object member, parentheses 	| left to right |
+| 15 	| ++   -- 	| unary post-increment, unary post-decrement 	| not associative |
+|14 	| ++   --   +   -   !   ~ 	| unary pre-increment, unary pre-decrement, unary plus, unary minus, unary logical NOT, unary bitwise NOT 	| right to left |
+|13 	| ()   new 	| cast, object creation 	| right to left |
+|12 	| *   /   % 	| multiplicative 	| left to right |
+|11  |	+   -     + 	 |additive, string concatenation 	 | left to right |
+| 10 	 | <<   >>   \>>> 	 | shift 	 | left to right |
+| 9 	 | <   <=   \>   \>= | instanceof, 	relational 	 | not associative|
+| 8 |	==   != 	 | equality 	 | left to right|
+|7 	 | & 	| bitwise AND 	| left to right|
+|6 	| ^ | 	bitwise XOR |	left to right|
+|5 |	\| | 	bitwise OR 	| left to right|
+|4 |	&& 	| logical AND 	| left to right|
+|3 |	\|\| |	logical OR |	left to right |
+|2 	| ? : | 	ternary 	| right to left |
+|1 	 | =   +=   -=   *=   /=   %=   &=   ^=   \|=   <<=  >>=   >>>= 	| assignment 	| right to left
+
+Above/ with assignment goes the lambda operator ->, such that `op = x -> x` is different from `(op = x) -> x`, which isn't syntactically valid. `op = x -> t = x` is the same as `op = (x -> (t = x))`
+
+## Short-Circuiting
+When conditional && and || operators are used, Java will not evaluate the second unless it is necessary to resolve the result. 
+
+So you can do this:
+`(x != null && x.length() < 10)` without throwing an error if `x == null`.
+
 # Wrappers
 Objects that wrap around primitives. Allows you to use special class (static) methods. Compiler handles conversion to and from primitive (unboxing and boxing). Wrappers are Serializable and Comparable. They are immutable and can be stored by collections.
 
