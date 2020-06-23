@@ -4247,6 +4247,28 @@ protected void finalize() throws Throwable {
     /* Close open files, release resources, etc. */
 }
 ```
+Garbage collection is non-deterministic - there is no way to predict when it will occur at run time. You can drop hints to run the garbage collector with `System.gc()` or `Runtime.gc()`, but there is no guarantee it will actually be run. You can set flags on the JVM - which garbage collector to use, initial and maximum size of the heap, heap section size
+
+Implementation dependent upon the JVM. With the common Oracle HotSpot, there are multiple garbage collectors optimized for different use cases. In their processes, the garbage collector identifies and marks unreferenced objects and then, in its next sweep, deletes them. It may then compact memory into a continuous block at the start of the heap, so that new objects will have memory allocated sequentially. 
+
+There is also generational garbage collection that categorizes objects by age, as the expectation is that most objects are short-lived and will be collected soon after their creation.
+
+The heap is divided into three sections:
+* Young Generation - for newly created objects. Garbage collecting from here is a minor garbage collection event.
+* * Eden space - where new objects start
+* * Two Survivor spaces - where objects are moved if they survive one garbage collection cycle.
+* Old Generation - for long-lived objects, or tenured objects. Collecting from here is a major garbage collection event.
+* Permanent Generation - metadata like classes and methods. Classes that are no longer in use can be collected from here.
+A full garbage collection event targets unused objects in all Generations.
+
+HotSpot has four garbage collectors:
+* Serial - all events are conducted serially in one thread. Compaction is executed following each garbage collection.
+* Parallel - uses multiple threads. Uses a single thread for major garbage collection and Old Generation compaction. Variant: Parallel Old uses multiple threads for this. Efficient but will frequently cause "stop the world" events, so best for backend processing where long pauses for garbage collection are acceptable.
+* Concurrent Mark Sweep (CMS) - uses multiple threads for minor garbage collection, using the same algorithm as Parallel. Uses multiple threads for major garbage collection but runs this concurrently alongiside applicaiton processes to minimize "stop the world" events, where the GC running stops the application. Performs no compaction. Designed to minimize pauses, so best for GUI applications where responsiveness is important.
+* Garbage First (G1) - uses multpile threads concurrently like CMS, but works differently under the hood. Intended as a replacement for CMS.
+
+https://stackify.com/what-is-java-garbage-collection/ 
+
 ## Java Virtual Machine (JVM)
 Runs compiled JVM bytecode (filename.class) on a range of computers, with a different implementation for each, in order to pass actual processing work to processors in their own language.
 
