@@ -2994,7 +2994,67 @@ f().catch(alert); // takes in the error object that gets passed
 ### String Manipulation
 ### Regular Expressions
 
+# Call Stack
+Allows the interpreter to keep track of its place in the script - which function is currently running, which ones are called from within it, etc.
 
+When a script calls a function, the interpreter adds it to the (LIFO) call stack and then starts carrying it out. Any functions it calls are added further up the call stack and run when their calls are reached. When the current function is finished, the interpreter takes it off the stack and resumes execution where it left off in the last code listing.
+
+If the stack takes up more space than it was assigned, you get a stack overflow error.
+
+Function calls form stacks of frames, with all of the function's arguments and local variables. 
+
+## Event Table and Event Queue
+Functions like `setTimeout()` or async functions run asynchronously after finishing the current execution block. They are added to the event table, which knows which functions are triggered after which events. If the event occurs, it sends a notice to the Event Queue, but it does not execute them or add them to the call stack.
+
+The Event Loop is a constantly (on each tick) running process that checks if the call stack is empty and, if so, it looks at the event queue and moves whatever something that is in there to the call stack.
+
+```JavaScript
+setTimeout(() => console.log('first'), 0); // add callback function to event table after timeout has passed, add to event queue, if empty, add to call stack and run
+console.log('second'); // add to call stack and run
+// Logs
+// second
+// first
+
+// After all, the 0 in setTimeout is just the minimum delay after which it will be pushed into the queue
+```
+If you are calling an insane number of recursive calls, to avoid a stack overflow, you can put them in a `setTimeout(() => recursiveCall(), 0)`, so the calls will not directly pile up on the stack.
+
+Whenever a function runs, it cannot be pre-empted and will run entirely before any others.
+
+The Event Loop allows for the performance of non-blocking Input/ Output (I/O) operations by offloading them to the (often) multi-threaded system kernel to execute in the background. Such operations include network requrests and filesystem operations.
+
+### Message Queue
+For user-initiated events like click or keyboard events, fetch responses, DOM events like onLoad, and timeout callbacks. Once everything in the call stack is processed, it picks things in the message queue.
+
+### Job Queue
+As of ES6 (ECMAScript 2015), used by Promises rather than putting results of async functions at the end of the call stack. Promises that resolve before the current function ends are execute right after the current function.
+
+Acts as a fastpass ticket compared to the rollercoaster line of the message queue. 
+
+```JavaScript
+const bar = () => console.log('bar')
+
+const baz = () => console.log('baz')
+
+const foo = () => {
+  console.log('foo')
+  setTimeout(bar, 0)
+  new Promise((resolve, reject) =>
+    resolve('should be right after baz, before bar')
+  ).then(resolve => console.log(resolve))
+  baz()
+}
+
+foo()
+
+/*
+foo
+baz
+should be right after baz, before bar
+bar
+*/
+```
+https://flaviocopes.com/javascript-event-loop/ 
 
 # Browsers
 Platforms are hosts that provide specific functionality, like objects and functions.
@@ -3217,7 +3277,6 @@ Table row elements <tr> elements:
 
 <td> and <th> have `cellIndex` - number of the cell inside the enclosing <tr>.
 
-#### Forms
 
 ## Usage
 Can run JavaScript in the browser by inserting a <script src="path/to/script.js">Or write it here, inline;</script> tag. "path/to/script.js" is a relative path from the current folder (of the HTML page). "/path/to/script.js" is an absolute path from the site root. Your source can also be a full "https://url.domain.com/script.js". If the src is set, any content between the tags will be ignored.
@@ -4084,7 +4143,75 @@ The HTML attribute `tabindex` is the order of the element when Tab is used to sw
 
 The currently focused element is `document.activeElement`.
 
+## Web Workers
+Allow for parallel execution inside the browser. They can't access the DOM (so no `document` or `window`). Instead they use a `WorkerGlobalScope` object. 
 
+They must be loaded from the same origin (domain, port, and protocol). They won't work if you serve the page using the file protocol (`file://`). 
+
+They communicate with the main JavaScript program using messaging. - the postMessage API on the Web Worker object or the Channel Messaging API.
+
+If Web Workers don't stay in listening mode through `worker.onmessage` or an event listener, they'll be shut down as soon as their code is run through completion. You can use `workerInstance.terminate()` from the main thread or the globally-scoped `close()` inside of the worker to end it.
+
+Libraries can be loaded with `importScripts('../utils/file.js', './something.js')`. Numerous APIs can be reached, just not the DOM.
+https://flaviocopes.com/web-workers/
+
+### postMessage:
+```JavaScript
+if (typeof Worker !== 'undefined') { // check for support
+  const worker = new Worker('worker.js');
+  worker.postMessage('hello'); // send message - transfers it rather than shares it
+
+  worker.onmessage = event => {
+    console.log(event.data);
+  } // do something with the message that gets sent back
+}
+// or
+worker.addEventListener('message', event => {
+  console.log(event.data)
+}, false)
+
+// worker.js
+onmessage = event => {
+  console.log(event.data);
+  postMessage('hey'); // send back a message to the function that created it
+}
+
+onerror = event => {
+  console.error(event.message);
+}
+
+// to setup multiple listeners for the message event, don't use onmessage or onerror but set listeners for whichever type of event you're targetting
+addEventListener('message', event => {
+  console.log(event.data);
+  postMessage('hey');
+}, false);
+
+addEventListener('message', event => {
+  console.log(`I'm curious and I'm listening too`);
+}, false);
+
+addEventListener('error', event => {
+  console.log(event.message);
+}, false);
+
+```
+
+### Channel Messaging API
+Use Web Workers to send messages by posting it to messageChannel.port#.
+```JavaScript
+const worker = new Worker('worker.js')
+const messageChannel = new MessageChannel()
+messageChannel.port1.addEventListener('message', event => {
+  console.log(event.data)
+})
+worker.postMessage(data, [messageChannel.port2])
+
+// worker.js
+addEventListener('message', event => {
+  event.ports[0].postMessage(data)
+})
+
+```
 
 # AJAX
 Asynchronous JavaScript and XML for network requests to get information from the server.
