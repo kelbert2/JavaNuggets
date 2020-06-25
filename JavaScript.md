@@ -65,7 +65,7 @@ let c = counter(); // stores a reference to the lexical environment of the call 
 ```
 When a function runs at the beginning of a call, a new Lexical Environment is automatically created to store the variables and parameters of the call. When the code wants to access a variable, it searches the inner Lexical Environment first, then the outer one, then the one outside that, on and on until the global Lexical Environment is reached or the variable is found.
 
-A closure is a function that remembers its outer variables and can access them. In JavaScript, all functions are naturally closures - they automatically remember where they were created using the hidden [[Environment]] property, allowing their code to access outer variables.
+A closure is a function that remembers its outer variables and can access them. In JavaScript, all functions are naturally closures - they automatically remember where they were created using the hidden \[[Environment]] property, allowing their code to access outer variables.
 
 Lexical Environments are gnerally garbage collected when the function call finishes - if there are no references to it. 
 
@@ -104,6 +104,47 @@ The use of global variables is still greatly discouraged. They are useful to tes
 if (!window.Promise) {
   window.Promise = ... // custom implementation of the modern language feature
 }
+```
+### This Context and This Binding
+`this` keyword refers to the object upon which a function is executed - depends entirely on the call-site, which object contains it. If there's a global function, `this.property` can be used to access some global `property`.
+
+Calling `obj.fn()` where `fn` uses some `this` context will operate on the context of `obj`. Look to the left of the dot to figure out what `this` is bound to.
+
+You vcan explicitly pass context using `call()`, `apply()`, and `bind()` which are available on functions because it's available on the function prototype.
+
+```JavaScript
+function greet() {
+    console.log( this.name );
+}
+
+var person = {
+    name: 'Alex'
+};
+// Prints Alex
+greet.call( person, arg1, arg2, arg3, ... ); // pass arguments
+greet.apply( person, [args]); // pass arguments as an array or array-like object
+var greetPerson = greet.bind( person ); // create a new function that calls the original one with a context bound to whatever you pass.
+greetPerson(); // Alex
+```
+https://hackernoon.com/understanding-javascript-the-this-keyword-4de325d77f68
+
+### New
+You can use the `new` keyword to create a new instance of a class, but also to call any function. These are normally called constructor functions as it makes a constructor call. They will always return an object when called with new, regardless of the function's return value, unless that function returns its own object. this will be bound to the new object.
+
+```JavaScript
+function Dog(name) {
+  this.name = name; // returns nothing unless called with new
+}
+const doggie = new Dog("Cujo"); // { name: 'Cujo' }
+console.log(doggie.name); // Cujo
+
+
+function dogBreed(breed) {
+  this.name = "Clifford";
+  return { breed }; // returns an object
+}
+const bigRed = new Dog("Big"); // { bree: 'Big'}
+bigRed.name; // undefined
 ```
 
 ## Values
@@ -1073,19 +1114,19 @@ let clone = Object.create(Object.getPrototypeOf(obj), Object.getOwnPropertyDescr
 If one of the properties of an object is an object, then cloning will only clone a reference to the internal object - they will share that same internal object. To properly clone this, you need deep cloning to check if something is an object that needs to replicated as well.
 
 #### Prototypal Inheritance
-To extend an object with its properties an methods and build a new object on top of it.
+To extend an object with its properties an methods and build a new object on top of it. Mimics inheritance.
 
-Objects have a special hidden property `[[Prototype]]` that is either null or a reference to another object. When we try to read a property from the object and it's missing, we automatically take it from the prototype.
+Objects have a special hidden property `[[Prototype]]` that is either null or a reference to another object. When we try to read a property from the object and it's missing, we automatically look for it in the prototype. If it still doesn't find it, it'll continue bubbling up all the way to Object.prototype, at which point it returns undefined.
 
 Everything inherits from objects.
 ```JavaScript
-// it inherits from Array.prototype?
+// it inherits from Array.prototype
 alert( arr.__proto__ === Array.prototype ); // true
 
-// then from Object.prototype?
+// then from Object.prototype
 alert( arr.__proto__.__proto__ === Object.prototype ); // true
 
-// and null on the top.
+// and null on the top
 alert( arr.__proto__.__proto__.__proto__ ); // null
 // Prototypes are global, so don't modify the prototype for something like a primitive or you'll be changing how everything acts.
 ```
@@ -1125,8 +1166,34 @@ rabbit.walk = function() { // define own walk function, won't take from Animal
 };
 rabbit.walk(); // Rabbit! Bounce-bounce!
 ```
+Shadowing - Don't need to explicitly `@Override` a property that has the same name as one of its prototypical parents. Just declare it, and then JavaScript won't need to check up the prototype chain.
 
-Iterating Over Properties
+To call the prototype's function instead, nee to pass it the contextual binding. and call `call(context, arguments)` on its function.
+
+Functions, as objects, have prototypes as well:
+```JavaScript
+function Pet(name, species){
+    this.name = name;
+    this.species = species;
+}
+function view(){
+    return this.name + " is a " + this.species + "!";
+}
+Pet.prototype.view = view;
+function Dog(name){
+    Pet.call(this, name, "dog"); // pass object context you want to run the function on, plus arguments
+}
+Dog.prototype = new Pet();
+Dog.prototype.bark = function(){
+    alert("Woof!");
+}
+
+```
+https://timkadlec.com/2008/01/using-prototypes-in-javascript/
+
+If you're using ES6, you can use proper classes for inheritance behavior - though it is syntactic sugar. This means children can access parent functions vthat are created after the child was - because the child's inheritance, which is its prototype, is a reference rather than a concrete object.
+
+##### Iterating Over Properties
 
 The for..in loop will iterate over inherited properties as well.
 ```JavaScript
@@ -1375,6 +1442,40 @@ typeof alert // "function"  (3)
 ```
 
 ## Conversion
+### Coercion
+Unexpected type casting.
+
+\+ and - can only be used with values that are the same type.
+Can easily cast a number to a string by concatenating with a string.
+```JavaScript
+14 + "" // "14"
+
+"42" - 7 // 35, as - can only be used with numbers
+```
+#### Boolean Coercion
+Coercing into booleans is a bit different. Using the || operator, if the first value casts to true, that value is returned, otherwise the second is. With &&, if the first value casts to false (is falsy), that value is returned, otherwise the second is.
+
+This means you can use || to set default values:
+```JavaScript
+function greet (name) {
+    name = name || 'visitor'
+    console.log(`Hello, ${name}!`)
+}
+greet() // Hello, visitor!
+```
+The null-coalescing operator will return the second operand if the first is null or undefined. The logical OR operator || will return the second operand if the first is a falsy value like '' or 0.
+```JavaScript
+name = name ?? 'default';
+```
+In ES6, defaults can also be assigned directly in function arguments.
+
+#### Equality Comparison
+Using `==`, JavaScript will use coercion to cast values to the same type and then compare their values. `===` is strict equality - it won't type cast the values, and will therefore return false if they are different types or different values.
+```JavaScript
+42 == "42" // true
+42 === "42" // false
+```
+
 ### To String
 ```JavaScript
 let value = String(true); // "true"
