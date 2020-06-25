@@ -69,6 +69,14 @@ A closure is a function that remembers its outer variables and can access them. 
 
 Lexical Environments are gnerally garbage collected when the function call finishes - if there are no references to it. 
 
+### Declarations
+If you don't declare a variable, JavaScript will still look in the local scope, bubbling up its search to the global scope. If no variable is found, it will create a global one.
+
+Variable and function declarations are hoisted to the top of their scope (variable assignments are not, including if you assign a function to a variable name), so they can be used before their written definition.
+
+### Block Scope
+ES6 gives new declartion keywords `let` and `const`. They are only available in the `{code block}` in which they are defined, as delimitated by curly braces. Such variables are not hoisted
+
 ### Global Object
 In the browser, this is called `window`; in Node.js, this is called `global`. `globalThis` has now been added to the language and is gaining support.
 
