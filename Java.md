@@ -23,9 +23,9 @@ boolean
 
 Double and short data should not be used for precise values such as currency.
 
-Literals are representations of fixed values. Binary literals are prefixed with 0b or 0B.
+Literals are representations of fixed values. Binary literals are prefixed with `0b` or `0B`.
 
-Underscores can appear anywhere between digits in numerical literals, allowing you to separate groups of digits and improve readability. They don't work adjacent to decimal points, prior to, after, or between suffixes (like L or F) or prefixes (0x), and at the end or beginning (would make it an idenfier) of the number.
+Underscores can appear anywhere between digits in numerical literals, allowing you to separate groups of digits and improve readability. They don't work adjacent to decimal points, prior to, after, or between suffixes (like `L` or `F`) or prefixes (`0x`), and at the end or beginning (would make it an idenfier) of the number.
 
 ```Java
 byte a = 68;
@@ -236,7 +236,6 @@ int resNoCase = first.compareToIgnoreCase(second);
 og.substring(int startIndex, int endIndex);
 ```
 
-
 ### StringBuffer
 Modifiable String - growable and writable. Synchronized and thread-safe, unlike StringBuilder.
 
@@ -282,7 +281,8 @@ StringBuffer sContents = new StringBuffer("intial content");
 ```
 ### StringBuilder
 Resizable array of strings, like an ArrayList. Automatically increases when needed so capacity > length
-Else would take O(xn<sup>2<sup>) time to concatenate _n_ strings of _x_ length.
+
+Otherwise would take O(xn<sup>2</sup>) time to concatenate _n_ strings of _x_ length.
 
 ```Java
 // creates empty builder, capacity 16
@@ -334,7 +334,7 @@ Enum.values() allows you to iterate over constants.
 For Enums defined as NAME("some string"), enum.name() is NAME and enum.toString() or just enum is "some string".
 ```Java
 enum MixedColor {
-    PURPLE("red", "blue"), GREEN ("yellow", "blue"), ORANGE("red", "yellow");
+    PURPLE("red", "blue"), GREEN("yellow", "blue"), ORANGE("red", "yellow");
     public String color1;
     public String color2;
     private Color(String c, String r) {
@@ -621,7 +621,48 @@ public class OtherClass {
 }
 
 ```
-Parameters passed by value are unchanged by the function. Parameters passed by reference can be modified by the function.
+Parameters passed by value are unchanged by the function. Parameters passed by reference can be modified by the function. 
+
+Object variables are references that point to real objects in the memory heap, so the underlying object will be modified. 
+
+Primitives are passed by value, so a local copy of it will be used and changed.
+
+Primitive wrappers are immutable. They are also passed by value, so the underlying object, like a String, is not modified. The only way to change the value of a variable holding such an object is to reassign it to a new one.
+
+```Java
+static void change(String name) {
+    name = name + " Last";
+}
+public static void main(String... doYourBest) {
+    String name = "First";
+    change(name);
+    System.out.println(name); // First
+}
+
+// This works by reassignment
+static void change() {
+    return "Changed";
+}
+public static void main(String... doYourBest) {
+    String name = "Unchanged";
+    name = change();
+    System.out.println(name); // Changed
+}
+```
+	
+Mutable objects like StringBuilders are passed by reference and therefore can be modified.
+```Java
+static void addSurname(StringBuilder name) {
+    name.append(" Last"); // modifies the object vitself
+
+    name = null; // will do nothing as only passing to the variables, not modifying the object itself
+}
+public static void main(String... mutableObjectExample) {
+    StringBuilder name = new StringBuilder("First");
+    addSurname(name);
+    System.out.println(name); // First Last
+}
+```
 
 ### Comparisons
 Used for object reference variables to check if an object is of a particular class or interface type:
@@ -635,7 +676,7 @@ if name is null, instanceof is false.
 ### Serialization into Streams
 Objects can be represented as sequences of bytes that include information about the object's data, type, and types of data. Through deserialization, the object can be recreated.
 
-All fields must be serializable. If they are not, they mus tbe marked transient.
+All fields must be serializable. If they are not, they must be marked transient.
 
 ```Java
 public class Cereal implements java.io.Serializable {
@@ -813,7 +854,6 @@ new Properties(Properties propDefault); // same default values
 * `Enumeration propertyNames()`
 * `void store(OutputStream streamOut, String description)`
 
-
 ## Arrays
 Fixed-size sequential collection of elements of the same type.
 
@@ -934,7 +974,6 @@ Static methods.
 * `static List synchronizedList(List list)`
 * `static Map synchronizedMap(Map m)`
 * `static SortedMap synchronizedSortedMap(SortedMap sm)`
-
 
 Ordering
 * `static void sort(List list)`: Sorts by natural ordering.
@@ -1139,7 +1178,6 @@ class Node() {
         PersistentStackType push(Object item) {
             return new PersistentStackType(new Node(item, top));
         }
-        
     }
 ```
 
@@ -1267,7 +1305,6 @@ public class MinHeap {
 ```
 
 ### Binary Minimum Heap
-
 * Root is a minimum and all of the levels are as full or as left as possible
 * Root at Arr[0], parent of i: Arr[i/2], left child of i: Arr[(2*i)+1], right child of i: Arr[(2*i)+2]
 * This is level-mode traversal
@@ -1400,8 +1437,6 @@ Set<String> hashbrowns = new HashSet<String>();
 TreeSet sortedSet = new TreeSet<String>(hashbrowns); // Collection c
 // int capacity
 // int capacity, float fillRatio or loadCapacity
-
-
 ```
 
 #### Iteration
@@ -1567,7 +1602,6 @@ Maintains order by sorting with Comparator or comparable.
 TreeMap<String, Integer> aspen = new TreeMap<String, Integer>(Comparator comp);
 TreeMap<String, Integer> beech = new TreeMap<String, Integer>(Map m);
 TreeMap<String, Integer> chestnut = new TreeMap<String, Integer>(SortedMap sm); // intializes with same sorted order as sm
-
 ```
 
 ### LinkedHashMap
@@ -1722,9 +1756,7 @@ public static Node findMaximum(Node root) {
   
     return succ; 
 } 
-
 ```
-
 
 ##### Binary Search Trees
 Relative ordering and quick insert time
@@ -1735,10 +1767,10 @@ Can also define by having all duplicates on one side or the other, or no duplica
 Left are less,
 Right are greater
 
-Balanced if O(log n) insert and find.
-Full if no node has only one child.
-Complete if every level is fully filled, fromt left to right, except maybe the last level.
-Perfect if full and complete.
+* Balanced if O(log n) insert and find.
+* Full if no node has only one child.
+* Complete if every level is fully filled, fromt left to right, except maybe the last level.
+* Perfect if full and complete.
 
 2^k-1 nodes for _k_ levels.
 
@@ -2044,7 +2076,6 @@ T1   y     Left Rotate(x)       x      z
 ##### Red-Black Tree
 
 #### Splay Tree
-
 
 # Algorithms
 
@@ -2401,7 +2432,6 @@ void merge(int[] array, int [] helper, int low, int middle, int high) {
     }
     // array is now sorted.
 }
-
 ```
 
 Done in constant space, O(1):
@@ -2628,7 +2658,7 @@ static void quickSortIterative(int[] array, int low, int high) {
         }
     }
 }
-````
+```
 
 #### Random
 With a random pivot, worst case isn’t as bad
@@ -2930,8 +2960,6 @@ ListIterator allows for bidirectional traversal and the modification of elements
 * `Object liter.previous()`
 * `int liter.nextIndex()`: If no next element, returns size of the list.
 * `int liter.previousIndex()`: if no previous element, returns -1.
-
-
 
 # Comparator
 Return 
@@ -3388,10 +3416,25 @@ Don’t let the stack be executable, but then can still store shellcode in the h
 Randomize where store memory within memory space, so can’t store some executable code and know where to find it, but possible to load into a fixed space, so may need position-independent executables (PIE)
 Morris, Witty, Slammer, Blaster worms
 
-Frames
+Java good at avoiding out of memory errors through its Garbage Collector.
 
+### Heap
+Can access throughout the application. Persists so long as the application does, larger than the stack.
+* Runtime classes loaded in
+* Objects
+* Memory objects
+* Strings go to a String Pool
 
-### Stack smash
+### Stack
+Only used for the method(s) currently running. Faster, smaller, and temporary.
+* Primitive local variables
+* Arguments to the function are copied so they can be passed by value
+* References to objects, Strings
+
+#### Stack Frames
+Frames/ blocks are created at the top of the stack for new contexts. Arguments are passed in by value, but for values that are really addresses/ locations in memory (i.e. variables pointing to objects), the copy of these addresses still point to the underlying object, and are therefore able to modify it.
+
+#### Stack smash
 Highest addres 0xFFFF
 
 Stack contains 
@@ -3512,7 +3555,7 @@ public class Encap {
 
 If want something to be read- or write-only, just don't include the setter or getter.
 
-### Inheritance Extends
+### Inheritance Extends Once
 Inheritance of properties: subclass or derived class inherits from the superclass or base class. They inherit the implementation of methods, but this can be overridden. 
 
 A subclass IS-A superclass type. Subclass also IS-A superclass of its own superclass.
@@ -3563,7 +3606,7 @@ duper = new Sub(); // can refer to subtypes of its declared type, works with dec
 ```
 
 ### Interfaces are Implemented
-Like contracts on how tp communicate or behave. Interfaces define methods but leave implementation up to the subclass. They're collections of abstract methods, default methods, static methods, constants, and nested types.
+Like contracts on how to communicate or behave. Interfaces define methods but leave implementation up to the subclass. They're collections of abstract methods, default methods, static methods, constants, and nested types.
 
 Interfaces are a blueprint or a contract, telling you what it can _do_ - assigns functions with return values but doesn’t define them: all methods are public abstract.
 
@@ -3623,7 +3666,7 @@ Abstraction: abstract class or interface and then implements. Only provides the 
 
 > Abstract cannot be instantiated (can’t create an object of it), but they can be inherited. Inheriting classes can also be abstract.
 
-> Methods can be abstract (undefined) or concrete methods (defined), and the non-abstract child class must provide implementations to all abstract methods.
+> Unlike with interfaces, methods can be abstract (undefined) or concrete methods (defined), and the non-abstract child class must provide implementations to all abstract methods.
 
 ```Java
 public abstract class Parent {
@@ -3833,11 +3876,9 @@ Cannot use primitives like int or string - must use Integer or String. Can use m
 Generics are not polymorphic - ArrayList<Integer> is not a subtype of ArrayList<Long> so it cannot be cast as such.
 
 ```Java
-Live Demo
-
 public class GenericMethodTest {
    // generic method printArray
-   public static < E > void printArray( E[] inputArray ) {
+   public static <E> void printArray( E[] inputArray ) {
       // Display array elements
       for(E element : inputArray) {
          System.out.printf("%s ", element);
@@ -3893,7 +3934,6 @@ public class MaximumTest {
 }
 ```
 Classes can also be generic.
-
 ```Java
 public class Box<T, B> {
    private T t;
@@ -4504,7 +4544,6 @@ As containers, Applets inherit event-handling methods. With Graphics, you can di
 
 
 Sandbox security
-
 
 # Concurrency and Multithreading
 Two or more threads can run concurrently, each handling a different task at the same time.
@@ -5774,7 +5813,6 @@ DateFormat parses and formats locale-independent. SimpleDateFormat is locale-sen
 * `getDateInstance`
 * `getTimeInstance`
 
-
 DateTimeFormatter:
 ```Java
 Locale.setDefault(Locale.US);
@@ -6414,7 +6452,6 @@ Lambdas are particularly useful in parallel computing. They can't change the val
 StateOwner stateOwner = new StateOwner();
 
 stateOwner.addStateListener(new StateChangeListener() {
-
     public void onStateChange(State oldState, State newState) {
         // do something with the old and new state.
     }
@@ -6463,7 +6500,7 @@ MyInterface myInterface = new MyInterface() {
 ```
 
 ## Functional Interfaces
-
+Interface with only one abstract method.
 ```Java
 @FunctionalInterface // helpful annotation
 public interface Foo {
@@ -6682,7 +6719,7 @@ Assertion that body of the annotated method doesn't perform potentially unsafe o
 You're not supposed to return a parameterized varargs array, which will be type Object[] regardless of `method(T... elements)` T.
 
 # Memory Leaks
-When objects are no longer bein used by the application but the Garbage Collector can't remove them from working memory, as they are still being referenced.
+When objects are no longer being used by the application but the Garbage Collector can't remove them from working memory, as they are still being referenced. Could also be due to lots of temporary, large, memory-hogging objects.
 
 OutOfMemoryError.
 
