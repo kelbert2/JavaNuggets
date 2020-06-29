@@ -1,6 +1,59 @@
 # Java Exampes
-## Reverse Polish Notation
+## Caclute Target Number from Array
+```Java
+static int findTotalWays(Vector<Integer> arr, int i, int k) { 
+        // Target is reached, return 1 since found 1 way to do it
+        if (k == 0 && i == arr.size()) { 
+            return 1; 
+        } 
+  
+        // Target not reached, return 0 
+        if (i >= arr.size()) { 
+            return 0; 
+        } 
+  
+        // Return total count of three cases 
+        // Don't consider current element 
+        // Consider current element and subtract it from target 
+        // Consider current element and add it to target 
+        return findTotalWays(arr, i + 1, k) 
+            + findTotalWays(arr, i + 1, k - arr.get(i)) 
+            + findTotalWays(arr, i + 1, k + arr.get(i)); 
+} 
+```
+https://www.geeksforgeeks.org/number-of-ways-to-calculate-a-target-number-using-only-array-elements/
+## Reverse Linked List
+Given a pointer to the head, reverse the direction of the links.
 
+O(n) time and O(1) space
+
+Use three pointers: prev, curr, and next.
+Iterate through the list, capturing the original next value but swapping the reference to the previous one.
+```Java
+class Node {
+    int data;
+    Node next;
+    Node(int d) {
+        data = d;
+        next = null;
+    }
+}
+Node reverseLinkedList(Node head) {
+    Node prev = null;
+    Node curr = head;
+    Node next = null;
+
+    while(curr != null) {
+        next = curr.next;
+        curr.next = prev;
+        prev = curr;
+        curr = next;
+    }
+    head = prev;
+    return head;
+}
+```
+## Reverse Polish Notation
 Reverse Polish notation is a mathematical notation in which every operator follows all of its operands.
 2
 3 4 - 5 +

@@ -67,6 +67,8 @@ When a function runs at the beginning of a call, a new Lexical Environment is au
 
 A closure is a function that remembers its outer variables and can access them. In JavaScript, all functions are naturally closures - they automatically remember where they were created using the hidden \[[Environment]] property, allowing their code to access outer variables.
 
+The closure can access its own scope, the outer function's variables, and global variables.
+
 Lexical Environments are gnerally garbage collected when the function call finishes - if there are no references to it. 
 
 ### Declarations
@@ -3131,6 +3133,73 @@ If you are calling an insane number of recursive calls, to avoid a stack overflo
 Whenever a function runs, it cannot be pre-empted and will run entirely before any others.
 
 The Event Loop allows for the performance of non-blocking Input/ Output (I/O) operations by offloading them to the (often) multi-threaded system kernel to execute in the background. Such operations include network requrests and filesystem operations.
+
+### Phases
+Each has a FIFO queue of callbacks to execute. Does so until the queue is exhausted or the maximum number of callbacks has been reached, at which point the Event Loop moves on to the next phase.
+```
+   ┌───────────────────────────┐
+┌─>│           timers          │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │     pending callbacks     │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │       idle, prepare       │
+│  └─────────────┬─────────────┘      ┌───────────────┐
+│  ┌─────────────┴─────────────┐      │   incoming:   │
+│  │           poll            │<─────┤  connections, │
+│  └─────────────┬─────────────┘      │   data, etc.  │
+│  ┌─────────────┴─────────────┐      └───────────────┘
+│  │           check           │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+└──┤      close callbacks      │
+   └───────────────────────────┘
+```
+Between each run of the event loop, Node.js checks if it's waiting for any async I/O or timers, and will shut down cleanly if there aren't any.
+
+`setImmediate()` executes a script once the current poll phase completes. `setTimeout()` requires a minimum threshold of time to have elapsed before it schedules its script to run. Within an I/O cycle, like a `readFile` callback, `setImmediate()` will always be executed before any timers.
+
+#### Timers
+Executes callbacks scheduled by `setTimeout()` and `setInterval()` after waiting at least as long as the threshold provided.
+#### Pending Callbacks
+Executes I/O callbacks previously deferred to the next loop iteration, such vas TCP errors.
+#### Idle, Prepare
+Used internally.
+#### Poll
+Retrieves new I/O events, executes I/O related callbacks (except close callbacks, timers, and `setImmediate()`). Node will block here when appropriate.
+
+If there are no timers scheduled: 
+
+ If the poll queue isn't empty: the event loop iterates through its queue of callbacks, executing them synchronously until either the queue is exhuasted or the system-dependent hard limit is reached.
+
+ If the poll queue is empty:
+
+   If scripts have been scheduled by `setImmediate()`: the event loop ends the poll phase and continues on to check in order to execute those scripts.
+
+   If scripts have not been scheduled by `setImmediate()`: the event loop waits for callbacks to be added to the queue and will execute them immediately.
+
+Once the poll queue is empty, the event loop checks for timers whose threshold has been reached. If one or more are ready, the event loop wraps back to the timers phase to execute those timer's callbacks.
+#### Check
+Invokes `setImmediate()` callbacks. `setImmediate()` is a special timer that runs in a separate phase of the event loop.
+#### Close Callbacks
+Executes some close callbacks, like `socket.on('close', ...)`. If a socket or handle is closed abruptly (as with `socket.destroy()`), the 'close' event is emitted during this phase, otherwise it will be emitted via `process.nextTick()`.
+#### NextTick
+Callbacks passed to `process.nextTick()` will be resolved before the event loop continues regardless of the phase the event loop was in. The `nextTickQueue` is processed after the current operation is completed. This allows you to starve your I/O with recursive `nextTick()` calls and thereby preventing the event loop from reaching the poll phase.
+```JavaScript
+let bar;
+
+function someAsyncApiCall(callback) {
+  process.nextTick(callback); // will run after bar has been assigned (below)
+}
+someAsyncApiCall(() => {
+  console.log('bar', bar); // 1
+});
+
+bar = 1;
+```
+`process.nextTick()` fires immediately on the same phase - more immediately than `setImmediate()` which fires on the following iteration or 'tick' of the event loop. `setImmediate()` is recommended as it's easier to comprehend.
+
 
 ### Message Queue
 For user-initiated events like click or keyboard events, fetch responses, DOM events like onLoad, and timeout callbacks. Once everything in the call stack is processed, it picks things in the message queue.
